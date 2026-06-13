@@ -78,7 +78,7 @@ function InsumoItem({ i, role, onSolicitar, onQuitarSolicitud, onActualizarCanti
         <div style={styles.itemBody}>
           <div style={styles.itemRow}>
             <span style={styles.campoLabel}>Cantidad en stock</span>
-            {role === 'admin' ? (
+            {(role === 'admin' || role === 'operador') ? (
               <input
                 type="number" min={0} value={i.cantidad}
                 onChange={e => onActualizarCantidad(i.id, e.target.value)}
@@ -107,7 +107,7 @@ function InsumoItem({ i, role, onSolicitar, onQuitarSolicitud, onActualizarCanti
                 ✕ Quitar solicitud
               </button>
             )}
-            {role === 'admin' && (
+            {(role === 'admin' || role === 'operador') && (
               <button onClick={() => onEliminar(i.id)} style={styles.btnEliminar}>🗑️ Eliminar</button>
             )}
           </div>
@@ -176,7 +176,7 @@ export default function TabInsumos({ centro, role, sincronizarEstado }) {
     <div>
       <div style={styles.topBar}>
         <h3 style={styles.titulo}>Insumos</h3>
-        {role === 'admin' && <button onClick={() => setModalAgregar(true)} style={styles.btnAgregar}>+ Agregar</button>}
+        {(role === 'admin' || role === 'operador') && <button onClick={() => setModalAgregar(true)} style={styles.btnAgregar}>+ Agregar</button>}
       </div>
       {insumos.length === 0 && <p style={styles.vacio}>Sin insumos registrados.</p>}
       <div style={styles.lista}>

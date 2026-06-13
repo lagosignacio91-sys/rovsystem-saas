@@ -90,7 +90,7 @@ function EquipoCard({ titulo, datos, onGuardar, role }) {
       {abierto && (
         <div style={styles.cardBody}>
           <div style={styles.bodyHeader}>
-            {role === 'admin' && (
+            {(role === 'admin' || role === 'operador') && (
               <button onClick={() => editando ? handleGuardar() : setEditando(true)} style={editando ? styles.btnSave : styles.btnEdit}>
                 {editando ? 'Guardar' : 'Editar'}
               </button>

@@ -78,7 +78,7 @@ function HerramientaItem({ h, role, onSolicitar, onQuitarSolicitud, onActualizar
         <div style={styles.itemBody}>
           <div style={styles.itemRow}>
             <span style={styles.campoLabel}>Cantidad en stock</span>
-            {role === 'admin' ? (
+            {(role === 'admin' || role === 'operador') ? (
               <input
                 type="number" min={0} value={h.cantidad}
                 onChange={e => onActualizarCantidad(h.id, e.target.value)}
@@ -107,7 +107,7 @@ function HerramientaItem({ h, role, onSolicitar, onQuitarSolicitud, onActualizar
                 ✕ Quitar solicitud
               </button>
             )}
-            {role === 'admin' && (
+            {(role === 'admin' || role === 'operador') && (
               <button onClick={() => onEliminar(h.id)} style={styles.btnEliminar}>🗑️ Eliminar</button>
             )}
           </div>
@@ -176,7 +176,7 @@ export default function TabHerramientas({ centro, role, sincronizarEstado }) {
     <div>
       <div style={styles.topBar}>
         <h3 style={styles.titulo}>Herramientas</h3>
-        {role === 'admin' && <button onClick={() => setModalAgregar(true)} style={styles.btnAgregar}>+ Agregar</button>}
+        {(role === 'admin' || role === 'operador') && <button onClick={() => setModalAgregar(true)} style={styles.btnAgregar}>+ Agregar</button>}
       </div>
       {herramientas.length === 0 && <p style={styles.vacio}>Sin herramientas registradas.</p>}
       <div style={styles.lista}>
