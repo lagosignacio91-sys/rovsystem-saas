@@ -155,7 +155,7 @@ function EquipoCard({ titulo, datos, onGuardar, role }) {
   )
 }
 
-export default function TabROV({ centro, role, onEstadoCambio }) {
+export default function TabROV({ centro, role, sincronizarEstado }) {
   const [principal, setPrincipal] = useState({})
   const [backup, setBackup]       = useState({})
   const [cargando, setCargando]   = useState(true)
@@ -168,30 +168,26 @@ export default function TabROV({ centro, role, onEstadoCambio }) {
         const p = snap.data().principal ?? {}
         const b = snap.data().backup ?? {}
         setPrincipal(p); setBackup(b)
-        verificarEstadoCentro(p, b)
-      } else {
-        onEstadoCambio && onEstadoCambio(centro.id, 'OK')
       }
       setCargando(false)
     }
     cargar()
   }, [centro.id])
 
-  const verificarEstadoCentro = (p, b) => {
-    const tieneFalla = (eq) => Object.values(eq.estados ?? {}).some(e => e === 'falla')
-    onEstadoCambio && onEstadoCambio(centro.id, (tieneFalla(p) || tieneFalla(b)) ? 'EQUIPMENT_FAULT' : 'OK')
+  const verificarEstadoCentro = async () => {
+    if (sincronizarEstado) await sincronizarEstado(centro.id)
   }
 
   const guardarPrincipal = async (datos) => {
     const ref = doc(db, 'centros', centro.id, 'equipos', 'rov')
     await setDoc(ref, { principal: datos, backup }, { merge: true })
-    setPrincipal(datos); verificarEstadoCentro(datos, backup)
+    setPrincipal(datos); await verificarEstadoCentro()
   }
 
   const guardarBackup = async (datos) => {
     const ref = doc(db, 'centros', centro.id, 'equipos', 'rov')
     await setDoc(ref, { principal, backup: datos }, { merge: true })
-    setBackup(datos); verificarEstadoCentro(principal, datos)
+    setBackup(datos); await verificarEstadoCentro()
   }
 
   if (cargando) return <p style={{ color: '#64748b', fontSize: '13px' }}>Cargando...</p>
