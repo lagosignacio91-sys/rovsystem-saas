@@ -1,104 +1,64 @@
+import { AlertOctagon, Package, CheckCircle2, X, ArrowRight } from 'lucide-react'
 import { useResumenCentro } from '../../hooks/useResumenCentro'
-
-const STATUS_COLORS = {
-  OK:              '#22c55e',
-  LOW_STOCK:       '#eab308',
-  EQUIPMENT_FAULT: '#ef4444',
-  DISPATCH_ONWAY:  '#3b82f6',
-  NO_OPERATOR:     '#6b7280',
-}
-
-const STATUS_LABELS = {
-  OK:              '🟢 OK',
-  LOW_STOCK:       '🟡 Stock bajo',
-  EQUIPMENT_FAULT: '🔴 Falla de equipo',
-  DISPATCH_ONWAY:  '🔵 Despacho en camino',
-  NO_OPERATOR:     '⚫ Sin operador',
-}
+import { t } from '../../theme/tokens'
+import { EstadoBadge } from '../kit'
 
 export default function PopupCentro({ centro, onAbrir, onCerrar }) {
   const { fallas, solicitudes } = useResumenCentro(centro.id)
 
   return (
-    <div
-      style={styles.wrapper}
-      onClick={e => e.stopPropagation()}
-      onMouseDown={e => e.stopPropagation()}
-    >
-      <div style={styles.header}>
-        <div>
-          <div style={styles.nombre}>{centro.nombre}</div>
-          <div style={{ ...styles.estado, color: STATUS_COLORS[centro.estado] }}>
-            {STATUS_LABELS[centro.estado] ?? centro.estado}
-          </div>
+    <div style={s.wrapper} onClick={e => e.stopPropagation()} onMouseDown={e => e.stopPropagation()}>
+      <div style={s.header}>
+        <div style={{ minWidth: 0 }}>
+          <div style={s.nombre}>{centro.nombre}</div>
+          <div style={{ marginTop: 5 }}><EstadoBadge estado={centro.estado} /></div>
         </div>
-        <button
-          onClick={e => { e.stopPropagation(); onCerrar() }}
-          style={styles.btnCerrar}
-        >✕</button>
+        <button onClick={e => { e.stopPropagation(); onCerrar() }} className="gl-icon-btn" style={{ padding: 4 }} aria-label="Cerrar"><X size={15} /></button>
       </div>
 
       {fallas.length > 0 && (
-        <div style={styles.seccion}>
-          <div style={styles.seccionTitulo}>⚠️ Fallas de equipo</div>
+        <div style={{ marginBottom: 8 }}>
+          <div style={s.seccionTitulo}><AlertOctagon size={11} color={t.fault} /> Fallas de equipo</div>
           {fallas.map((f, i) => (
-            <div key={i} style={styles.itemFalla}>
-              <span style={styles.itemTipo}>{f.equipo} — {f.campo}</span>
-              <span style={styles.itemDetalle}>{f.razon}</span>
+            <div key={i} style={s.itemFalla}>
+              <span style={s.itemTipo}>{f.equipo} — {f.campo}</span>
+              <span style={s.itemDetalle}>{f.razon}</span>
             </div>
           ))}
         </div>
       )}
 
       {solicitudes.length > 0 && (
-        <div style={styles.seccion}>
-          <div style={styles.seccionTitulo}>📦 Solicitudes pendientes</div>
-          {solicitudes.map((s, i) => (
-            <div key={i} style={styles.itemSolicitud}>
-              <span style={styles.itemTipo}>{s.tipo}</span>
-              <span style={styles.itemDetalle}>{s.nombre} — Cant: {s.cantidad}</span>
+        <div style={{ marginBottom: 8 }}>
+          <div style={s.seccionTitulo}><Package size={11} color={t.dispatch} /> Solicitudes pendientes</div>
+          {solicitudes.map((sol, i) => (
+            <div key={i} style={s.itemSolicitud}>
+              <span style={s.itemTipo}>{sol.tipo}</span>
+              <span style={s.itemDetalle}>{sol.nombre} — Cant: {sol.cantidad}</span>
             </div>
           ))}
         </div>
       )}
 
       {fallas.length === 0 && solicitudes.length === 0 && (
-        <div style={styles.okMsg}>✅ Sin alertas activas</div>
+        <div style={s.okMsg}><CheckCircle2 size={14} /> Sin alertas activas</div>
       )}
 
-      <button
-        onClick={e => { e.stopPropagation(); onAbrir(centro) }}
-        style={styles.btnAbrir}
-      >
-        Ver centro completo →
+      <button onClick={e => { e.stopPropagation(); onAbrir(centro) }} className="gl-btn gl-btn--primary gl-btn--md" style={{ width: '100%', marginTop: 4 }}>
+        Ver centro completo <ArrowRight size={15} />
       </button>
     </div>
   )
 }
 
-const styles = {
-  wrapper:       {
-    minWidth: '230px', maxWidth: '290px',
-    background: '#0f172a',
-    border: '1px solid #1e3a5f',
-    borderRadius: '12px',
-    padding: '12px',
-    boxShadow: '0 8px 32px rgba(0,0,0,0.8)',
-    fontFamily: 'inherit',
-  },
-  header:        { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' },
-  nombre:        { color: '#f1f5f9', fontSize: '14px', fontWeight: '700' },
-  estado:        { fontSize: '12px', fontWeight: '600', marginTop: '2px' },
-  btnCerrar:     {
-    background: '#1e293b', border: '1px solid #334155', color: '#94a3b8',
-    borderRadius: '4px', padding: '2px 8px', cursor: 'pointer', fontSize: '12px', flexShrink: 0,
-  },
-  seccion:       { marginBottom: '8px' },
-  seccionTitulo: { color: '#64748b', fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' },
-  itemFalla:     { background: '#450a0a', border: '1px solid #7f1d1d', borderRadius: '6px', padding: '5px 8px', marginBottom: '3px', display: 'flex', flexDirection: 'column', gap: '2px' },
-  itemSolicitud: { background: '#1e293b', border: '1px solid #334155', borderRadius: '6px', padding: '5px 8px', marginBottom: '3px', display: 'flex', flexDirection: 'column', gap: '2px' },
-  itemTipo:      { color: '#94a3b8', fontSize: '10px', fontWeight: '600' },
-  itemDetalle:   { color: '#f1f5f9', fontSize: '11px' },
-  okMsg:         { color: '#22c55e', fontSize: '12px', marginBottom: '8px', textAlign: 'center' },
-  btnAbrir:      { width: '100%', background: 'linear-gradient(135deg, #1d4ed8, #2563eb)', border: 'none', color: '#fff', borderRadius: '8px', padding: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: '600', marginTop: '4px' },
+const s = {
+  wrapper:       { minWidth: 240, maxWidth: 290, background: t.bgElevated, border: `1px solid ${t.border}`, borderRadius: t.radiusLg, padding: 13, boxShadow: t.shadowLg },
+  header:        { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10, gap: 8 },
+  nombre:        { color: t.textPrimary, fontSize: t.textSm, fontWeight: 700 },
+  seccionTitulo: { display: 'flex', alignItems: 'center', gap: 5, color: t.textMuted, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 4 },
+  itemFalla:     { background: t.faultTint, border: `1px solid ${t.fault}`, borderRadius: t.radiusSm, padding: '5px 8px', marginBottom: 3, display: 'flex', flexDirection: 'column', gap: 2 },
+  itemSolicitud: { background: t.bgInput, border: `1px solid ${t.border}`, borderRadius: t.radiusSm, padding: '5px 8px', marginBottom: 3, display: 'flex', flexDirection: 'column', gap: 2 },
+  itemTipo:      { color: t.textSecondary, fontSize: 10, fontWeight: 600 },
+  itemDetalle:   { color: t.textPrimary, fontSize: 11 },
+  okMsg:         { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, color: t.ok, fontSize: t.textSm, marginBottom: 8 },
 }

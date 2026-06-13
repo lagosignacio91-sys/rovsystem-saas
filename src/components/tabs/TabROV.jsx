@@ -80,7 +80,7 @@ function EquipoCard({ titulo, datos, onGuardar, role }) {
           {form.modelo && <span style={styles.acordeonModelo}>{form.modelo}</span>}
         </div>
         <div style={styles.acordeonDer}>
-          <span style={{ ...styles.estadoBadge, color: tieneFalla ? '#f87171' : '#22c55e', background: tieneFalla ? '#450a0a' : '#14532d' }}>
+          <span style={{ ...styles.estadoBadge, color: tieneFalla ? 'var(--gl-fault)' : 'var(--gl-ok)', background: tieneFalla ? 'var(--gl-fault-tint)' : 'var(--gl-ok-tint)' }}>
             {tieneFalla ? '⚠️ Falla' : '● Operativo'}
           </span>
           <span style={styles.chevron}>{abierto ? '▲' : '▼'}</span>
@@ -190,7 +190,7 @@ export default function TabROV({ centro, role, sincronizarEstado }) {
     setBackup(datos); await verificarEstadoCentro()
   }
 
-  if (cargando) return <p style={{ color: '#64748b', fontSize: '13px' }}>Cargando...</p>
+  if (cargando) return <p style={{ color: 'var(--gl-text-muted)', fontSize: '13px' }}>Cargando...</p>
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -201,44 +201,44 @@ export default function TabROV({ centro, role, sincronizarEstado }) {
 }
 
 const styles = {
-  card:           { background: '#0f172a', border: '1px solid #334155', borderRadius: '10px', overflow: 'hidden' },
-  acordeonHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', cursor: 'pointer', userSelect: 'none', background: '#1e293b' },
+  card:           { background: 'var(--gl-bg-input)', border: '1px solid var(--gl-border)', borderRadius: '10px', overflow: 'hidden' },
+  acordeonHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', cursor: 'pointer', userSelect: 'none', background: 'var(--gl-bg-elevated)' },
   acordeonIzq:    { display: 'flex', flexDirection: 'column', gap: '2px' },
-  acordeonTitulo: { color: '#f1f5f9', fontWeight: '700', fontSize: '12px' },
-  acordeonModelo: { color: '#64748b', fontSize: '11px' },
+  acordeonTitulo: { color: 'var(--gl-text-primary)', fontWeight: '700', fontSize: '12px' },
+  acordeonModelo: { color: 'var(--gl-text-muted)', fontSize: '11px' },
   acordeonDer:    { display: 'flex', alignItems: 'center', gap: '8px' },
   estadoBadge:    { fontSize: '10px', fontWeight: '700', borderRadius: '5px', padding: '2px 7px' },
-  chevron:        { color: '#64748b', fontSize: '10px' },
-  cardBody:       { padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: '6px', borderTop: '1px solid #334155' },
+  chevron:        { color: 'var(--gl-text-muted)', fontSize: '10px' },
+  cardBody:       { padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: '6px', borderTop: '1px solid var(--gl-border)' },
   bodyHeader:     { display: 'flex', justifyContent: 'flex-end' },
   fila:           { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '6px' },
   filaIzq:        { flex: 1, display: 'flex', flexDirection: 'column', gap: '1px' },
-  campoLabel:     { color: '#475569', fontSize: '9px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' },
-  campoValor:     { color: '#f1f5f9', fontSize: '11px' },
-  sinCodigo:      { color: '#eab308', fontSize: '11px' },
-  valorFalla:     { color: '#f87171', fontSize: '11px', cursor: 'pointer', textDecoration: 'underline dotted' },
-  verFallaHint:   { fontSize: '10px', color: '#94a3b8' },
-  btnFalla:       { width: '24px', height: '24px', borderRadius: '4px', border: 'none', cursor: 'pointer', fontSize: '11px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#1e293b', flexShrink: 0 },
-  btnFallaActivo: { background: '#dc2626', boxShadow: '0 0 0 2px #fca5a5' },
-  btnEdit:        { background: 'transparent', border: '1px solid #3b82f6', color: '#3b82f6', borderRadius: '4px', padding: '2px 8px', cursor: 'pointer', fontSize: '10px' },
-  btnSave:        { background: '#2563eb', border: 'none', color: '#fff', borderRadius: '4px', padding: '2px 8px', cursor: 'pointer', fontSize: '10px' },
-  input:          { background: '#1e293b', border: '1px solid #334155', borderRadius: '4px', color: '#f1f5f9', fontSize: '11px', padding: '3px 6px', outline: 'none', width: '100%', boxSizing: 'border-box' },
-  obsBox:         { background: '#1e293b', borderRadius: '6px', padding: '6px 8px', marginTop: '2px' },
+  campoLabel:     { color: 'var(--gl-text-muted)', fontSize: '9px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' },
+  campoValor:     { color: 'var(--gl-text-primary)', fontSize: '11px' },
+  sinCodigo:      { color: 'var(--gl-low)', fontSize: '11px' },
+  valorFalla:     { color: 'var(--gl-fault)', fontSize: '11px', cursor: 'pointer', textDecoration: 'underline dotted' },
+  verFallaHint:   { fontSize: '10px', color: 'var(--gl-text-secondary)' },
+  btnFalla:       { width: '24px', height: '24px', borderRadius: '4px', border: 'none', cursor: 'pointer', fontSize: '11px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--gl-bg-elevated)', flexShrink: 0 },
+  btnFallaActivo: { background: 'var(--gl-fault)', boxShadow: '0 0 0 2px var(--gl-fault)' },
+  btnEdit:        { background: 'transparent', border: '1px solid var(--gl-dispatch)', color: 'var(--gl-dispatch)', borderRadius: '4px', padding: '2px 8px', cursor: 'pointer', fontSize: '10px' },
+  btnSave:        { background: 'var(--gl-brand)', border: 'none', color: '#fff', borderRadius: '4px', padding: '2px 8px', cursor: 'pointer', fontSize: '10px' },
+  input:          { background: 'var(--gl-bg-elevated)', border: '1px solid var(--gl-border)', borderRadius: '4px', color: 'var(--gl-text-primary)', fontSize: '11px', padding: '3px 6px', outline: 'none', width: '100%', boxSizing: 'border-box' },
+  obsBox:         { background: 'var(--gl-bg-elevated)', borderRadius: '6px', padding: '6px 8px', marginTop: '2px' },
   obsHeader:      { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3px' },
   btnObsEditar:   { background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '11px', padding: '0' },
-  obsTexto:       { color: '#f1f5f9', fontSize: '11px', lineHeight: '1.4' },
-  obsVacio:       { color: '#475569', fontSize: '11px', fontStyle: 'italic' },
-  obsTextarea:    { width: '100%', background: '#0f172a', border: '1px solid #334155', borderRadius: '6px', color: '#f1f5f9', fontSize: '11px', padding: '6px', outline: 'none', resize: 'none', boxSizing: 'border-box' },
-  btnObsCancelar: { background: 'transparent', border: '1px solid #334155', color: '#94a3b8', borderRadius: '4px', padding: '2px 7px', cursor: 'pointer', fontSize: '10px' },
-  btnObsGuardar:  { background: '#2563eb', border: 'none', color: '#fff', borderRadius: '4px', padding: '2px 7px', cursor: 'pointer', fontSize: '10px', fontWeight: '600' },
+  obsTexto:       { color: 'var(--gl-text-primary)', fontSize: '11px', lineHeight: '1.4' },
+  obsVacio:       { color: 'var(--gl-text-muted)', fontSize: '11px', fontStyle: 'italic' },
+  obsTextarea:    { width: '100%', background: 'var(--gl-bg-input)', border: '1px solid var(--gl-border)', borderRadius: '6px', color: 'var(--gl-text-primary)', fontSize: '11px', padding: '6px', outline: 'none', resize: 'none', boxSizing: 'border-box' },
+  btnObsCancelar: { background: 'transparent', border: '1px solid var(--gl-border)', color: 'var(--gl-text-secondary)', borderRadius: '4px', padding: '2px 7px', cursor: 'pointer', fontSize: '10px' },
+  btnObsGuardar:  { background: 'var(--gl-brand)', border: 'none', color: '#fff', borderRadius: '4px', padding: '2px 7px', cursor: 'pointer', fontSize: '10px', fontWeight: '600' },
   modalOverlay:   { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 },
-  modal:          { background: '#1e293b', border: '1px solid #334155', borderRadius: '16px', padding: '24px', width: '100%', maxWidth: '360px' },
-  modalTitulo:    { color: '#f1f5f9', fontSize: '15px', fontWeight: '700', marginBottom: '14px' },
-  textarea:       { width: '100%', background: '#0f172a', border: '1px solid #334155', borderRadius: '8px', color: '#f1f5f9', fontSize: '13px', padding: '8px', outline: 'none', resize: 'vertical', boxSizing: 'border-box' },
+  modal:          { background: 'var(--gl-bg-elevated)', border: '1px solid var(--gl-border)', borderRadius: '16px', padding: '24px', width: '100%', maxWidth: '360px' },
+  modalTitulo:    { color: 'var(--gl-text-primary)', fontSize: '15px', fontWeight: '700', marginBottom: '14px' },
+  textarea:       { width: '100%', background: 'var(--gl-bg-input)', border: '1px solid var(--gl-border)', borderRadius: '8px', color: 'var(--gl-text-primary)', fontSize: '13px', padding: '8px', outline: 'none', resize: 'vertical', boxSizing: 'border-box' },
   modalBtns:      { display: 'flex', gap: '10px', marginTop: '14px' },
-  btnCancelar:    { flex: 1, background: 'transparent', border: '1px solid #334155', color: '#94a3b8', borderRadius: '8px', padding: '8px', cursor: 'pointer', fontSize: '13px' },
-  btnConfirmar:   { flex: 1, background: '#dc2626', border: 'none', color: '#fff', borderRadius: '8px', padding: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '600' },
-  btnLimpiar:     { flex: 1, background: '#16a34a', border: 'none', color: '#fff', borderRadius: '8px', padding: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '600' },
-  razonBox:       { background: '#450a0a', borderRadius: '8px', padding: '12px', marginBottom: '8px' },
-  razonTexto:     { color: '#fecaca', fontSize: '13px', lineHeight: '1.5' },
+  btnCancelar:    { flex: 1, background: 'transparent', border: '1px solid var(--gl-border)', color: 'var(--gl-text-secondary)', borderRadius: '8px', padding: '8px', cursor: 'pointer', fontSize: '13px' },
+  btnConfirmar:   { flex: 1, background: 'var(--gl-fault)', border: 'none', color: '#fff', borderRadius: '8px', padding: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '600' },
+  btnLimpiar:     { flex: 1, background: 'var(--gl-ok)', border: 'none', color: '#fff', borderRadius: '8px', padding: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '600' },
+  razonBox:       { background: 'var(--gl-fault-tint)', borderRadius: '8px', padding: '12px', marginBottom: '8px' },
+  razonTexto:     { color: 'var(--gl-fault)', fontSize: '13px', lineHeight: '1.5' },
 }

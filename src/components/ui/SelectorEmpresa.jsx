@@ -1,105 +1,86 @@
 import { useState } from 'react'
+import { Globe, Plus, X } from 'lucide-react'
 import { useEmpresas } from '../../hooks/useEmpresas'
+import { t } from '../../theme/tokens'
+import { Modal, Button, Input, Field } from '../kit'
 
 function ModalAgregarEmpresa({ onGuardar, onCerrar }) {
   const [nombre, setNombre] = useState('')
-
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    if (!nombre.trim()) return
-    onGuardar(nombre.trim())
-  }
-
+  const submit = (e) => { e.preventDefault(); if (nombre.trim()) onGuardar(nombre.trim()) }
   return (
-    <div style={styles.modalOverlay}>
-      <div style={styles.modal}>
-        <h3 style={styles.modalTitulo}>Nueva Empresa</h3>
-        <form onSubmit={handleSubmit}>
-          <label style={styles.label}>Nombre de la empresa</label>
-          <input
-            style={styles.input}
-            value={nombre}
-            onChange={e => setNombre(e.target.value)}
-            placeholder="Ej: AquaChile"
-            autoFocus
-            required
-          />
-          <div style={styles.modalBtns}>
-            <button type="button" onClick={onCerrar}  style={styles.btnCancelar}>Cancelar</button>
-            <button type="submit"                      style={styles.btnConfirmar}>Agregar</button>
-          </div>
-        </form>
-      </div>
-    </div>
+    <Modal open title="Nueva empresa" onClose={onCerrar} maxWidth={360}
+      footer={<>
+        <Button variant="secondary" size="lg" onClick={onCerrar}>Cancelar</Button>
+        <Button variant="primary" size="lg" onClick={submit}>Agregar</Button>
+      </>}>
+      <form onSubmit={submit}>
+        <Field label="Nombre de la empresa">
+          <Input value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Ej: AquaChile" autoFocus />
+        </Field>
+      </form>
+    </Modal>
   )
 }
 
 export default function SelectorEmpresa({ empresaActiva, onCambiar, role }) {
   const { empresas, agregarEmpresa, eliminarEmpresa } = useEmpresas()
   const [modalAgregar, setModalAgregar] = useState(false)
+  const [aEliminar, setAEliminar]       = useState(null)
 
-  const handleAgregar = async (nombre) => {
-    await agregarEmpresa(nombre)
-    setModalAgregar(false)
+  const handleAgregar = async (nombre) => { await agregarEmpresa(nombre); setModalAgregar(false) }
+  const confirmarEliminar = async () => {
+    await eliminarEmpresa(aEliminar.id)
+    if (empresaActiva?.id === aEliminar.id) onCambiar(null)
+    setAEliminar(null)
   }
 
-  const handleEliminar = async (empresa) => {
-    if (window.confirm(`¿Eliminar empresa "${empresa.nombre}"?`)) {
-      await eliminarEmpresa(empresa.id)
-      if (empresaActiva?.id === empresa.id) onCambiar(null)
-    }
-  }
+  const chip = (active) => ({
+    display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 11px',
+    borderRadius: t.radiusFull, border: `1px solid ${active ? t.brand : t.border}`,
+    background: active ? t.brandTint : 'transparent',
+    color: active ? t.brandSoft : t.textSecondary,
+    cursor: 'pointer', fontSize: t.textSm, fontWeight: 500, whiteSpace: 'nowrap',
+    transition: `all ${t.durFast} ${t.ease}`,
+  })
 
   return (
-    <div style={styles.wrapper}>
-      {/* Pestaña Todas — solo globo */}
-      <button
-        onClick={() => onCambiar(null)}
-        style={{ ...styles.tab, ...(empresaActiva === null ? styles.tabActiva : {}) }}
-        title="Todas las empresas"
-      >
-        🌐
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6, overflowX: 'auto', maxWidth: '100%', padding: '2px' }}>
+      <button onClick={() => onCambiar(null)} style={chip(empresaActiva === null)} title="Todas las empresas">
+        <Globe size={14} /> Todas
       </button>
 
-      {empresas.map(e => (
-        <div key={e.id} style={styles.tabWrapper}>
-          <button
-            onClick={() => onCambiar(e)}
-            style={{ ...styles.tab, ...(empresaActiva?.id === e.id ? styles.tabActiva : {}) }}
-          >
-            {e.nombre}
-          </button>
-          {role === 'admin' && empresaActiva?.id === e.id && (
-            <button onClick={() => handleEliminar(e)} style={styles.btnEliminar} title="Eliminar empresa">✕</button>
-          )}
-        </div>
-      ))}
+      {empresas.map(e => {
+        const active = empresaActiva?.id === e.id
+        return (
+          <span key={e.id} style={{ display: 'inline-flex', alignItems: 'center' }}>
+            <button onClick={() => onCambiar(e)} style={chip(active)}>{e.nombre}</button>
+            {role === 'admin' && active && (
+              <button className="gl-icon-btn" style={{ padding: 3, marginLeft: 2, color: t.fault }}
+                onClick={() => setAEliminar(e)} aria-label={`Eliminar ${e.nombre}`}><X size={13} /></button>
+            )}
+          </span>
+        )
+      })}
 
-      {/* Botón agregar — solo + */}
       {role === 'admin' && (
-        <button onClick={() => setModalAgregar(true)} style={styles.btnAgregar} title="Agregar empresa">+</button>
+        <button onClick={() => setModalAgregar(true)} style={{ ...chip(false), borderStyle: 'dashed', color: t.brandSoft }} title="Agregar empresa">
+          <Plus size={14} />
+        </button>
       )}
 
-      {modalAgregar && (
-        <ModalAgregarEmpresa onGuardar={handleAgregar} onCerrar={() => setModalAgregar(false)} />
+      {modalAgregar && <ModalAgregarEmpresa onGuardar={handleAgregar} onCerrar={() => setModalAgregar(false)} />}
+
+      {aEliminar && (
+        <Modal open title="Eliminar empresa" onClose={() => setAEliminar(null)} maxWidth={340}
+          footer={<>
+            <Button variant="secondary" size="lg" onClick={() => setAEliminar(null)}>Cancelar</Button>
+            <Button variant="primary" size="lg" style={{ background: t.fault }} onClick={confirmarEliminar}>Eliminar</Button>
+          </>}>
+          <p style={{ color: t.textSecondary, fontSize: t.textSm, margin: 0, lineHeight: 1.5 }}>
+            ¿Seguro que quieres eliminar <b style={{ color: t.textPrimary }}>{aEliminar.nombre}</b>?
+          </p>
+        </Modal>
       )}
     </div>
   )
-}
-
-const styles = {
-  wrapper:     { display: 'flex', alignItems: 'center', gap: '4px', overflowX: 'auto', flex: 1, padding: '0 12px' },
-  tabWrapper:  { display: 'flex', alignItems: 'center', gap: '2px' },
-  tab:         { padding: '4px 10px', borderRadius: '6px', border: '1px solid #1e3a5f', background: 'transparent', color: '#64748b', cursor: 'pointer', fontSize: '12px', fontWeight: '500', whiteSpace: 'nowrap' },
-  tabActiva:   { background: '#1d4ed8', border: '1px solid #3b82f6', color: '#fff', fontWeight: '600' },
-  btnEliminar: { background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '11px', padding: '2px 4px' },
-  btnAgregar:  { padding: '4px 8px', borderRadius: '6px', border: '1px dashed #1e3a5f', background: 'transparent', color: '#3b82f6', cursor: 'pointer', fontSize: '16px', fontWeight: '700', lineHeight: 1 },
-  modalOverlay:{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 },
-  modal:       { background: '#1e293b', border: '1px solid #334155', borderRadius: '16px', padding: '28px', width: '100%', maxWidth: '360px' },
-  modalTitulo: { color: '#f1f5f9', fontSize: '16px', fontWeight: '700', marginBottom: '16px' },
-  label:       { color: '#94a3b8', fontSize: '13px', fontWeight: '500', display: 'block', marginBottom: '6px' },
-  input:       { width: '100%', background: '#0f172a', border: '1px solid #334155', borderRadius: '8px', color: '#f1f5f9', fontSize: '14px', padding: '10px', outline: 'none', boxSizing: 'border-box' },
-  modalBtns:   { display: 'flex', gap: '12px', marginTop: '20px' },
-  btnCancelar: { flex: 1, background: 'transparent', border: '1px solid #334155', color: '#94a3b8', borderRadius: '8px', padding: '10px', cursor: 'pointer', fontSize: '14px' },
-  btnConfirmar:{ flex: 1, background: '#2563eb', border: 'none', color: '#fff', borderRadius: '8px', padding: '10px', cursor: 'pointer', fontSize: '14px', fontWeight: '600' },
 }

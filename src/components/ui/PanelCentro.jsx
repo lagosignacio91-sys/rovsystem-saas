@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react'
 import { db } from '../../lib/firebase'
 import { doc, onSnapshot } from 'firebase/firestore'
+import { UserCog, Ship, Wrench, Box, Package, Trash2, X, Gamepad2 } from 'lucide-react'
+import { t } from '../../theme/tokens'
+import { EstadoBadge, Modal, Button } from '../kit'
 import TabROV from '../tabs/TabROV'
 import TabHerramientas from '../tabs/TabHerramientas'
 import TabOperador from '../tabs/TabOperador'
@@ -8,51 +11,30 @@ import TabInsumos from '../tabs/TabInsumos'
 import PanelDespacho from '../dispatch/PanelDespacho'
 
 const TABS = [
-  { id: 'operator', label: 'Operador' },
-  { id: 'rov',      label: 'Equipos ROV' },
-  { id: 'tools',    label: 'Herramientas' },
-  { id: 'supplies', label: 'Insumos' },
-  { id: 'despacho', label: '📦 Despacho' },
+  { id: 'operator', label: 'Operador',    icon: UserCog },
+  { id: 'rov',      label: 'ROV',         icon: Ship },
+  { id: 'tools',    label: 'Herram.',     icon: Wrench },
+  { id: 'supplies', label: 'Insumos',     icon: Box },
+  { id: 'despacho', label: 'Despacho',    icon: Package },
 ]
 
-const STATUS_COLORS = {
-  OK:              '#22c55e',
-  LOW_STOCK:       '#eab308',
-  EQUIPMENT_FAULT: '#ef4444',
-  DISPATCH_ONWAY:  '#3b82f6',
-  NO_OPERATOR:     '#6b7280',
-}
-
-const STATUS_LABELS = {
-  OK:              '🟢 OK',
-  LOW_STOCK:       '🟡 Stock bajo',
-  EQUIPMENT_FAULT: '🔴 Falla de equipo',
-  DISPATCH_ONWAY:  '🔵 Despacho en camino',
-  NO_OPERATOR:     '⚫ Sin operador',
-}
-
-export default function PanelCentro({ centro, onCerrar, onEliminar, onEstadoCambio, sincronizarEstado, role }) {
+export default function PanelCentro({ centro, onCerrar, onEliminar, sincronizarEstado, role }) {
   const [tabActiva, setTabActiva]   = useState('operator')
   const [operadores, setOperadores] = useState({ op1: {}, op2: {} })
   const [estadoActual, setEstadoActual] = useState(centro.estado)
+  const [aEliminar, setAEliminar]   = useState(false)
+
+  useEffect(() => { setEstadoActual(centro.estado) }, [centro.estado])
 
   useEffect(() => {
-    setEstadoActual(centro.estado)
-  }, [centro.estado])
-
-  useEffect(() => {
-    const ref   = doc(db, 'centros', centro.id, 'datos', 'operadores')
-    const unsub = onSnapshot(ref, (snap) => {
-      if (snap.exists()) setOperadores(snap.data())
-      else setOperadores({ op1: {}, op2: {} })
+    const unsub = onSnapshot(doc(db, 'centros', centro.id, 'datos', 'operadores'), (snap) => {
+      setOperadores(snap.exists() ? snap.data() : { op1: {}, op2: {} })
     })
     return () => unsub()
   }, [centro.id])
 
-  // Escuchar cambios de estado en tiempo real
   useEffect(() => {
-    const ref   = doc(db, 'centros', centro.id)
-    const unsub = onSnapshot(ref, (snap) => {
+    const unsub = onSnapshot(doc(db, 'centros', centro.id), (snap) => {
       if (snap.exists()) setEstadoActual(snap.data().estado)
     })
     return () => unsub()
@@ -61,47 +43,43 @@ export default function PanelCentro({ centro, onCerrar, onEliminar, onEstadoCamb
   const opEnFaena = [operadores.op1, operadores.op2].find(op => op?.estado === 'faena' && op?.nombre)
 
   return (
-    <div style={styles.panel}>
+    <div className="gl-panel-centro" style={styles.panel}>
       <div style={styles.header}>
-        <div style={styles.headerIzq}>
+        <div style={{ minWidth: 0, flex: 1 }}>
           <h2 style={styles.nombre}>{centro.nombre}</h2>
-          <span style={{ ...styles.estado, color: STATUS_COLORS[estadoActual] }}>
-            {STATUS_LABELS[estadoActual] ?? estadoActual}
-          </span>
+          <div style={{ marginTop: 6 }}><EstadoBadge estado={estadoActual} /></div>
         </div>
-
-        {opEnFaena && (
-          <div style={styles.opFaenaBox}>
-            {opEnFaena.foto
-              ? <img src={opEnFaena.foto} alt="op" style={styles.opFoto} />
-              : <div style={styles.opFotoVacia}>👤</div>
-            }
-            <div style={styles.opInfo}>
-              <div style={styles.opNombre}>{opEnFaena.nombre}</div>
-              <div style={styles.opCorreo}>{opEnFaena.correoCorp || opEnFaena.correoPersonal || '—'}</div>
-              <div style={styles.opEstado}>🎮 En faena</div>
-            </div>
-          </div>
-        )}
-
-        <div style={styles.headerBtns}>
+        <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
           {role === 'admin' && (
-            <button onClick={() => onEliminar(centro.id)} style={styles.btnEliminar} title="Eliminar centro">🗑️</button>
+            <button className="gl-icon-btn" onClick={() => setAEliminar(true)} aria-label="Eliminar centro" style={{ color: t.fault }}><Trash2 size={17} /></button>
           )}
-          <button onClick={onCerrar} style={styles.btnCerrar}>✕</button>
+          <button className="gl-icon-btn" onClick={onCerrar} aria-label="Cerrar"><X size={18} /></button>
         </div>
       </div>
 
+      {opEnFaena && (
+        <div style={styles.opFaena}>
+          {opEnFaena.foto
+            ? <img src={opEnFaena.foto} alt="" style={styles.opFoto} />
+            : <div style={styles.opFotoVacia}>{(opEnFaena.nombre[0] ?? '?').toUpperCase()}</div>}
+          <div style={{ minWidth: 0 }}>
+            <div style={styles.opNombre}>{opEnFaena.nombre}</div>
+            <div style={styles.opEstado}><Gamepad2 size={11} /> En faena</div>
+          </div>
+        </div>
+      )}
+
       <div style={styles.tabs}>
-        {TABS.map(t => (
-          <button
-            key={t.id}
-            onClick={() => setTabActiva(t.id)}
-            style={{ ...styles.tab, ...(tabActiva === t.id ? styles.tabActiva : {}) }}
-          >
-            {t.label}
-          </button>
-        ))}
+        {TABS.map(({ id, label, icon: Icon }) => {
+          const active = tabActiva === id
+          return (
+            <button key={id} onClick={() => setTabActiva(id)}
+              style={{ ...styles.tab, color: active ? t.brandSoft : t.textMuted, borderBottom: `2px solid ${active ? t.brand : 'transparent'}` }}>
+              <Icon size={17} strokeWidth={2} />
+              <span style={{ fontSize: 9 }}>{label}</span>
+            </button>
+          )
+        })}
       </div>
 
       <div style={styles.contenido}>
@@ -111,28 +89,32 @@ export default function PanelCentro({ centro, onCerrar, onEliminar, onEstadoCamb
         {tabActiva === 'supplies' && <TabInsumos      centro={centro} role={role} sincronizarEstado={sincronizarEstado} />}
         {tabActiva === 'despacho' && <PanelDespacho   centro={centro} role={role} sincronizarEstado={sincronizarEstado} />}
       </div>
+
+      {aEliminar && (
+        <Modal open title="Eliminar centro" onClose={() => setAEliminar(false)} maxWidth={340}
+          footer={<>
+            <Button variant="secondary" size="lg" onClick={() => setAEliminar(false)}>Cancelar</Button>
+            <Button variant="primary" size="lg" style={{ background: t.fault }} onClick={() => { setAEliminar(false); onEliminar(centro.id) }}>Eliminar</Button>
+          </>}>
+          <p style={{ color: t.textSecondary, fontSize: t.textSm, margin: 0, lineHeight: 1.5 }}>
+            ¿Seguro que quieres eliminar <b style={{ color: t.textPrimary }}>{centro.nombre}</b>? Esta acción no se puede deshacer.
+          </p>
+        </Modal>
+      )}
     </div>
   )
 }
 
 const styles = {
-  panel:       { position: 'absolute', top: 0, right: 0, width: '420px', height: '100%', background: '#1e293b', borderLeft: '1px solid #334155', display: 'flex', flexDirection: 'column', zIndex: 1000, boxShadow: '-4px 0 20px rgba(0,0,0,0.4)' },
-  header:      { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderBottom: '1px solid #334155', gap: '8px' },
-  headerIzq:   { display: 'flex', flexDirection: 'column', gap: '2px', flexShrink: 0 },
-  nombre:      { color: '#f1f5f9', fontSize: '15px', fontWeight: '700', margin: 0 },
-  estado:      { fontSize: '12px', fontWeight: '500' },
-  opFaenaBox:  { display: 'flex', alignItems: 'center', gap: '8px', background: '#0f172a', border: '1px solid #1e3a5f', borderRadius: '10px', padding: '6px 10px', flex: 1, maxWidth: '160px' },
-  opFoto:      { width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover', border: '2px solid #22c55e', flexShrink: 0 },
-  opFotoVacia: { width: '36px', height: '36px', borderRadius: '50%', background: '#1e293b', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', border: '2px solid #22c55e', flexShrink: 0 },
-  opInfo:      { display: 'flex', flexDirection: 'column', gap: '1px', overflow: 'hidden' },
-  opNombre:    { color: '#f1f5f9', fontSize: '11px', fontWeight: '700', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
-  opCorreo:    { color: '#64748b', fontSize: '10px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
-  opEstado:    { color: '#22c55e', fontSize: '10px', fontWeight: '600' },
-  headerBtns:  { display: 'flex', gap: '8px', flexShrink: 0 },
-  btnEliminar: { background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '16px', padding: '4px' },
-  btnCerrar:   { background: 'transparent', border: '1px solid #334155', color: '#94a3b8', borderRadius: '6px', padding: '4px 10px', cursor: 'pointer', fontSize: '16px' },
-  tabs:        { display: 'flex', borderBottom: '1px solid #334155', overflowX: 'auto' },
-  tab:         { flex: 1, padding: '12px 6px', background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: '11px', fontWeight: '500', borderBottom: '2px solid transparent', whiteSpace: 'nowrap' },
-  tabActiva:   { color: '#3b82f6', borderBottom: '2px solid #3b82f6' },
-  contenido:   { flex: 1, overflowY: 'auto', padding: '20px' },
+  panel:       { width: 420, maxWidth: '100vw', height: '100%', background: t.bgSurface, borderLeft: `1px solid ${t.border}`, display: 'flex', flexDirection: 'column', boxShadow: t.shadowLg },
+  header:      { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', padding: '14px 16px', borderBottom: `1px solid ${t.border}`, gap: 8 },
+  nombre:      { color: t.textPrimary, fontSize: t.textBase, fontWeight: 600, margin: 0 },
+  opFaena:     { display: 'flex', alignItems: 'center', gap: 9, background: t.bgInput, borderBottom: `1px solid ${t.border}`, padding: '8px 16px' },
+  opFoto:      { width: 34, height: 34, borderRadius: '50%', objectFit: 'cover', border: `2px solid ${t.ok}`, flexShrink: 0 },
+  opFotoVacia: { width: 34, height: 34, borderRadius: '50%', background: t.brandTint, color: t.brandSoft, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 600, border: `2px solid ${t.ok}`, flexShrink: 0 },
+  opNombre:    { color: t.textPrimary, fontSize: t.textXs, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+  opEstado:    { color: t.ok, fontSize: 10, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 3, marginTop: 1 },
+  tabs:        { display: 'flex', borderBottom: `1px solid ${t.border}`, padding: '0 6px' },
+  tab:         { flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, padding: '9px 2px', background: 'transparent', border: 'none', cursor: 'pointer', transition: `color ${t.durFast} ${t.ease}` },
+  contenido:   { flex: 1, overflowY: 'auto', padding: t.space5 },
 }

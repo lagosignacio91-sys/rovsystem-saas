@@ -227,6 +227,12 @@ body {
 @keyframes glSpin { to { transform: rotate(360deg); } }
 .gl-spin { animation: glSpin 0.8s linear infinite; }
 
+@keyframes markerPulse {
+  0%   { box-shadow: 0 0 0 0 currentColor; }
+  70%  { box-shadow: 0 0 0 10px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
 }

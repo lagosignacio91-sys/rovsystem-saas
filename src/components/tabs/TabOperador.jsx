@@ -42,21 +42,21 @@ function TarjetaOperador({ operador, numero, onEditar, onToggleEstado, onVerFoto
   const enFaena = operador.estado === 'faena'
 
   return (
-    <div style={{ ...styles.card, borderColor: enFaena ? '#22c55e' : '#334155' }}>
+    <div style={{ ...styles.card, borderColor: enFaena ? 'var(--gl-ok)' : 'var(--gl-border)' }}>
       {/* Cabecera acordeón */}
       <div style={styles.acordeonHeader} onClick={() => setAbierto(!abierto)}>
         <div style={styles.acordeonIzq}>
           <div style={{ position: 'relative', flexShrink: 0 }}>
             {operador.foto
-              ? <img src={operador.foto} alt="foto" style={{ ...styles.miniFoto, border: `2px solid ${enFaena ? '#22c55e' : '#334155'}` }} onClick={e => { e.stopPropagation(); onVerFoto(operador.foto) }} />
-              : <div style={{ ...styles.miniFotoVacia, border: `2px solid ${enFaena ? '#22c55e' : '#334155'}` }}>👤</div>
+              ? <img src={operador.foto} alt="foto" style={{ ...styles.miniFoto, border: `2px solid ${enFaena ? 'var(--gl-ok)' : 'var(--gl-border)'}` }} onClick={e => { e.stopPropagation(); onVerFoto(operador.foto) }} />
+              : <div style={{ ...styles.miniFotoVacia, border: `2px solid ${enFaena ? 'var(--gl-ok)' : 'var(--gl-border)'}` }}>👤</div>
             }
             <span style={styles.miniIcono}>{enFaena ? '🎮' : '😴'}</span>
           </div>
           <div style={styles.opInfo}>
             <span style={styles.opNombre}>{operador.nombre || `Operador ${numero}`}</span>
             <span style={styles.opCorreo}>{operador.correoCorp || operador.correoPersonal || 'Sin correo'}</span>
-            <span style={{ ...styles.opEstado, color: enFaena ? '#22c55e' : '#64748b' }}>
+            <span style={{ ...styles.opEstado, color: enFaena ? 'var(--gl-ok)' : 'var(--gl-text-muted)' }}>
               {enFaena ? '🎮 En faena' : '😴 En descanso'}
             </span>
           </div>
@@ -72,7 +72,7 @@ function TarjetaOperador({ operador, numero, onEditar, onToggleEstado, onVerFoto
           <div style={styles.accionesHeader}>
             <button
               onClick={() => onToggleEstado(numero)}
-              style={{ ...styles.btnEstado, background: enFaena ? '#14532d' : '#1e3a5f' }}
+              style={{ ...styles.btnEstado, background: enFaena ? 'var(--gl-ok-tint)' : 'var(--gl-border)' }}
             >
               {enFaena ? '🎮 En faena' : '😴 En descanso'}
             </button>
@@ -168,7 +168,7 @@ export default function TabOperador({ centro, role }) {
     }
   }
 
-  if (cargando) return <p style={{ color: '#64748b', fontSize: '13px' }}>Cargando...</p>
+  if (cargando) return <p style={{ color: 'var(--gl-text-muted)', fontSize: '13px' }}>Cargando...</p>
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -195,37 +195,37 @@ export default function TabOperador({ centro, role }) {
 }
 
 const styles = {
-  card:            { background: '#0f172a', border: '1px solid #334155', borderRadius: '8px', overflow: 'hidden' },
-  acordeonHeader:  { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', cursor: 'pointer', userSelect: 'none', background: '#1e293b', gap: '10px' },
+  card:            { background: 'var(--gl-bg-input)', border: '1px solid var(--gl-border)', borderRadius: '8px', overflow: 'hidden' },
+  acordeonHeader:  { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', cursor: 'pointer', userSelect: 'none', background: 'var(--gl-bg-elevated)', gap: '10px' },
   acordeonIzq:     { display: 'flex', alignItems: 'center', gap: '10px', flex: 1 },
   acordeonDer:     { display: 'flex', alignItems: 'center' },
   miniFoto:        { width: '44px', height: '44px', borderRadius: '50%', objectFit: 'cover', display: 'block' },
-  miniFotoVacia:   { width: '44px', height: '44px', borderRadius: '50%', background: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px' },
-  miniIcono:       { position: 'absolute', bottom: '-2px', right: '-2px', fontSize: '12px', background: '#1e293b', borderRadius: '50%', width: '16px', height: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' },
+  miniFotoVacia:   { width: '44px', height: '44px', borderRadius: '50%', background: 'var(--gl-bg-input)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px' },
+  miniIcono:       { position: 'absolute', bottom: '-2px', right: '-2px', fontSize: '12px', background: 'var(--gl-bg-elevated)', borderRadius: '50%', width: '16px', height: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' },
   opInfo:          { display: 'flex', flexDirection: 'column', gap: '1px', overflow: 'hidden' },
-  opNombre:        { color: '#f1f5f9', fontSize: '12px', fontWeight: '700', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
-  opCorreo:        { color: '#64748b', fontSize: '10px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+  opNombre:        { color: 'var(--gl-text-primary)', fontSize: '12px', fontWeight: '700', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+  opCorreo:        { color: 'var(--gl-text-muted)', fontSize: '10px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
   opEstado:        { fontSize: '10px', fontWeight: '600' },
-  chevron:         { color: '#64748b', fontSize: '10px' },
-  cardBody:        { padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: '6px', borderTop: '1px solid #334155' },
+  chevron:         { color: 'var(--gl-text-muted)', fontSize: '10px' },
+  cardBody:        { padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: '6px', borderTop: '1px solid var(--gl-border)' },
   accionesHeader:  { display: 'flex', gap: '8px', marginBottom: '4px' },
   btnEstado:       { border: 'none', color: '#fff', borderRadius: '6px', padding: '5px 10px', cursor: 'pointer', fontSize: '11px', fontWeight: '600' },
-  btnEditar:       { background: 'transparent', border: '1px solid #3b82f6', color: '#3b82f6', borderRadius: '5px', padding: '4px 10px', cursor: 'pointer', fontSize: '11px' },
+  btnEditar:       { background: 'transparent', border: '1px solid var(--gl-dispatch)', color: 'var(--gl-dispatch)', borderRadius: '5px', padding: '4px 10px', cursor: 'pointer', fontSize: '11px' },
   campo:           { display: 'flex', flexDirection: 'column', gap: '1px' },
-  campoLabel:      { color: '#475569', fontSize: '9px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' },
-  campoValor:      { color: '#f1f5f9', fontSize: '11px' },
-  vacio:           { color: '#475569', fontSize: '12px' },
+  campoLabel:      { color: 'var(--gl-text-muted)', fontSize: '9px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' },
+  campoValor:      { color: 'var(--gl-text-primary)', fontSize: '11px' },
+  vacio:           { color: 'var(--gl-text-muted)', fontSize: '12px' },
   fotoModalOverlay:{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 },
   fotoGrande:      { maxWidth: '90vw', maxHeight: '90vh', borderRadius: '12px', objectFit: 'contain' },
   modalOverlay:    { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 },
-  modal:           { background: '#1e293b', border: '1px solid #334155', borderRadius: '16px', padding: '24px', width: '100%', maxWidth: '380px', maxHeight: '90vh', overflowY: 'auto' },
-  modalTitulo:     { color: '#f1f5f9', fontSize: '16px', fontWeight: '700', marginBottom: '16px' },
-  fotoUpload:      { width: '70px', height: '70px', borderRadius: '50%', background: '#0f172a', border: '2px dashed #334155', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', margin: '0 auto 14px' },
+  modal:           { background: 'var(--gl-bg-elevated)', border: '1px solid var(--gl-border)', borderRadius: '16px', padding: '24px', width: '100%', maxWidth: '380px', maxHeight: '90vh', overflowY: 'auto' },
+  modalTitulo:     { color: 'var(--gl-text-primary)', fontSize: '16px', fontWeight: '700', marginBottom: '16px' },
+  fotoUpload:      { width: '70px', height: '70px', borderRadius: '50%', background: 'var(--gl-bg-input)', border: '2px dashed var(--gl-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', margin: '0 auto 14px' },
   fotoPreview:     { width: '70px', height: '70px', borderRadius: '50%', objectFit: 'cover' },
-  fotoPlaceholder: { color: '#64748b', fontSize: '11px', textAlign: 'center' },
-  label:           { color: '#94a3b8', fontSize: '12px', fontWeight: '500', display: 'block', marginBottom: '4px' },
-  input:           { width: '100%', background: '#0f172a', border: '1px solid #334155', borderRadius: '8px', color: '#f1f5f9', fontSize: '13px', padding: '8px', outline: 'none', boxSizing: 'border-box' },
+  fotoPlaceholder: { color: 'var(--gl-text-muted)', fontSize: '11px', textAlign: 'center' },
+  label:           { color: 'var(--gl-text-secondary)', fontSize: '12px', fontWeight: '500', display: 'block', marginBottom: '4px' },
+  input:           { width: '100%', background: 'var(--gl-bg-input)', border: '1px solid var(--gl-border)', borderRadius: '8px', color: 'var(--gl-text-primary)', fontSize: '13px', padding: '8px', outline: 'none', boxSizing: 'border-box' },
   modalBtns:       { display: 'flex', gap: '12px', marginTop: '16px' },
-  btnCancelar:     { flex: 1, background: 'transparent', border: '1px solid #334155', color: '#94a3b8', borderRadius: '8px', padding: '8px', cursor: 'pointer', fontSize: '13px' },
-  btnConfirmar:    { flex: 1, background: '#2563eb', border: 'none', color: '#fff', borderRadius: '8px', padding: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '600' },
+  btnCancelar:     { flex: 1, background: 'transparent', border: '1px solid var(--gl-border)', color: 'var(--gl-text-secondary)', borderRadius: '8px', padding: '8px', cursor: 'pointer', fontSize: '13px' },
+  btnConfirmar:    { flex: 1, background: 'var(--gl-brand)', border: 'none', color: '#fff', borderRadius: '8px', padding: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '600' },
 }

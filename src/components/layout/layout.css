@@ -1,0 +1,126 @@
+/* ============================================================
+   Layout responsive del shell (sidebar / topbar / bottom-nav)
+   Mobile-first: por defecto móvil; >=900px = escritorio.
+   ============================================================ */
+
+.gl-shell {
+  display: flex;
+  height: 100vh;
+  width: 100%;
+  overflow: hidden;
+  background: var(--gl-bg-base);
+}
+
+/* ---- Sidebar (escritorio) ---- */
+.gl-sidebar {
+  width: 224px;
+  flex-shrink: 0;
+  background: var(--gl-bg-surface);
+  border-right: 1px solid var(--gl-border);
+  display: flex;
+  flex-direction: column;
+  padding: var(--gl-space-4) var(--gl-space-3);
+}
+
+.gl-nav-item {
+  display: flex;
+  align-items: center;
+  gap: var(--gl-space-3);
+  padding: 10px 12px;
+  border-radius: var(--gl-radius-md);
+  color: var(--gl-text-secondary);
+  font-size: var(--gl-text-sm);
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: none;
+  border: none;
+  background: transparent;
+  width: 100%;
+  transition: background var(--gl-dur-fast) var(--gl-ease), color var(--gl-dur-fast) var(--gl-ease);
+}
+.gl-nav-item:hover { background: var(--gl-bg-hover); color: var(--gl-text-primary); }
+.gl-nav-item.active { background: var(--gl-brand-tint); color: var(--gl-brand-soft); }
+.gl-nav-item .gl-nav-badge {
+  margin-left: auto; background: var(--gl-brand); color: var(--gl-text-on-brand);
+  font-size: 10px; font-weight: 600; padding: 1px 7px; border-radius: var(--gl-radius-full);
+}
+
+/* ---- Main column ---- */
+.gl-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.gl-topbar {
+  height: 56px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--gl-space-3);
+  padding: 0 var(--gl-space-4);
+  background: var(--gl-bg-surface);
+  border-bottom: 1px solid var(--gl-border);
+}
+
+.gl-content { flex: 1; overflow: hidden; position: relative; }
+
+/* ---- Bottom nav (móvil) ---- */
+.gl-bottomnav { display: none; }
+
+/* ---- Mobile drawer ---- */
+.gl-drawer-scrim { display: none; }
+
+/* ============================================================
+   MÓVIL  (< 900px)
+   ============================================================ */
+@media (max-width: 899px) {
+  .gl-sidebar {
+    position: fixed; top: 0; bottom: 0; left: 0; z-index: 2000;
+    transform: translateX(-100%);
+    transition: transform var(--gl-dur) var(--gl-ease);
+    box-shadow: var(--gl-shadow-lg);
+  }
+  .gl-sidebar.open { transform: translateX(0); }
+
+  .gl-drawer-scrim.open {
+    display: block; position: fixed; inset: 0; background: var(--gl-scrim); z-index: 1999;
+    animation: fadeIn 0.18s ease-out;
+  }
+
+  .gl-bottomnav {
+    display: flex;
+    height: 60px;
+    flex-shrink: 0;
+    background: var(--gl-bg-surface);
+    border-top: 1px solid var(--gl-border);
+    align-items: stretch;
+    justify-content: space-around;
+    padding: 0 4px;
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+  .gl-bottomnav-item {
+    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 3px; color: var(--gl-text-muted); background: transparent; border: none; cursor: pointer;
+    font-size: 9px; position: relative;
+  }
+  .gl-bottomnav-item.active { color: var(--gl-brand-soft); }
+  .gl-bottomnav-item .gl-dot {
+    position: absolute; top: 8px; right: 50%; transform: translateX(14px);
+    width: 7px; height: 7px; border-radius: 50%; background: var(--gl-brand);
+  }
+
+  .gl-content { padding-bottom: 0; }
+}
+
+/* En escritorio, ocultar el botón hamburguesa */
+@media (min-width: 900px) {
+  .gl-menu-btn { display: none !important; }
+}
+
+/* Panel de centro ocupa toda la pantalla en móvil */
+@media (max-width: 599px) {
+  .gl-panel-centro { width: 100vw !important; }
+}
