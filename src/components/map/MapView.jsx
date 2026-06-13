@@ -23,23 +23,34 @@ const SVG = {
 
 const ESTADOS_ORDEN = ['OK', 'LOW_STOCK', 'EQUIPMENT_FAULT', 'DISPATCH_ONWAY', 'NO_OPERATOR']
 
-function crearIcono(estado) {
+// El tamaño del marcador escala con el zoom: lejos = pequeño, cerca = grande.
+function tamPorZoom(zoom) {
+  return Math.round(Math.max(16, Math.min(34, (zoom - 3) * 3)))
+}
+
+function crearIcono(estado, size = 26) {
   const meta  = ESTADO_META[estado] ?? ESTADO_META.NO_OPERATOR
   const color = meta.dot
   const alerta = estado === 'LOW_STOCK' || estado === 'EQUIPMENT_FAULT'
-  const halo = alerta ? `box-shadow:0 0 0 6px ${color}38;animation:markerPulse 2s ease-out infinite;` : `box-shadow:0 2px 8px rgba(0,0,0,0.5);`
+  const grande = size >= 22
+  const borde  = Math.max(1.5, size * 0.09).toFixed(1)
+  const halo   = (alerta && grande) ? `box-shadow:0 0 0 ${Math.round(size * 0.22)}px ${color}38;animation:markerPulse 2s ease-out infinite;` : `box-shadow:0 1px 5px rgba(0,0,0,0.5);`
+  const iconHtml = grande
+    ? `<svg xmlns="http://www.w3.org/2000/svg" width="${Math.round(size * 0.5)}" height="${Math.round(size * 0.5)}" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">${SVG[estado] ?? SVG.NO_OPERATOR}</svg>`
+    : ''
   return L.divIcon({
     className: '',
-    html: `<div style="width:30px;height:30px;background:${color};border:2.5px solid #fff;border-radius:50%;display:flex;align-items:center;justify-content:center;${halo}">
-      <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">${SVG[estado] ?? SVG.NO_OPERATOR}</svg>
-    </div>`,
-    iconSize: [30, 30],
-    iconAnchor: [15, 15],
+    html: `<div style="width:${size}px;height:${size}px;background:${color};border:${borde}px solid #fff;border-radius:50%;display:flex;align-items:center;justify-content:center;${halo}">${iconHtml}</div>`,
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
   })
 }
 
-function ClickHandler({ onMapClick }) {
-  useMapEvents({ click(e) { if (onMapClick) onMapClick(e.latlng) } })
+function MapEvents({ onMapClick, onZoom }) {
+  useMapEvents({
+    click(e) { if (onMapClick) onMapClick(e.latlng) },
+    zoomend(e) { if (onZoom) onZoom(e.target.getZoom()) },
+  })
   return null
 }
 
@@ -78,7 +89,9 @@ function StatsPanel({ centros }) {
 function MapInner({ centros, onMapClick, onCentroClick }) {
   const [popupCentro, setPopupCentro] = useState(null)
   const [popupPos, setPopupPos]       = useState(null)
+  const [zoom, setZoom]               = useState(8)
   const mapRef = useRef(null)
+  const size = tamPorZoom(zoom)
 
   const handleMarkerClick = (e, centro) => {
     L.DomEvent.stopPropagation(e)
@@ -96,9 +109,9 @@ function MapInner({ centros, onMapClick, onCentroClick }) {
       <MapContainer center={[-45.5, -72.5]} zoom={8} style={{ width: '100%', height: '100%' }} ref={mapRef}>
         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution='&copy; OpenStreetMap contributors' maxZoom={19} />
         <TileLayer url="https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png" attribution='&copy; OpenSeaMap' maxZoom={19} />
-        <ClickHandler onMapClick={handleMapClick} />
+        <MapEvents onMapClick={handleMapClick} onZoom={setZoom} />
         {centros.map(c => (
-          <Marker key={c.id} position={[c.lat, c.lng]} icon={crearIcono(c.estado)}
+          <Marker key={c.id} position={[c.lat, c.lng]} icon={crearIcono(c.estado, size)}
             eventHandlers={{ click: (e) => handleMarkerClick(e, c) }} />
         ))}
       </MapContainer>

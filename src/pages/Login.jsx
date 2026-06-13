@@ -29,7 +29,6 @@ export default function Login() {
 
   return (
     <div style={s.wrapper}>
-      <div style={s.banda} />
       <div style={{ position: 'absolute', top: 16, right: 16, zIndex: 2 }}><ThemeToggle /></div>
 
       <div style={s.card}>
@@ -76,14 +75,17 @@ export default function Login() {
 }
 
 const s = {
-  wrapper: { minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden', padding: 20, background: t.bgBase },
-  banda:   { position: 'absolute', top: 0, left: 0, right: 0, height: 150, background: t.bgSurface, borderBottom: `1px solid ${t.border}` },
+  wrapper: {
+    minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
+    position: 'relative', overflow: 'hidden', padding: 20,
+    background: `linear-gradient(rgba(6,13,26,0.55), rgba(6,13,26,0.78)), url('/login-bg.jpg') center/cover no-repeat, ${t.bgBase}`,
+  },
   card:    { position: 'relative', zIndex: 1, background: t.bgElevated, border: `1px solid ${t.border}`, borderRadius: t.radiusXl, padding: 32, width: '100%', maxWidth: 380, boxShadow: t.shadowLg },
   head:    { textAlign: 'center', marginBottom: 24 },
   logoWrap:{ width: 84, height: 84, borderRadius: '50%', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px', padding: 8, boxShadow: t.shadowMd },
   logo:    { width: '100%', height: '100%', objectFit: 'contain' },
-  title:   { color: t.textPrimary, fontSize: 24, fontWeight: 700, margin: '0 0 4px', letterSpacing: '0.03em' },
-  sub:     { color: t.brandSoft, fontSize: t.textSm, margin: 0 },
+  title:   { color: t.textPrimary, fontFamily: "'Sora', sans-serif", fontSize: 30, fontWeight: 800, margin: '0 0 4px', letterSpacing: '-0.02em' },
+  sub:     { color: t.brandSoft, fontSize: t.textSm, fontWeight: 500, margin: 0, letterSpacing: '0.02em' },
   label:   { color: t.textSecondary, fontSize: t.textXs, fontWeight: 500, display: 'block', marginBottom: 5 },
   inputBox: (err) => ({ display: 'flex', alignItems: 'center', gap: 8, background: t.bgInput, border: `1px solid ${err ? t.fault : t.border}`, borderRadius: t.radiusMd, padding: '10px 12px', boxShadow: err ? `0 0 0 3px ${t.faultTint}` : 'none' }),
   input:   { flex: 1, background: 'transparent', border: 'none', outline: 'none', color: t.textPrimary, fontSize: t.textBase, minWidth: 0 },
