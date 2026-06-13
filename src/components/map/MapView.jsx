@@ -1,9 +1,10 @@
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet'
 import { useState, useRef } from 'react'
+import { Search, X, MapPin } from 'lucide-react'
 import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
 import PopupCentro from './PopupCentro'
-import { ESTADO_META } from '../../theme/tokens'
+import { t, ESTADO_META } from '../../theme/tokens'
 
 delete L.Icon.Default.prototype._getIconUrl
 L.Icon.Default.mergeOptions({
@@ -86,6 +87,61 @@ function StatsPanel({ centros }) {
   )
 }
 
+function BuscadorCentros({ centros, mapRef, onSelect }) {
+  const [query, setQuery] = useState('')
+  const [focus, setFocus] = useState(false)
+
+  const q = query.trim().toLowerCase()
+  const resultados = q
+    ? centros.filter(c => c.nombre?.toLowerCase().includes(q) || c.empresaNombre?.toLowerCase().includes(q)).slice(0, 6)
+    : []
+
+  const elegir = (c) => {
+    if (mapRef.current && typeof c.lat === 'number' && typeof c.lng === 'number') {
+      mapRef.current.flyTo([c.lat, c.lng], 13, { duration: 1.1 })
+    }
+    setQuery(''); setFocus(false)
+    onSelect && onSelect(c)
+  }
+
+  return (
+    <div style={buscador.box}>
+      <div style={buscador.inputRow}>
+        <Search size={16} color={t.textMuted} style={{ flexShrink: 0 }} />
+        <input
+          value={query}
+          onChange={e => setQuery(e.target.value)}
+          onFocus={() => setFocus(true)}
+          onBlur={() => setTimeout(() => setFocus(false), 150)}
+          placeholder="Buscar centro..."
+          style={buscador.input}
+        />
+        {query && <button className="gl-icon-btn" style={{ padding: 2 }} onMouseDown={() => setQuery('')} aria-label="Limpiar"><X size={14} /></button>}
+      </div>
+      {focus && resultados.length > 0 && (
+        <div style={buscador.lista}>
+          {resultados.map(c => {
+            const meta = ESTADO_META[c.estado] ?? ESTADO_META.NO_OPERATOR
+            return (
+              <button key={c.id} className="gl-search-item" onMouseDown={() => elegir(c)} style={buscador.item}>
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: meta.dot, flexShrink: 0 }} />
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span style={buscador.itemNombre}>{c.nombre}</span>
+                  <span style={buscador.itemEmpresa}>{c.empresaNombre ?? 'Sin empresa'}</span>
+                </span>
+                <MapPin size={14} color={t.textMuted} style={{ flexShrink: 0 }} />
+              </button>
+            )
+          })}
+        </div>
+      )}
+      {focus && q && resultados.length === 0 && (
+        <div style={buscador.lista}><div style={buscador.vacio}>Sin resultados para "{query}"</div></div>
+      )}
+    </div>
+  )
+}
+
 function MapInner({ centros, onMapClick, onCentroClick }) {
   const [popupCentro, setPopupCentro] = useState(null)
   const [popupPos, setPopupPos]       = useState(null)
@@ -116,6 +172,7 @@ function MapInner({ centros, onMapClick, onCentroClick }) {
         ))}
       </MapContainer>
 
+      <BuscadorCentros centros={centros} mapRef={mapRef} onSelect={onCentroClick} />
       <Leyenda />
       <StatsPanel centros={centros} />
 
@@ -133,6 +190,17 @@ function MapInner({ centros, onMapClick, onCentroClick }) {
 
 export default function MapView({ centros = [], onMapClick, onCentroClick }) {
   return <MapInner centros={centros} onMapClick={onMapClick} onCentroClick={onCentroClick} />
+}
+
+const buscador = {
+  box:        { position: 'absolute', top: 12, left: 52, zIndex: 600, width: 250, maxWidth: 'calc(100% - 76px)' },
+  inputRow:   { display: 'flex', alignItems: 'center', gap: 8, background: 'var(--gl-bg-surface)', border: '1px solid var(--gl-border)', borderRadius: 'var(--gl-radius-md)', padding: '8px 11px', boxShadow: 'var(--gl-shadow-md)' },
+  input:      { flex: 1, background: 'transparent', border: 'none', outline: 'none', color: 'var(--gl-text-primary)', fontSize: 'var(--gl-text-sm)', minWidth: 0 },
+  lista:      { marginTop: 6, background: 'var(--gl-bg-surface)', border: '1px solid var(--gl-border)', borderRadius: 'var(--gl-radius-md)', boxShadow: 'var(--gl-shadow-md)', overflow: 'hidden' },
+  item:       { display: 'flex', alignItems: 'center', gap: 9, width: '100%', textAlign: 'left', background: 'transparent', border: 'none', cursor: 'pointer', padding: '9px 12px' },
+  itemNombre: { display: 'block', fontSize: 'var(--gl-text-sm)', fontWeight: 600, color: 'var(--gl-text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+  itemEmpresa:{ display: 'block', fontSize: 10, color: 'var(--gl-text-muted)' },
+  vacio:      { padding: '11px 12px', fontSize: 'var(--gl-text-sm)', color: 'var(--gl-text-muted)' },
 }
 
 const leyenda = {

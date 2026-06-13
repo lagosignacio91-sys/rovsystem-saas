@@ -124,3 +124,8 @@
 @media (max-width: 599px) {
   .gl-panel-centro { width: 100vw !important; }
 }
+
+/* Resultados del buscador del mapa */
+.gl-search-item { transition: background var(--gl-dur-fast) var(--gl-ease); }
+.gl-search-item:hover { background: var(--gl-bg-hover); }
+.gl-search-item:not(:last-child) { border-bottom: 1px solid var(--gl-border); }
