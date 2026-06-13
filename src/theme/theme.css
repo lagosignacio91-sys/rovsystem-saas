@@ -1,0 +1,232 @@
+/* ============================================================
+   GL Design System — Design Tokens
+   Tema oscuro (por defecto) y claro. Todo se referencia con
+   var(--gl-*) desde los componentes. Cambiar de tema = cambiar
+   el atributo data-theme en <html>; no requiere re-render.
+   ============================================================ */
+
+:root,
+:root[data-theme='dark'] {
+  /* Superficies (de más profunda a más elevada) */
+  --gl-bg-base:      #060d1a;
+  --gl-bg-surface:   #0d1b2e;
+  --gl-bg-elevated:  #14253f;
+  --gl-bg-input:     #0a1424;
+  --gl-bg-hover:     #1b2d49;
+
+  /* Bordes */
+  --gl-border:        #1d3556;
+  --gl-border-strong: #284b73;
+
+  /* Texto */
+  --gl-text-primary:   #f1f5f9;
+  --gl-text-secondary: #9fb2cc;
+  --gl-text-muted:     #64748b;
+  --gl-text-on-brand:  #ffffff;
+
+  /* Marca */
+  --gl-brand:        #2563eb;
+  --gl-brand-strong: #1d4ed8;
+  --gl-brand-soft:   #5ba4f0;
+  --gl-brand-tint:   rgba(37, 99, 235, 0.14);
+
+  /* Estados de centro / semánticos */
+  --gl-ok:        #22c55e;
+  --gl-low:       #eab308;
+  --gl-fault:     #ef4444;
+  --gl-dispatch:  #3b82f6;
+  --gl-noop:      #6b7280;
+  --gl-ok-tint:       rgba(34, 197, 94, 0.14);
+  --gl-low-tint:      rgba(234, 179, 8, 0.14);
+  --gl-fault-tint:    rgba(239, 68, 68, 0.14);
+  --gl-dispatch-tint: rgba(59, 130, 246, 0.14);
+
+  /* Sombras */
+  --gl-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --gl-shadow-md: 0 8px 24px rgba(0, 0, 0, 0.45);
+  --gl-shadow-lg: 0 24px 50px rgba(0, 0, 0, 0.55);
+
+  --gl-scrim: rgba(0, 0, 0, 0.65);
+
+  color-scheme: dark;
+}
+
+:root[data-theme='light'] {
+  --gl-bg-base:      #eef2f7;
+  --gl-bg-surface:   #ffffff;
+  --gl-bg-elevated:  #ffffff;
+  --gl-bg-input:     #f1f5f9;
+  --gl-bg-hover:     #e8eef6;
+
+  --gl-border:        #d8e0ea;
+  --gl-border-strong: #c2cfde;
+
+  --gl-text-primary:   #0d1b2e;
+  --gl-text-secondary: #44566e;
+  --gl-text-muted:     #7e8ea6;
+  --gl-text-on-brand:  #ffffff;
+
+  --gl-brand:        #2563eb;
+  --gl-brand-strong: #1d4ed8;
+  --gl-brand-soft:   #1d4ed8;
+  --gl-brand-tint:   rgba(37, 99, 235, 0.10);
+
+  --gl-ok:        #16a34a;
+  --gl-low:       #ca8a04;
+  --gl-fault:     #dc2626;
+  --gl-dispatch:  #2563eb;
+  --gl-noop:      #6b7280;
+  --gl-ok-tint:       rgba(22, 163, 74, 0.12);
+  --gl-low-tint:      rgba(202, 138, 4, 0.12);
+  --gl-fault-tint:    rgba(220, 38, 38, 0.12);
+  --gl-dispatch-tint: rgba(37, 99, 235, 0.12);
+
+  --gl-shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.10);
+  --gl-shadow-md: 0 8px 24px rgba(15, 23, 42, 0.12);
+  --gl-shadow-lg: 0 24px 50px rgba(15, 23, 42, 0.18);
+
+  --gl-scrim: rgba(15, 23, 42, 0.45);
+
+  color-scheme: light;
+}
+
+/* ---- Escalas estáticas (no cambian con el tema) ---- */
+:root {
+  --gl-space-1: 4px;
+  --gl-space-2: 8px;
+  --gl-space-3: 12px;
+  --gl-space-4: 16px;
+  --gl-space-5: 20px;
+  --gl-space-6: 24px;
+  --gl-space-8: 32px;
+
+  --gl-radius-sm: 6px;
+  --gl-radius-md: 10px;
+  --gl-radius-lg: 14px;
+  --gl-radius-xl: 20px;
+  --gl-radius-full: 999px;
+
+  --gl-text-xs: 11px;
+  --gl-text-sm: 13px;
+  --gl-text-base: 15px;
+  --gl-text-lg: 18px;
+  --gl-text-xl: 22px;
+
+  --gl-ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --gl-dur-fast: 0.12s;
+  --gl-dur: 0.2s;
+  --gl-dur-slow: 0.32s;
+}
+
+/* ============================================================
+   Componentes base (estados hover/focus/active que los
+   estilos inline no pueden expresar)
+   ============================================================ */
+
+body {
+  background: var(--gl-bg-base);
+  color: var(--gl-text-primary);
+  transition: background var(--gl-dur) var(--gl-ease);
+}
+
+/* Botones --------------------------------------------------- */
+.gl-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--gl-space-2);
+  font-family: inherit;
+  font-weight: 600;
+  border-radius: var(--gl-radius-md);
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background var(--gl-dur-fast) var(--gl-ease),
+              border-color var(--gl-dur-fast) var(--gl-ease),
+              transform var(--gl-dur-fast) var(--gl-ease),
+              opacity var(--gl-dur-fast) var(--gl-ease);
+  white-space: nowrap;
+  user-select: none;
+}
+.gl-btn:active     { transform: scale(0.97); }
+.gl-btn:disabled   { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+.gl-btn--md { padding: 10px 16px; font-size: var(--gl-text-sm); }
+.gl-btn--sm { padding: 6px 12px;  font-size: var(--gl-text-xs); }
+.gl-btn--lg { padding: 12px 18px; font-size: var(--gl-text-base); width: 100%; }
+
+.gl-btn--primary   { background: var(--gl-brand); color: var(--gl-text-on-brand); }
+.gl-btn--primary:hover:not(:disabled)   { background: var(--gl-brand-strong); }
+
+.gl-btn--secondary { background: transparent; color: var(--gl-text-secondary); border-color: var(--gl-border); }
+.gl-btn--secondary:hover:not(:disabled) { background: var(--gl-bg-hover); color: var(--gl-text-primary); border-color: var(--gl-border-strong); }
+
+.gl-btn--ghost     { background: transparent; color: var(--gl-text-secondary); }
+.gl-btn--ghost:hover:not(:disabled)     { background: var(--gl-bg-hover); color: var(--gl-text-primary); }
+
+.gl-btn--danger    { background: transparent; color: var(--gl-fault); border-color: var(--gl-border); }
+.gl-btn--danger:hover:not(:disabled)    { background: var(--gl-fault-tint); border-color: var(--gl-fault); }
+
+/* Botón de ícono ------------------------------------------- */
+.gl-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--gl-text-secondary);
+  border-radius: var(--gl-radius-md);
+  cursor: pointer;
+  padding: 7px;
+  line-height: 0;
+  transition: background var(--gl-dur-fast) var(--gl-ease), color var(--gl-dur-fast) var(--gl-ease);
+}
+.gl-icon-btn:hover { background: var(--gl-bg-hover); color: var(--gl-text-primary); }
+.gl-icon-btn:active { transform: scale(0.94); }
+
+/* Inputs / selects ----------------------------------------- */
+.gl-input {
+  width: 100%;
+  background: var(--gl-bg-input);
+  border: 1px solid var(--gl-border);
+  border-radius: var(--gl-radius-md);
+  color: var(--gl-text-primary);
+  font-family: inherit;
+  font-size: var(--gl-text-base);
+  padding: 10px 14px;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color var(--gl-dur-fast) var(--gl-ease), box-shadow var(--gl-dur-fast) var(--gl-ease);
+}
+.gl-input::placeholder { color: var(--gl-text-muted); }
+.gl-input:hover  { border-color: var(--gl-border-strong); }
+.gl-input:focus  { border-color: var(--gl-brand); box-shadow: 0 0 0 3px var(--gl-brand-tint); }
+
+.gl-input--sm { padding: 6px 10px; font-size: var(--gl-text-sm); }
+
+/* Cards ----------------------------------------------------- */
+.gl-card {
+  background: var(--gl-bg-elevated);
+  border: 1px solid var(--gl-border);
+  border-radius: var(--gl-radius-lg);
+  transition: border-color var(--gl-dur-fast) var(--gl-ease), background var(--gl-dur) var(--gl-ease);
+}
+
+/* Focus visible accesible para teclado --------------------- */
+.gl-btn:focus-visible,
+.gl-icon-btn:focus-visible,
+.gl-input:focus-visible {
+  outline: 2px solid var(--gl-brand-soft);
+  outline-offset: 2px;
+}
+
+/* Animaciones del kit -------------------------------------- */
+@keyframes modalIn {
+  from { opacity: 0; transform: translateY(12px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes glSpin { to { transform: rotate(360deg); } }
+.gl-spin { animation: glSpin 0.8s linear infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+}
