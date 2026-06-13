@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Globe, Plus, X } from 'lucide-react'
 import { useEmpresas } from '../../hooks/useEmpresas'
 import { t } from '../../theme/tokens'
+import { logoEmpresa } from '../../lib/empresaLogos'
 import { Modal, Button, Input, Field } from '../kit'
 
 function ModalAgregarEmpresa({ onGuardar, onCerrar }) {
@@ -35,13 +36,22 @@ export default function SelectorEmpresa({ empresaActiva, onCambiar, role }) {
   }
 
   const chip = (active) => ({
-    display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 11px',
+    display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 8px',
     borderRadius: t.radiusFull, border: `1px solid ${active ? t.brand : t.border}`,
     background: active ? t.brandTint : 'transparent',
     color: active ? t.brandSoft : t.textSecondary,
     cursor: 'pointer', fontSize: t.textSm, fontWeight: 500, whiteSpace: 'nowrap',
     transition: `all ${t.durFast} ${t.ease}`,
   })
+
+  // Pastilla blanca de tamaño fijo: todos los logos quedan del mismo porte.
+  const logoPill = (active) => ({
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    width: 76, height: 26, background: '#fff', borderRadius: t.radiusSm,
+    padding: '3px 7px', boxSizing: 'border-box',
+    boxShadow: active ? `0 0 0 1.5px ${t.brand}` : 'none',
+  })
+  const logoImg = { maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', display: 'block' }
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 6, overflowX: 'auto', maxWidth: '100%', padding: '2px' }}>
@@ -51,9 +61,14 @@ export default function SelectorEmpresa({ empresaActiva, onCambiar, role }) {
 
       {empresas.map(e => {
         const active = empresaActiva?.id === e.id
+        const logo = logoEmpresa(e.nombre)
         return (
           <span key={e.id} style={{ display: 'inline-flex', alignItems: 'center' }}>
-            <button onClick={() => onCambiar(e)} style={chip(active)}>{e.nombre}</button>
+            <button onClick={() => onCambiar(e)} style={chip(active)} title={e.nombre} aria-label={e.nombre}>
+              {logo
+                ? <span style={logoPill(active)}><img src={logo.src} alt={logo.alt} style={logoImg} /></span>
+                : e.nombre}
+            </button>
             {role === 'admin' && active && (
               <button className="gl-icon-btn" style={{ padding: 3, marginLeft: 2, color: t.fault }}
                 onClick={() => setAEliminar(e)} aria-label={`Eliminar ${e.nombre}`}><X size={13} /></button>

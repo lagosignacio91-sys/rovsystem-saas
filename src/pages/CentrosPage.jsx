@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { Search, MapPin, ChevronRight, Building2 } from 'lucide-react'
 import { t, ESTADO_META } from '../theme/tokens'
+import { logoEmpresa } from '../lib/empresaLogos'
 import { EstadoBadge } from '../components/kit'
 import PanelCentro from '../components/ui/PanelCentro'
 
@@ -39,6 +40,7 @@ export default function CentrosPage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {lista.map(c => {
             const meta = ESTADO_META[c.estado] ?? ESTADO_META.NO_OPERATOR
+            const logo = logoEmpresa(c.empresaNombre)
             return (
               <button key={c.id} onClick={() => setCentroActivo(c)}
                 style={{ display: 'flex', alignItems: 'center', gap: 12, textAlign: 'left', cursor: 'pointer',
@@ -47,7 +49,14 @@ export default function CentrosPage() {
                 <MapPin size={18} color={t.textMuted} style={{ flexShrink: 0 }} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: t.textSm, fontWeight: 600, color: t.textPrimary }}>{c.nombre}</div>
-                  <div style={{ fontSize: t.textXs, color: t.textMuted, marginTop: 1 }}>{c.empresaNombre ?? 'Sin empresa'}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3 }}>
+                    {logo && (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 56, height: 20, background: '#fff', borderRadius: 4, padding: '2px 5px', flexShrink: 0 }}>
+                        <img src={logo.src} alt={logo.alt} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                      </span>
+                    )}
+                    <span style={{ fontSize: t.textXs, color: t.textMuted }}>{c.empresaNombre ?? 'Sin empresa'}</span>
+                  </div>
                 </div>
                 <EstadoBadge estado={c.estado} />
                 <ChevronRight size={16} color={t.textMuted} style={{ flexShrink: 0 }} />
