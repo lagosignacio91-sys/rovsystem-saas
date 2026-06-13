@@ -8,9 +8,9 @@ import TabInsumos from '../tabs/TabInsumos'
 import PanelDespacho from '../dispatch/PanelDespacho'
 
 const TABS = [
+  { id: 'operator', label: 'Operador' },
   { id: 'rov',      label: 'Equipos ROV' },
   { id: 'tools',    label: 'Herramientas' },
-  { id: 'operator', label: 'Operador' },
   { id: 'supplies', label: 'Insumos' },
   { id: 'despacho', label: '📦 Despacho' },
 ]
@@ -32,7 +32,7 @@ const STATUS_LABELS = {
 }
 
 export default function PanelCentro({ centro, onCerrar, onEliminar, onEstadoCambio, sincronizarEstado, role }) {
-  const [tabActiva, setTabActiva]   = useState('rov')
+  const [tabActiva, setTabActiva]   = useState('operator')
   const [operadores, setOperadores] = useState({ op1: {}, op2: {} })
   const [estadoActual, setEstadoActual] = useState(centro.estado)
 
