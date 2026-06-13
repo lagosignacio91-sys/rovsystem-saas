@@ -77,6 +77,24 @@ function MapInner({ centros, onMapClick, onCentroClick }) {
         ))}
       </MapContainer>
 
+      <img
+        src="/logo.png"
+        alt=""
+        aria-hidden="true"
+        style={{
+          position: 'absolute',
+          left: '16px',
+          bottom: '24px',
+          width: '70px',
+          height: '70px',
+          objectFit: 'contain',
+          opacity: 0.22,
+          pointerEvents: 'none',
+          zIndex: 500,
+          filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.5))',
+        }}
+      />
+
       {popupCentro && popupPos && (
         <div
           style={{
