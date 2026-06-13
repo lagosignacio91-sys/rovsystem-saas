@@ -230,15 +230,17 @@ export default function PanelDespacho({ centro, role, sincronizarEstado }) {
     <div>
       <div style={styles.topBar}>
         <h3 style={styles.titulo}>Despachos</h3>
-        <button
-          onClick={() => {
-            if (itemsPendientes.length === 0) { alert('No hay insumos ni herramientas solicitados o en cero.'); return }
-            setModalItems(true)
-          }}
-          style={styles.btnGenerar}
-        >
-          + Generar despacho
-        </button>
+        {role === 'admin' && (
+          <button
+            onClick={() => {
+              if (itemsPendientes.length === 0) { alert('No hay insumos ni herramientas solicitados o en cero.'); return }
+              setModalItems(true)
+            }}
+            style={styles.btnGenerar}
+          >
+            + Generar despacho
+          </button>
+        )}
       </div>
 
       {itemsPendientes.length > 0 && (
