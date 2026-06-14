@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
 import { db } from '../../lib/firebase'
 import { doc, setDoc, getDoc } from 'firebase/firestore'
+import { useAppConfig } from '../../hooks/useAppConfig'
+import { TIPOS_OPERADOR } from '../../config/appDefaults'
 
-function FormOperador({ titulo, form, setForm, fotoPreview, fileRef, handleFoto, onGuardar, onCerrar }) {
+function FormOperador({ titulo, form, setForm, fotoPreview, fileRef, handleFoto, onGuardar, onCerrar, campos }) {
   return (
     <div style={styles.modalOverlay}>
       <div style={styles.modal}>
@@ -14,18 +16,15 @@ function FormOperador({ titulo, form, setForm, fotoPreview, fileRef, handleFoto,
           }
         </div>
         <input ref={fileRef} type="file" accept="image/*" onChange={handleFoto} style={{ display: 'none' }} />
-        {[
-          { key: 'nombre',         label: 'Nombre completo',    type: 'text'  },
-          { key: 'rut',            label: 'RUT',                type: 'text'  },
-          { key: 'telefono',       label: 'Teléfono',           type: 'text'  },
-          { key: 'correoPersonal', label: 'Correo personal',    type: 'email' },
-          { key: 'correoCorp',     label: 'Correo corporativo', type: 'email' },
-          { key: 'ingresoTurno',   label: 'Ingreso a turno',    type: 'date'  },
-          { key: 'salidaTurno',    label: 'Salida de turno',    type: 'date'  },
-        ].map(c => (
-          <div key={c.key} style={{ marginBottom: '10px' }}>
+        {/* Nombre: campo fijo (va en la cabecera de la tarjeta) */}
+        <div style={{ marginBottom: '10px' }}>
+          <label style={styles.label}>Nombre completo</label>
+          <input style={styles.input} type="text" value={form.nombre ?? ''} onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))} />
+        </div>
+        {campos.map(c => (
+          <div key={c.id} style={{ marginBottom: '10px' }}>
             <label style={styles.label}>{c.label}</label>
-            <input style={styles.input} type={c.type} value={form[c.key] ?? ''} onChange={e => setForm(f => ({ ...f, [c.key]: e.target.value }))} />
+            <input style={styles.input} type={c.type} value={form[c.id] ?? ''} onChange={e => setForm(f => ({ ...f, [c.id]: e.target.value }))} />
           </div>
         ))}
         <div style={styles.modalBtns}>
@@ -37,7 +36,7 @@ function FormOperador({ titulo, form, setForm, fotoPreview, fileRef, handleFoto,
   )
 }
 
-function TarjetaOperador({ operador, numero, onEditar, onToggleEstado, onVerFoto, role }) {
+function TarjetaOperador({ operador, numero, onEditar, onToggleEstado, onVerFoto, role, campos }) {
   const [abierto, setAbierto] = useState(false)
   const enFaena = operador.estado === 'faena'
 
@@ -83,17 +82,10 @@ function TarjetaOperador({ operador, numero, onEditar, onToggleEstado, onVerFoto
 
           {operador.nombre ? (
             <>
-              {[
-                { label: 'RUT',               valor: operador.rut },
-                { label: 'Teléfono',          valor: operador.telefono },
-                { label: 'Correo personal',   valor: operador.correoPersonal },
-                { label: 'Correo corporativo',valor: operador.correoCorp },
-                { label: 'Ingreso a turno',   valor: operador.ingresoTurno },
-                { label: 'Salida de turno',   valor: operador.salidaTurno },
-              ].map((f, i) => (
-                <div key={i} style={styles.campo}>
-                  <span style={styles.campoLabel}>{f.label}</span>
-                  <span style={styles.campoValor}>{f.valor || '—'}</span>
+              {campos.map((c) => (
+                <div key={c.id} style={styles.campo}>
+                  <span style={styles.campoLabel}>{c.label}</span>
+                  <span style={styles.campoValor}>{operador[c.id] || '—'}</span>
                 </div>
               ))}
             </>
@@ -107,6 +99,10 @@ function TarjetaOperador({ operador, numero, onEditar, onToggleEstado, onVerFoto
 }
 
 export default function TabOperador({ centro, role }) {
+  const { camposOperador } = useAppConfig()
+  const campos = camposOperador
+    .filter((c) => !c.hidden)
+    .map((c) => ({ ...c, type: TIPOS_OPERADOR[c.id] ?? 'text' }))
   const [op1, setOp1]               = useState({})
   const [op2, setOp2]               = useState({})
   const [cargando, setCargando]     = useState(true)
@@ -172,8 +168,8 @@ export default function TabOperador({ centro, role }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-      <TarjetaOperador operador={op1} numero={1} onEditar={handleEditar} onToggleEstado={handleToggleEstado} onVerFoto={setVerFoto} role={role} />
-      <TarjetaOperador operador={op2} numero={2} onEditar={handleEditar} onToggleEstado={handleToggleEstado} onVerFoto={setVerFoto} role={role} />
+      <TarjetaOperador operador={op1} numero={1} onEditar={handleEditar} onToggleEstado={handleToggleEstado} onVerFoto={setVerFoto} role={role} campos={campos} />
+      <TarjetaOperador operador={op2} numero={2} onEditar={handleEditar} onToggleEstado={handleToggleEstado} onVerFoto={setVerFoto} role={role} campos={campos} />
 
       {verFoto && (
         <div style={styles.fotoModalOverlay} onClick={() => setVerFoto(null)}>
@@ -188,6 +184,7 @@ export default function TabOperador({ centro, role }) {
           fotoPreview={fotoPreview} fileRef={fileRef} handleFoto={handleFoto}
           onGuardar={handleGuardar}
           onCerrar={() => { setEditando(null); setForm({}); setFotoPreview(null) }}
+          campos={campos}
         />
       )}
     </div>

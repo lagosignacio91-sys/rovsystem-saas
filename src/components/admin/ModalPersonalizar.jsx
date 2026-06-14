@@ -18,12 +18,13 @@ function fileADataURL(file) {
 }
 
 export default function ModalPersonalizar({ onCerrar }) {
-  const { tabs, nav, branding, listas, permisos, guardarConfig } = useAppConfig()
+  const { tabs, nav, branding, listas, permisos, camposOperador, guardarConfig } = useAppConfig()
   const [navDraft, setNavDraft]   = useState(nav)
   const [tabsDraft, setTabsDraft] = useState(tabs)
   const [marca, setMarca]         = useState(branding)
   const [inspDraft, setInspDraft] = useState(listas.inspeccionRov)
   const [permDraft, setPermDraft] = useState(permisos)
+  const [opDraft, setOpDraft]     = useState(camposOperador)
   const [nuevaSeccion, setNuevaSeccion] = useState('')
   const [guardando, setGuardando] = useState(false)
 
@@ -46,6 +47,7 @@ export default function ModalPersonalizar({ onCerrar }) {
         branding: marca,
         listas: { inspeccionRov: inspDraft.map(({ id, label }) => ({ id, label })) },
         permisos: permDraft,
+        camposOperador: opDraft.map(({ id, label, hidden, order }) => ({ id, label, hidden, order })),
       })
       onCerrar()
     } catch (e) {
@@ -126,6 +128,11 @@ export default function ModalPersonalizar({ onCerrar }) {
                 placeholder="Nueva sección de inspección…" style={s.textInput} />
               <button onClick={agregarSeccion} style={s.addBtn} aria-label="Agregar sección"><Plus size={16} /></button>
             </div>
+          </Seccion>
+
+          {/* ---- Campos del operador ---- */}
+          <Seccion titulo="Campos del operador" sub="Arrastra para reordenar · ojo para ocultar · escribe para renombrar (el nombre va siempre en la cabecera)">
+            <ListaOrdenable items={opDraft} onChange={setOpDraft} />
           </Seccion>
 
           {/* ---- Permisos por pestaña ---- */}

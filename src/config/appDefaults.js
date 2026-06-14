@@ -67,6 +67,24 @@ export const LISTAS_DEFAULT = {
   inspeccionRov: INSPECCION_ROV_DEFAULT,
 }
 
+// ---- Campos del operador (Fase 4) ----
+// Campos reordenables/ocultables de la tarjeta de operador. `nombre` queda
+// siempre fijo en la cabecera, no se configura aquí.
+export const CAMPOS_OPERADOR_DEFAULT = [
+  { id: 'rut',            label: 'RUT' },
+  { id: 'telefono',       label: 'Teléfono' },
+  { id: 'correoPersonal', label: 'Correo personal' },
+  { id: 'correoCorp',     label: 'Correo corporativo' },
+  { id: 'ingresoTurno',   label: 'Ingreso a turno' },
+  { id: 'salidaTurno',    label: 'Salida de turno' },
+]
+
+// Tipo de input por campo (no serializable; vive en código).
+export const TIPOS_OPERADOR = {
+  rut: 'text', telefono: 'text', correoPersonal: 'email',
+  correoCorp: 'email', ingresoTurno: 'date', salidaTurno: 'date',
+}
+
 // ---- Permisos por pestaña y rol (Fase 5) ----
 // Niveles: 'edit' (ver y editar) · 'view' (solo lectura) · 'hidden' (no ve la pestaña).
 // Default vacío = todo 'edit' para todos. El helper resuelve a 'edit' si falta.
