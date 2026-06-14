@@ -17,10 +17,26 @@ export default function OperadoresPage() {
   }
   ops = [...ops].sort((a, b) => (a.nombre ?? '').localeCompare(b.nombre ?? ''))
 
+  const enFaenaCount   = ops.filter(o => o.estado === 'faena').length
+  const enDescansoCount = ops.filter(o => o.estado !== 'faena').length
+
   return (
     <div style={{ height: '100%', overflowY: 'auto', padding: t.space5 }}>
       <div style={{ maxWidth: 820, margin: '0 auto' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: t.bgInput, border: `1px solid ${t.border}`, borderRadius: t.radiusMd, padding: '9px 13px', marginBottom: t.space4 }}>
+
+        {/* Stats */}
+        {!cargando && operadores.length > 0 && (
+          <div className="gl-stats-row">
+            <span className="gl-stat-chip active" style={{ color: '#22c55e', borderColor: '#22c55e', background: 'rgba(34,197,94,0.1)', cursor: 'default' }}>
+              <span className="gl-stat-dot" style={{ background: '#22c55e' }} /> En faena <span style={{ opacity: 0.65 }}>{enFaenaCount}</span>
+            </span>
+            <span className="gl-stat-chip" style={{ cursor: 'default' }}>
+              <span className="gl-stat-dot" style={{ background: '#6b7280' }} /> En descanso <span style={{ opacity: 0.65 }}>{enDescansoCount}</span>
+            </span>
+          </div>
+        )}
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: t.bgInput, border: `1px solid ${t.border}`, borderRadius: t.radiusMd, padding: '10px 13px', marginBottom: t.space4, minHeight: 44 }}>
           <Search size={16} color={t.textMuted} />
           <input value={busca} onChange={e => setBusca(e.target.value)} placeholder="Buscar operador o centro..."
             style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: t.textPrimary, fontSize: t.textSm }} />
@@ -49,8 +65,10 @@ export default function OperadoresPage() {
                   </div>
                   <div style={{ minWidth: 0, flex: 1 }}>
                     <div style={{ fontSize: t.textSm, fontWeight: 600, color: t.textPrimary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.nombre}</div>
-                    <div style={{ fontSize: 10, color: enFaena ? t.ok : t.textMuted, marginTop: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
-                      {enFaena ? <Gamepad2 size={12} /> : <Coffee size={12} />}{enFaena ? `En faena · ${o.centroNombre}` : 'En descanso'}
+                    <div style={{ fontSize: 10, color: enFaena ? t.ok : t.textMuted, marginTop: 2, display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
+                      {enFaena ? <Gamepad2 size={12} /> : <Coffee size={12} />}
+                      <span>{enFaena ? 'En faena' : 'En descanso'}</span>
+                      {enFaena && o.centroNombre && <span style={{ opacity: 0.7, overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 90 }}>· {o.centroNombre}</span>}
                     </div>
                   </div>
                 </div>

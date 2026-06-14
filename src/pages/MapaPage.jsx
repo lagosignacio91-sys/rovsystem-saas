@@ -23,7 +23,7 @@ export default function MapaPage() {
       <MapView centros={centrosFiltrados} onMapClick={handleMapClick} onCentroClick={setCentroActivo} />
 
       {centroVivo && (
-        <div className="panel-slide" style={{ position: 'absolute', top: 0, right: 0, height: '100%', zIndex: 1000 }}>
+        <div className="panel-slide gl-panel-wrapper" style={{ position: 'absolute', top: 0, right: 0, height: '100%', zIndex: 1000 }}>
           <PanelCentro
             centro={centroVivo}
             role={role}

@@ -87,7 +87,7 @@ export default function MainLayout() {
           <div style={{ flex: 1, minWidth: 0, display: 'flex', justifyContent: 'center' }}>
             <SelectorEmpresa empresaActiva={empresaActiva} onCambiar={cambiarEmpresa} role={role} />
           </div>
-          <div style={relojBox}>
+          <div className="gl-topbar-clock" style={relojBox}>
             <Clock size={14} color={t.brandSoft} />
             <div style={{ lineHeight: 1.1 }}>
               <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 13, fontWeight: 600, color: t.brandSoft }}>{horaStr}</div>

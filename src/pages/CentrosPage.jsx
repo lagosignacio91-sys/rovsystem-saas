@@ -6,12 +6,30 @@ import { logoEmpresa } from '../lib/empresaLogos'
 import { EstadoBadge } from '../components/kit'
 import PanelCentro from '../components/ui/PanelCentro'
 
+const ESTADOS_FILTRO = [
+  { key: null,               label: 'Todos',         dot: null },
+  { key: 'OK',               label: 'Operativo',     dot: '#22c55e' },
+  { key: 'LOW_STOCK',        label: 'Stock bajo',    dot: '#eab308' },
+  { key: 'EQUIPMENT_FAULT',  label: 'Falla equipo',  dot: '#ef4444' },
+  { key: 'DISPATCH_ONWAY',   label: 'En camino',     dot: '#3b82f6' },
+  { key: 'NO_OPERATOR',      label: 'Sin operador',  dot: '#6b7280' },
+]
+
 export default function CentrosPage() {
   const { centros, eliminarCentro, sincronizarEstado, role, empresaActiva } = useOutletContext()
   const [busca, setBusca]               = useState('')
+  const [filtroEstado, setFiltroEstado] = useState(null)
   const [centroActivo, setCentroActivo] = useState(null)
 
-  let lista = empresaActiva ? centros.filter(c => c.empresaId === empresaActiva.id) : centros
+  const base = empresaActiva ? centros.filter(c => c.empresaId === empresaActiva.id) : centros
+
+  // Conteos para los chips (siempre sobre la base sin filtro de estado)
+  const conteos = ESTADOS_FILTRO.slice(1).reduce((acc, f) => {
+    acc[f.key] = base.filter(c => c.estado === f.key).length
+    return acc
+  }, {})
+
+  let lista = filtroEstado ? base.filter(c => c.estado === filtroEstado) : base
   if (busca.trim()) {
     const q = busca.toLowerCase()
     lista = lista.filter(c => c.nombre?.toLowerCase().includes(q) || c.empresaNombre?.toLowerCase().includes(q))
@@ -24,7 +42,26 @@ export default function CentrosPage() {
   return (
     <div style={{ height: '100%', overflowY: 'auto', padding: t.space5 }}>
       <div style={{ maxWidth: 760, margin: '0 auto' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: t.bgInput, border: `1px solid ${t.border}`, borderRadius: t.radiusMd, padding: '9px 13px', marginBottom: t.space4 }}>
+
+        {/* Stats / filtro por estado */}
+        <div className="gl-stats-row">
+          {ESTADOS_FILTRO.map(f => {
+            const active  = filtroEstado === f.key
+            const count   = f.key === null ? base.length : (conteos[f.key] ?? 0)
+            if (f.key !== null && count === 0) return null
+            return (
+              <button key={String(f.key)} className={`gl-stat-chip${active ? ' active' : ''}`}
+                onClick={() => setFiltroEstado(active ? null : f.key)}
+                style={active ? { color: f.dot ?? t.brand, borderColor: f.dot ?? t.brand, background: f.dot ? `${f.dot}18` : t.brandTint } : {}}>
+                {f.dot && <span className="gl-stat-dot" style={{ background: f.dot }} />}
+                {f.label} <span style={{ opacity: 0.65 }}>{count}</span>
+              </button>
+            )
+          })}
+        </div>
+
+        {/* Buscador */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: t.bgInput, border: `1px solid ${t.border}`, borderRadius: t.radiusMd, padding: '10px 13px', marginBottom: t.space4, minHeight: 44 }}>
           <Search size={16} color={t.textMuted} />
           <input value={busca} onChange={e => setBusca(e.target.value)} placeholder="Buscar centro o empresa..."
             style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: t.textPrimary, fontSize: t.textSm }} />
@@ -42,10 +79,8 @@ export default function CentrosPage() {
             const meta = ESTADO_META[c.estado] ?? ESTADO_META.NO_OPERATOR
             const logo = logoEmpresa(c.empresaNombre)
             return (
-              <button key={c.id} onClick={() => setCentroActivo(c)}
-                style={{ display: 'flex', alignItems: 'center', gap: 12, textAlign: 'left', cursor: 'pointer',
-                  background: t.bgElevated, border: `1px solid ${t.border}`, borderLeft: `3px solid ${meta.dot}`,
-                  borderRadius: t.radiusMd, padding: '12px 14px', transition: `border-color ${t.durFast} ${t.ease}` }}>
+              <button key={c.id} className="gl-list-row" onClick={() => setCentroActivo(c)}
+                style={{ borderLeft: `3px solid ${meta.dot}` }}>
                 <MapPin size={18} color={t.textMuted} style={{ flexShrink: 0 }} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: t.textSm, fontWeight: 600, color: t.textPrimary }}>{c.nombre}</div>
@@ -67,7 +102,7 @@ export default function CentrosPage() {
       </div>
 
       {centroVivo && (
-        <div className="panel-slide" style={{ position: 'absolute', top: 0, right: 0, height: '100%', zIndex: 1000 }}>
+        <div className="panel-slide gl-panel-wrapper gl-panel-wrapper--page" style={{ position: 'absolute', top: 0, right: 0, height: '100%', zIndex: 1000 }}>
           <PanelCentro centro={centroVivo} role={role} sincronizarEstado={sincronizarEstado}
             onCerrar={() => setCentroActivo(null)} onEliminar={handleEliminar} />
         </div>

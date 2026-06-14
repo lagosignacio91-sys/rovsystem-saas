@@ -19,6 +19,16 @@ const FILTROS = [
   { key: 'recibido',   label: 'Recibidos' },
 ]
 
+function fechaRelativa(iso) {
+  if (!iso) return null
+  const diff = Date.now() - new Date(iso).getTime()
+  const days = Math.floor(diff / 86400000)
+  if (days === 0) return 'Hoy'
+  if (days === 1) return 'Ayer'
+  if (days < 7)  return `Hace ${days} días`
+  return new Date(iso).toLocaleDateString('es-CL', { day: 'numeric', month: 'short' })
+}
+
 function itemsTexto(d) {
   const items = d.items ?? []
   if (items.length === 0) return 'Sin ítems'
@@ -48,16 +58,18 @@ export default function DespachosPage() {
   return (
     <div style={{ height: '100%', overflowY: 'auto', padding: t.space5 }}>
       <div style={{ maxWidth: 760, margin: '0 auto' }}>
-        <div style={{ display: 'flex', gap: 7, marginBottom: t.space4, flexWrap: 'wrap' }}>
+        <div className="gl-stats-row">
           {FILTROS.map(f => {
             const active = filtro === f.key
-            const n = f.key === 'todos' ? despachos.length : conteo[f.key]
+            const n = f.key === 'todos' ? despachos.length : (conteo[f.key] ?? 0)
+            const color = f.key === 'pendiente' ? '#eab308' : f.key === 'enviado' ? '#3b82f6' : f.key === 'recibido' ? '#22c55e' : null
             return (
-              <button key={f.key} onClick={() => setFiltro(f.key)}
-                style={{ fontSize: t.textXs, padding: '6px 13px', borderRadius: t.radiusFull, cursor: 'pointer',
-                  border: `1px solid ${active ? t.brand : t.border}`, background: active ? t.brandTint : 'transparent',
-                  color: active ? t.brandSoft : t.textSecondary, fontWeight: 500 }}>
-                {f.label}{n > 0 ? ` · ${n}` : ''}
+              <button key={f.key} className={`gl-stat-chip${active ? ' active' : ''}`}
+                onClick={() => setFiltro(f.key)}
+                style={active && color ? { color, borderColor: color, background: `${color}18` }
+                  : active ? { color: t.brandSoft, borderColor: t.brand, background: t.brandTint } : {}}>
+                {color && <span className="gl-stat-dot" style={{ background: color }} />}
+                {f.label}{n > 0 ? <span style={{ opacity: 0.65 }}> {n}</span> : ''}
               </button>
             )
           })}
@@ -86,6 +98,7 @@ export default function DespachosPage() {
                     <div style={{ minWidth: 0 }}>
                       <div style={{ fontSize: t.textSm, fontWeight: 600, color: t.textPrimary }}>{d.centroNombre ?? 'Centro'}</div>
                       <div style={{ fontSize: t.textXs, color: t.textMuted, marginTop: 2 }}>{(d.items ?? []).length} ítem(s) · {itemsTexto(d)}</div>
+                      {d.creadoEn && <div style={{ fontSize: 10, color: t.textMuted, marginTop: 2, opacity: 0.7 }}>{fechaRelativa(d.creadoEn)}</div>}
                     </div>
                   </div>
                   <span style={{ fontSize: 10, color: info.color, background: info.tint, padding: '3px 10px', borderRadius: t.radiusFull, fontWeight: 500, whiteSpace: 'nowrap', flexShrink: 0 }}>{info.label}</span>

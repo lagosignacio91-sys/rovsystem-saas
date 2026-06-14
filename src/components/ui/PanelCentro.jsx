@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { db } from '../../lib/firebase'
 import { doc, onSnapshot } from 'firebase/firestore'
 import { UserCog, Ship, Wrench, Box, Package, Trash2, X, Gamepad2 } from 'lucide-react'
@@ -23,6 +23,9 @@ export default function PanelCentro({ centro, onCerrar, onEliminar, sincronizarE
   const [operadores, setOperadores] = useState({ op1: {}, op2: {} })
   const [estadoActual, setEstadoActual] = useState(centro.estado)
   const [aEliminar, setAEliminar]   = useState(false)
+  const [expanded, setExpanded]     = useState(false)
+
+  const toggleExpanded = useCallback(() => setExpanded(v => !v), [])
 
   useEffect(() => { setEstadoActual(centro.estado) }, [centro.estado])
 
@@ -43,11 +46,14 @@ export default function PanelCentro({ centro, onCerrar, onEliminar, sincronizarE
   const opEnFaena = [operadores.op1, operadores.op2].find(op => op?.estado === 'faena' && op?.nombre)
 
   return (
-    <div className="gl-panel-centro" style={styles.panel}>
-      <div style={styles.header}>
-        <div style={{ minWidth: 0, flex: 1 }}>
+    <div className={`gl-panel-centro${expanded ? ' panel-expanded' : ''}`} style={styles.panel}>
+      {/* Drag handle — solo visible en móvil, hace toggle del panel */}
+      <div className="gl-drag-handle" onClick={toggleExpanded} role="button" aria-label={expanded ? 'Colapsar' : 'Expandir'} />
+
+      <div style={styles.header} onClick={(e) => { if (e.currentTarget === e.target) toggleExpanded() }}>
+        <div style={{ minWidth: 0, flex: 1, cursor: 'pointer' }} onClick={toggleExpanded}>
           <h2 style={styles.nombre}>{centro.nombre}</h2>
-          <div style={{ marginTop: 6 }}><EstadoBadge estado={estadoActual} /></div>
+          <div style={{ marginTop: 4 }}><EstadoBadge estado={estadoActual} /></div>
         </div>
         <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
           {role === 'admin' && (
@@ -69,14 +75,14 @@ export default function PanelCentro({ centro, onCerrar, onEliminar, sincronizarE
         </div>
       )}
 
-      <div style={styles.tabs}>
+      <div className="gl-panel-tabs-bar" style={styles.tabs}>
         {TABS.map(({ id, label, icon: Icon }) => {
           const active = tabActiva === id
           return (
-            <button key={id} onClick={() => setTabActiva(id)}
+            <button key={id} className="gl-tab-btn" onClick={() => { setTabActiva(id); setExpanded(true) }}
               style={{ ...styles.tab, color: active ? t.brandSoft : t.textMuted, borderBottom: `2px solid ${active ? t.brand : 'transparent'}` }}>
               <Icon size={17} strokeWidth={2} />
-              <span style={{ fontSize: 9 }}>{label}</span>
+              <span className="gl-tab-label" style={{ fontSize: 9 }}>{label}</span>
             </button>
           )
         })}
