@@ -1,47 +1,45 @@
 import { useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
-import { Map, Building2, Package, Users, LogOut, Menu, X, Clock } from 'lucide-react'
+import { LogOut, Menu, X, Clock, SlidersHorizontal } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import { useCentros } from '../../hooks/useCentros'
 import { useDespachosGlobal } from '../../hooks/useDespachosGlobal'
+import { useAppConfig } from '../../hooks/useAppConfig'
+import { NAV_META } from '../../config/appDefaults'
 import { t } from '../../theme/tokens'
 import { useReloj } from '../../hooks/useReloj'
 import ThemeToggle from '../kit/ThemeToggle'
 import SelectorEmpresa from '../ui/SelectorEmpresa'
+import ModalPersonalizar from '../admin/ModalPersonalizar'
 import './layout.css'
-
-const NAV = [
-  { to: '/',            label: 'Mapa',       icon: Map,        end: true },
-  { to: '/centros',     label: 'Centros',    icon: Building2 },
-  { to: '/despachos',   label: 'Despachos',  icon: Package, badgeKey: 'despachos' },
-  { to: '/operadores',  label: 'Operadores', icon: Users },
-]
-
-const TITULOS = {
-  '/':            'Mapa de centros',
-  '/centros':     'Centros',
-  '/despachos':   'Despachos',
-  '/operadores':  'Operadores',
-}
 
 export default function MainLayout() {
   const { user, role, signOut } = useAuth()
+  const { nav, branding }       = useAppConfig()
   const centrosState            = useCentros()
   const { pendientes }          = useDespachosGlobal()
   const [empresaActiva, setEmpresaActiva] = useState(null)
   const [drawerOpen, setDrawerOpen]       = useState(false)
+  const [personalizar, setPersonalizar]   = useState(false)
   const { horaStr, fechaStr }   = useReloj()
   const location                = useLocation()
 
   const usuario = user?.email?.split('@')[0] ?? ''
   const inicial = (usuario[0] ?? '?').toUpperCase()
-  const titulo  = TITULOS[location.pathname] ?? 'GL Robótica'
   const badges  = { despachos: pendientes.length }
+
+  // Solo ítems visibles, ya ordenados; combina datos de config + meta de código.
+  const navVisible = nav
+    .filter((n) => !n.hidden && NAV_META[n.id])
+    .map((n) => ({ ...NAV_META[n.id], id: n.id, label: n.label }))
+
+  const navActual = navVisible.find((n) => n.id === location.pathname)
+  const titulo    = navActual ? navActual.label : (branding.appName || 'GL Robótica')
 
   const cambiarEmpresa = (e) => { setEmpresaActiva(e); setDrawerOpen(false) }
 
-  const navItems = (onClick) => NAV.map(({ to, label, icon: Icon, end, badgeKey }) => (
-    <NavLink key={to} to={to} end={end} onClick={onClick}
+  const navItems = (onClick) => navVisible.map(({ to, label, icon: Icon, end, badgeKey, id }) => (
+    <NavLink key={id} to={to} end={end} onClick={onClick}
       className={({ isActive }) => `gl-nav-item ${isActive ? 'active' : ''}`}>
       <Icon size={19} strokeWidth={2} />
       <span>{label}</span>
@@ -57,9 +55,9 @@ export default function MainLayout() {
       {/* Sidebar / Drawer */}
       <aside className={`gl-sidebar ${drawerOpen ? 'open' : ''}`}>
         <div style={brandBox}>
-          <div style={logoWrap}><img src="/logo.png" alt="GL" style={logoImg} /></div>
+          <div style={logoWrap}><img src={branding.logoDataUrl || '/logo.png'} alt="GL" style={logoImg} /></div>
           <div style={{ lineHeight: 1.25 }}>
-            <div style={{ fontSize: t.textSm, fontWeight: 600, color: t.textPrimary }}>GL Robótica</div>
+            <div style={{ fontSize: t.textSm, fontWeight: 600, color: t.textPrimary }}>{branding.appName || 'GL Robótica'}</div>
             <div style={{ fontSize: 10, color: t.brandSoft }}>Aysén · Chile</div>
           </div>
           <button className="gl-icon-btn gl-menu-btn" style={{ marginLeft: 'auto' }} onClick={() => setDrawerOpen(false)} aria-label="Cerrar menú"><X size={18} /></button>
@@ -94,6 +92,11 @@ export default function MainLayout() {
               <div style={{ fontSize: 9, color: t.textMuted, textTransform: 'capitalize' }}>{fechaStr}</div>
             </div>
           </div>
+          {role === 'admin' && (
+            <button className="gl-icon-btn" onClick={() => setPersonalizar(true)} aria-label="Personalizar app" title="Personalizar app">
+              <SlidersHorizontal size={18} />
+            </button>
+          )}
           <ThemeToggle />
         </header>
 
@@ -103,8 +106,8 @@ export default function MainLayout() {
 
         {/* Bottom nav móvil */}
         <nav className="gl-bottomnav">
-          {NAV.map(({ to, label, icon: Icon, end, badgeKey }) => (
-            <NavLink key={to} to={to} end={end}
+          {navVisible.map(({ to, label, icon: Icon, end, badgeKey, id }) => (
+            <NavLink key={id} to={to} end={end}
               className={({ isActive }) => `gl-bottomnav-item ${isActive ? 'active' : ''}`}>
               <Icon size={20} strokeWidth={2} />
               <span>{label}</span>
@@ -113,6 +116,8 @@ export default function MainLayout() {
           ))}
         </nav>
       </div>
+
+      {personalizar && <ModalPersonalizar onCerrar={() => setPersonalizar(false)} />}
     </div>
   )
 }

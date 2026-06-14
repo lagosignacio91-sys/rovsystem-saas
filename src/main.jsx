@@ -4,11 +4,14 @@ import App from './App'
 import './theme/theme.css'
 import './index.css'
 import { ThemeProvider } from './theme/ThemeProvider'
+import { AppConfigProvider } from './hooks/useAppConfig'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <ThemeProvider>
-      <App />
+      <AppConfigProvider>
+        <App />
+      </AppConfigProvider>
     </ThemeProvider>
   </React.StrictMode>
 )

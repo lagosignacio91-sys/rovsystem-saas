@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback } from 'react'
 import { db } from '../../lib/firebase'
 import { doc, onSnapshot } from 'firebase/firestore'
-import { UserCog, Ship, Wrench, Box, Package, Trash2, X, Gamepad2, ClipboardCheck } from 'lucide-react'
+import { Trash2, X, Gamepad2 } from 'lucide-react'
 import { t } from '../../theme/tokens'
 import { EstadoBadge, Modal, Button } from '../kit'
+import { useAppConfig } from '../../hooks/useAppConfig'
+import { ICONOS_TAB } from '../../config/appDefaults'
 import TabROV from '../tabs/TabROV'
 import TabHerramientas from '../tabs/TabHerramientas'
 import TabOperador from '../tabs/TabOperador'
@@ -11,17 +13,20 @@ import TabInsumos from '../tabs/TabInsumos'
 import PanelDespacho from '../dispatch/PanelDespacho'
 import TabEntregaTurno from '../tabs/TabEntregaTurno'
 
-const TABS = [
-  { id: 'operator', label: 'Operador',    icon: UserCog },
-  { id: 'rov',      label: 'ROV',         icon: Ship },
-  { id: 'tools',    label: 'Herram.',     icon: Wrench },
-  { id: 'supplies', label: 'Insumos',     icon: Box },
-  { id: 'despacho', label: 'Despacho',    icon: Package },
-  { id: 'turno',    label: 'Turno',       icon: ClipboardCheck },
-]
+// Registro id → componente de pestaña (no serializable, vive en código).
+const TAB_COMPONENTES = {
+  operator: (p) => <TabOperador {...p} />,
+  rov:      (p) => <TabROV {...p} />,
+  tools:    (p) => <TabHerramientas {...p} />,
+  supplies: (p) => <TabInsumos {...p} />,
+  despacho: (p) => <PanelDespacho {...p} />,
+  turno:    (p) => <TabEntregaTurno {...p} />,
+}
 
 export default function PanelCentro({ centro, onCerrar, onEliminar, sincronizarEstado, role, uid }) {
-  const [tabActiva, setTabActiva]   = useState('operator')
+  const { tabs } = useAppConfig()
+  const tabsVisibles = tabs.filter((tb) => !tb.hidden && TAB_COMPONENTES[tb.id])
+  const [tabActiva, setTabActiva]   = useState(tabsVisibles[0]?.id ?? 'operator')
   const [operadores, setOperadores] = useState({ op1: {}, op2: {} })
   const [estadoActual, setEstadoActual] = useState(centro.estado)
   const [aEliminar, setAEliminar]   = useState(false)
@@ -44,6 +49,13 @@ export default function PanelCentro({ centro, onCerrar, onEliminar, sincronizarE
     })
     return () => unsub()
   }, [centro.id])
+
+  // Si la pestaña activa quedó oculta/eliminada por el admin, saltar a la primera visible.
+  useEffect(() => {
+    if (tabsVisibles.length && !tabsVisibles.some((tb) => tb.id === tabActiva)) {
+      setTabActiva(tabsVisibles[0].id)
+    }
+  }, [tabsVisibles, tabActiva])
 
   const opEnFaena = [operadores.op1, operadores.op2].find(op => op?.estado === 'faena' && op?.nombre)
 
@@ -78,12 +90,13 @@ export default function PanelCentro({ centro, onCerrar, onEliminar, sincronizarE
       )}
 
       <div className="gl-panel-tabs-bar" style={styles.tabs}>
-        {TABS.map(({ id, label, icon: Icon }) => {
+        {tabsVisibles.map(({ id, label }) => {
+          const Icon = ICONOS_TAB[id]
           const active = tabActiva === id
           return (
             <button key={id} className="gl-tab-btn" onClick={() => { setTabActiva(id); setExpanded(true) }}
               style={{ ...styles.tab, color: active ? t.brandSoft : t.textMuted, borderBottom: `2px solid ${active ? t.brand : 'transparent'}` }}>
-              <Icon size={17} strokeWidth={2} />
+              {Icon && <Icon size={17} strokeWidth={2} />}
               <span className="gl-tab-label" style={{ fontSize: 9 }}>{label}</span>
             </button>
           )
@@ -91,12 +104,7 @@ export default function PanelCentro({ centro, onCerrar, onEliminar, sincronizarE
       </div>
 
       <div style={styles.contenido}>
-        {tabActiva === 'rov'      && <TabROV          centro={centro} role={role} sincronizarEstado={sincronizarEstado} />}
-        {tabActiva === 'tools'    && <TabHerramientas centro={centro} role={role} sincronizarEstado={sincronizarEstado} />}
-        {tabActiva === 'operator' && <TabOperador     centro={centro} role={role} />}
-        {tabActiva === 'supplies' && <TabInsumos      centro={centro} role={role} sincronizarEstado={sincronizarEstado} />}
-        {tabActiva === 'despacho' && <PanelDespacho    centro={centro} role={role} sincronizarEstado={sincronizarEstado} />}
-        {tabActiva === 'turno'    && <TabEntregaTurno  centro={centro} role={role} uid={uid} />}
+        {TAB_COMPONENTES[tabActiva]?.({ centro, role, uid, sincronizarEstado })}
       </div>
 
       {aEliminar && (
