@@ -1,16 +1,19 @@
 import { useState } from 'react'
-import { Mail, Lock, Eye, EyeOff, ArrowRight, AlertCircle } from 'lucide-react'
+import { Mail, Lock, Eye, EyeOff, ArrowRight, AlertCircle, Download, Share, CheckCircle2, X } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
+import { useInstallPrompt } from '../hooks/useInstallPrompt'
 import { t } from '../theme/tokens'
 import ThemeToggle from '../components/kit/ThemeToggle'
 
 export default function Login() {
   const { signIn } = useAuth()
+  const { instalable, instalada, esIOS, instalar } = useInstallPrompt()
   const [email, setEmail]       = useState('')
   const [password, setPassword] = useState('')
   const [verPass, setVerPass]   = useState(false)
   const [error, setError]       = useState(null)
   const [loading, setLoading]   = useState(false)
+  const [verAyudaIOS, setVerAyudaIOS] = useState(false)
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -69,7 +72,46 @@ export default function Login() {
             {loading ? 'Ingresando...' : <>Ingresar <ArrowRight size={16} /></>}
           </button>
         </form>
+
+        {/* Instalar app (PWA) */}
+        {!instalada && (instalable || esIOS) && (
+          <div style={s.installWrap}>
+            {instalable && (
+              <button type="button" onClick={instalar} style={s.installBtn}>
+                <Download size={16} /> Instalar app en este equipo
+              </button>
+            )}
+            {!instalable && esIOS && (
+              <button type="button" onClick={() => setVerAyudaIOS(true)} style={s.installBtn}>
+                <Download size={16} /> Instalar app en el iPhone
+              </button>
+            )}
+            <p style={s.installHint}>Quedará como una app, sin abrir el navegador.</p>
+          </div>
+        )}
+
+        {instalada && (
+          <div style={s.instaladaBox}>
+            <CheckCircle2 size={15} color={t.ok} /> App instalada en este equipo
+          </div>
+        )}
       </div>
+
+      {verAyudaIOS && (
+        <div style={s.iosOverlay} onClick={() => setVerAyudaIOS(false)}>
+          <div style={s.iosCard} onClick={e => e.stopPropagation()}>
+            <div style={s.iosHead}>
+              <span style={{ fontSize: 15, fontWeight: 700, color: t.textPrimary }}>Instalar en iPhone</span>
+              <button onClick={() => setVerAyudaIOS(false)} className="gl-icon-btn" style={{ padding: 2 }}><X size={18} /></button>
+            </div>
+            <ol style={s.iosList}>
+              <li>Toca el botón <Share size={14} style={{ verticalAlign: 'middle' }} /> <b>Compartir</b> en la barra de Safari.</li>
+              <li>Desliza y elige <b>“Agregar a inicio”</b>.</li>
+              <li>Confirma con <b>Agregar</b>. El ícono de GL App quedará en tu pantalla.</li>
+            </ol>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -90,4 +132,12 @@ const s = {
   inputBox: (err) => ({ display: 'flex', alignItems: 'center', gap: 8, background: t.bgInput, border: `1px solid ${err ? t.fault : t.border}`, borderRadius: t.radiusMd, padding: '10px 12px', boxShadow: err ? `0 0 0 3px ${t.faultTint}` : 'none' }),
   input:   { flex: 1, background: 'transparent', border: 'none', outline: 'none', color: t.textPrimary, fontSize: t.textBase, minWidth: 0 },
   errorBox:{ display: 'flex', alignItems: 'center', gap: 7, background: t.faultTint, border: `1px solid ${t.fault}`, borderRadius: t.radiusMd, padding: '8px 11px' },
+  installWrap: { marginTop: 18, paddingTop: 16, borderTop: `1px solid ${t.border}`, textAlign: 'center' },
+  installBtn: { width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, background: t.brandTint, border: `1px solid ${t.brandSoft}`, color: t.brandSoft, borderRadius: t.radiusMd, padding: '11px', fontSize: t.textSm, fontWeight: 600, cursor: 'pointer' },
+  installHint: { fontSize: t.textXs, color: t.textMuted, margin: '8px 0 0' },
+  instaladaBox: { marginTop: 18, paddingTop: 16, borderTop: `1px solid ${t.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, fontSize: t.textXs, color: t.textMuted },
+  iosOverlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 9200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 },
+  iosCard: { background: t.bgElevated, border: `1px solid ${t.border}`, borderRadius: t.radiusLg, width: '100%', maxWidth: 340, padding: 18 },
+  iosHead: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
+  iosList: { margin: 0, paddingLeft: 20, color: t.textSecondary, fontSize: t.textSm, lineHeight: 1.7 },
 }
