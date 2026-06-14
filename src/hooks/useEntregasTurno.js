@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { db, storage } from '../lib/firebase'
 import {
   collection, addDoc, deleteDoc, doc, onSnapshot, orderBy, query,
-  getDoc, setDoc,
+  getDoc, setDoc, updateDoc,
 } from 'firebase/firestore'
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 
@@ -74,9 +74,13 @@ export function useEntregasTurno(centroId) {
     }
   }
 
+  const actualizarEntrega = async (entregaId, data) => {
+    await updateDoc(doc(db, 'centros', centroId, 'entregas', entregaId), data)
+  }
+
   const eliminarEntrega = async (entregaId) => {
     await deleteDoc(doc(db, 'centros', centroId, 'entregas', entregaId))
   }
 
-  return { entregas, itemsList, cargando, crearEntrega, eliminarEntrega, subirFoto, guardarItemsList, ITEMS_DEFAULT }
+  return { entregas, itemsList, cargando, crearEntrega, actualizarEntrega, eliminarEntrega, subirFoto, guardarItemsList, ITEMS_DEFAULT }
 }

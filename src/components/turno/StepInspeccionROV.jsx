@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import { Camera, CheckCircle, AlertTriangle, ImagePlus } from 'lucide-react'
 
 export const SECCIONES_ROV = [
@@ -25,6 +25,10 @@ const s = {
   thumb:     { width: 52, height: 52, borderRadius: 8, objectFit: 'cover', border: '1px solid var(--gl-border)', flexShrink: 0 },
   fotoBtn:   { flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontSize: 11, padding: '8px', borderRadius: 8, border: '1px dashed var(--gl-border)', background: 'transparent', color: 'var(--gl-text-secondary)', cursor: 'pointer' },
   progress:  { textAlign: 'center', fontSize: 10, color: 'var(--gl-text-muted)', marginTop: 4 },
+  tabs:      { display: 'flex', gap: 6, background: 'var(--gl-bg-input)', padding: 4, borderRadius: 10, marginBottom: 2 },
+  tab:       { flex: 1, padding: '7px 8px', borderRadius: 7, border: 'none', background: 'transparent', color: 'var(--gl-text-muted)', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 },
+  tabActive: { background: 'var(--gl-brand)', color: '#fff' },
+  tabDot:    { width: 7, height: 7, borderRadius: '50%', background: 'var(--gl-fault)', flexShrink: 0 },
 }
 
 function SeccionItem({ sec, data, onChange }) {
@@ -88,22 +92,47 @@ function SeccionItem({ sec, data, onChange }) {
   )
 }
 
-export default function StepInspeccionROV({ inspeccion, onChange }) {
-  const completadas = SECCIONES_ROV.filter(s => inspeccion[s.id]?.estado).length
+export default function StepInspeccionROV({ inspeccion, onChange, equipoPrincipal, equipoBackup }) {
+  const [activo, setActivo] = useState('principal')
 
-  const handleChange = (id, data) => onChange({ ...inspeccion, [id]: data })
+  // inspeccion = { principal: {secId:{...}}, backup: {secId:{...}} }
+  const datosEquipo = inspeccion[activo] ?? {}
+  const completadas = SECCIONES_ROV.filter(s => datosEquipo[s.id]?.estado).length
+
+  const tieneAnomalia = (equipo) => {
+    const d = inspeccion[equipo] ?? {}
+    return SECCIONES_ROV.some(s => d[s.id]?.estado === 'anomalia')
+  }
+
+  const handleChange = (id, data) =>
+    onChange({ ...inspeccion, [activo]: { ...datosEquipo, [id]: data } })
+
+  const tabLabel = (equipo, fallback, nombre) => (
+    <button
+      type="button"
+      style={{ ...s.tab, ...(activo === equipo ? s.tabActive : {}) }}
+      onClick={() => setActivo(equipo)}
+    >
+      {nombre?.trim() ? nombre.trim() : fallback}
+      {tieneAnomalia(equipo) && <span style={s.tabDot} />}
+    </button>
+  )
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={s.tabs}>
+        {tabLabel('principal', 'Equipo principal', equipoPrincipal)}
+        {tabLabel('backup', 'Equipo backup', equipoBackup)}
+      </div>
       {SECCIONES_ROV.map(sec => (
         <SeccionItem
-          key={sec.id}
+          key={`${activo}-${sec.id}`}
           sec={sec}
-          data={inspeccion[sec.id]}
+          data={datosEquipo[sec.id]}
           onChange={handleChange}
         />
       ))}
-      <p style={s.progress}>{completadas} de {SECCIONES_ROV.length} secciones evaluadas</p>
+      <p style={s.progress}>{completadas} de {SECCIONES_ROV.length} secciones evaluadas · {activo === 'principal' ? 'equipo principal' : 'equipo backup'}</p>
     </div>
   )
 }

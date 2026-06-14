@@ -62,15 +62,17 @@ export async function generarPDFEntrega(entrega) {
   doc.setTextColor(100, 120, 140)
 
   const campos = [
-    ['Centro',  entrega.centroNombre],
-    ['Fecha',   entrega.fecha],
-    ['Hora',    entrega.hora],
-    ['Piloto',  entrega.piloto],
-    ['Backup',  entrega.backup],
-    ['Equipo',  entrega.equipo],
+    ['Centro',        entrega.centroNombre],
+    ['Fecha',         entrega.fecha],
+    ['Hora',          entrega.hora],
+    ['Piloto',        entrega.piloto],
+    ['Relevo',        entrega.relevo ?? entrega.backup],
+    ['Equipo ppal',   entrega.equipo],
+    ['Equipo backup', entrega.equipoBackup],
   ]
 
   const colW = (W - margin * 2) / 3
+  const filasDatos = Math.ceil(campos.length / 3)
   campos.forEach(([label, valor], i) => {
     const col = i % 3
     const row = Math.floor(i / 3)
@@ -81,11 +83,11 @@ export async function generarPDFEntrega(entrega) {
     doc.text(label + ':', x, ry)
     doc.setFont('helvetica', 'normal')
     doc.setTextColor(20, 40, 60)
-    doc.text(valor || '—', x + 14, ry)
+    doc.text(valor || '—', x + 22, ry)
   })
 
   if (entrega.observacionGeneral) {
-    y += 22
+    y += filasDatos * 10
     doc.setFont('helvetica', 'bold')
     doc.setTextColor(80, 100, 120)
     doc.text('Observación general:', margin, y)
@@ -95,72 +97,81 @@ export async function generarPDFEntrega(entrega) {
     doc.text(lines, margin + 40, y)
     y += lines.length * 4 + 4
   } else {
-    y += 24
+    y += filasDatos * 10 + 2
   }
 
-  // ── Inspección de equipos ──
-  doc.setFont('helvetica', 'bold')
-  doc.setFontSize(10)
-  doc.setTextColor(10, 37, 64)
-  doc.text('Inspección de equipos', margin, y)
-  y += 3
+  // ── Inspección de equipos (principal + backup) ──
+  async function dibujarInspeccion(titulo, inspeccion) {
+    if (!inspeccion || inspeccion.length === 0) return
 
-  const fotoImgs = []
-  for (const sec of entrega.inspeccion) {
-    let img = null
-    if (sec.fotoUrl) img = await urlToBase64(sec.fotoUrl)
-    fotoImgs.push(img)
-  }
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(10)
+    doc.setTextColor(10, 37, 64)
+    doc.text(titulo, margin, y)
+    y += 3
 
-  autoTable(doc, {
-    startY: y,
-    margin: { left: margin, right: margin },
-    head: [['Componente', 'Estado', 'Nota', 'Foto']],
-    body: entrega.inspeccion.map((sec, i) => [
-      sec.label,
-      sec.estado === 'ok' ? 'Sin anomalías' : 'Anomalía',
-      sec.nota || '—',
-      '',
-    ]),
-    headStyles: {
-      fillColor: [10, 37, 64],
-      textColor: [255, 255, 255],
-      fontSize: 8,
-      fontStyle: 'bold',
-    },
-    columnStyles: {
-      0: { cellWidth: 52 },
-      1: { cellWidth: 28 },
-      2: { cellWidth: 'auto' },
-      3: { cellWidth: 22 },
-    },
-    bodyStyles: { fontSize: 8, textColor: [20, 40, 60] },
-    alternateRowStyles: { fillColor: [245, 248, 252] },
-    didParseCell(data) {
-      if (data.column.index === 1 && data.section === 'body') {
-        const sec = entrega.inspeccion[data.row.index]
-        data.cell.styles.textColor = sec?.estado === 'ok' ? [22, 163, 74] : [220, 38, 38]
-        data.cell.styles.fontStyle = 'bold'
-      }
-    },
-    didDrawCell(data) {
-      if (data.column.index === 3 && data.section === 'body') {
-        const img = fotoImgs[data.row.index]
-        if (img) {
-          const pad = 1
-          doc.addImage(img, 'JPEG',
-            data.cell.x + pad,
-            data.cell.y + pad,
-            data.cell.width  - pad * 2,
-            data.cell.height - pad * 2
-          )
+    const fotoImgs = []
+    for (const sec of inspeccion) {
+      let img = null
+      if (sec.fotoUrl) img = await urlToBase64(sec.fotoUrl)
+      fotoImgs.push(img)
+    }
+
+    autoTable(doc, {
+      startY: y,
+      margin: { left: margin, right: margin },
+      head: [['Componente', 'Estado', 'Nota', 'Foto']],
+      body: inspeccion.map((sec) => [
+        sec.label,
+        sec.estado === 'ok' ? 'Sin anomalías' : 'Anomalía',
+        sec.nota || '—',
+        '',
+      ]),
+      headStyles: {
+        fillColor: [10, 37, 64],
+        textColor: [255, 255, 255],
+        fontSize: 8,
+        fontStyle: 'bold',
+      },
+      columnStyles: {
+        0: { cellWidth: 52 },
+        1: { cellWidth: 28 },
+        2: { cellWidth: 'auto' },
+        3: { cellWidth: 22 },
+      },
+      bodyStyles: { fontSize: 8, textColor: [20, 40, 60] },
+      alternateRowStyles: { fillColor: [245, 248, 252] },
+      didParseCell(data) {
+        if (data.column.index === 1 && data.section === 'body') {
+          const sec = inspeccion[data.row.index]
+          data.cell.styles.textColor = sec?.estado === 'ok' ? [22, 163, 74] : [220, 38, 38]
+          data.cell.styles.fontStyle = 'bold'
         }
-      }
-    },
-    rowPageBreak: 'avoid',
-  })
+      },
+      didDrawCell(data) {
+        if (data.column.index === 3 && data.section === 'body') {
+          const img = fotoImgs[data.row.index]
+          if (img) {
+            const pad = 1
+            doc.addImage(img, 'JPEG',
+              data.cell.x + pad,
+              data.cell.y + pad,
+              data.cell.width  - pad * 2,
+              data.cell.height - pad * 2
+            )
+          }
+        }
+      },
+      rowPageBreak: 'avoid',
+    })
 
-  y = doc.lastAutoTable.finalY + 8
+    y = doc.lastAutoTable.finalY + 8
+  }
+
+  const equipoPpalNombre = entrega.equipo ? `Inspección equipo principal (${entrega.equipo})` : 'Inspección equipo principal'
+  const equipoBkpNombre  = entrega.equipoBackup ? `Inspección equipo backup (${entrega.equipoBackup})` : 'Inspección equipo backup'
+  await dibujarInspeccion(equipoPpalNombre, entrega.inspeccion)
+  await dibujarInspeccion(equipoBkpNombre, entrega.inspeccionBackup)
 
   // ── Inventario ──
   doc.setFont('helvetica', 'bold')

@@ -1,10 +1,18 @@
 import { useState } from 'react'
-import { X, ChevronLeft, ChevronRight, Check, Loader2 } from 'lucide-react'
+import { X, ChevronLeft, ChevronRight, Check, Loader2, Download, Share2 } from 'lucide-react'
 import { SECCIONES_ROV } from './StepInspeccionROV'
 import StepDatosGenerales from './StepDatosGenerales'
 import StepInspeccionROV  from './StepInspeccionROV'
 import StepInventario     from './StepInventario'
 import { descargarPDF, compartirPDF } from '../../lib/generatePDF'
+
+// Convierte un File a dataURL base64 para incrustarlo en el PDF sin pasar por Storage.
+const fileADataURL = (file) => new Promise((resolve) => {
+  const reader = new FileReader()
+  reader.onloadend = () => resolve(reader.result)
+  reader.onerror = () => resolve('')
+  reader.readAsDataURL(file)
+})
 
 const PASOS = ['Datos', 'Inspección', 'Inventario']
 
@@ -56,9 +64,9 @@ export default function ModalEntregaTurno({ centro, itemsList, onCerrar, onGuard
 
   const [datos, setDatos] = useState({
     fecha: hoy(), hora: ahora(),
-    piloto: '', backup: '', equipo: '', observacionGeneral: '',
+    piloto: '', relevo: '', equipo: '', equipoBackup: '', observacionGeneral: '',
   })
-  const [inspeccion, setInspeccion] = useState({})
+  const [inspeccion, setInspeccion] = useState({ principal: {}, backup: {} })
   const [inventario, setInventario] = useState(
     itemsList.map(i => ({ ...i, cantidad: 0 }))
   )
@@ -73,37 +81,58 @@ export default function ModalEntregaTurno({ centro, itemsList, onCerrar, onGuard
     return true
   }
 
+  const buildInspeccion = (equipo) => SECCIONES_ROV.map(sec => {
+    const d = inspeccion[equipo]?.[sec.id] ?? {}
+    return {
+      id:      sec.id,
+      label:   sec.label,
+      estado:  d.estado ?? 'ok',
+      nota:    d.nota   ?? '',
+      fotoUrl: '',
+      file:    d.file ?? null,
+    }
+  })
+
   const guardar = async () => {
     setSaving(true)
     setError(null)
-    const inspeccionArr = SECCIONES_ROV.map(sec => {
-      const d = inspeccion[sec.id] ?? {}
-      return {
-        id:      sec.id,
-        label:   sec.label,
-        estado:  d.estado ?? 'ok',
-        nota:    d.nota   ?? '',
-        fotoUrl: '',
-        file:    d.file ?? null,
-      }
-    })
+    const principalArr = buildInspeccion('principal')
+    const backupArr    = buildInspeccion('backup')
     const inventarioArr = inventario.map(({ file: _f, ...i }) => i)
+
+    const sinFile = (arr) => arr.map(({ file: _f, ...rest }) => rest)
 
     const entregaData = {
       ...datos,
       centroNombre:     centro.nombre,
-      inspeccion:       inspeccionArr.map(({ file: _f, ...rest }) => rest),
+      inspeccion:       sinFile(principalArr),
+      inspeccionBackup: sinFile(backupArr),
       inventario:       inventarioArr,
       observacionFinal,
     }
 
+    const timeout = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('__timeout__')), 15000)
+    )
+
     try {
-      const id = await onGuardar(entregaData, inspeccionArr)
-      setSaved({ ...entregaData, id })
+      await Promise.race([onGuardar(entregaData, principalArr, backupArr), timeout])
+
+      // Para el PDF descargable: incrustamos las fotos en base64 (no depende de Storage).
+      const conFotos = async (arr) => Promise.all(arr.map(async ({ file, ...s }) => ({
+        ...s,
+        fotoUrl: file ? await fileADataURL(file) : '',
+      })))
+      const [inspFoto, inspBackupFoto] = await Promise.all([conFotos(principalArr), conFotos(backupArr)])
+
+      setSaved({ ...entregaData, inspeccion: inspFoto, inspeccionBackup: inspBackupFoto })
     } catch (e) {
       console.error('Error guardando entrega:', e)
-      setError('Error al guardar. Verifica tu conexión e intenta de nuevo.')
-    } finally {
+      if (e.message === '__timeout__') {
+        setError('No se pudo guardar (tiempo de espera agotado). Verifica tu conexión.')
+      } else {
+        setError('Error al guardar: ' + (e.message || 'verifica tu conexión.'))
+      }
       setSaving(false)
     }
   }
@@ -122,13 +151,16 @@ export default function ModalEntregaTurno({ centro, itemsList, onCerrar, onGuard
               <p style={{ fontSize: 12, color: 'var(--gl-text-secondary)', marginTop: 4 }}>
                 {saved.centroNombre} · {saved.fecha} {saved.hora}
               </p>
+              <p style={{ fontSize: 11, color: 'var(--gl-text-muted)', marginTop: 8, lineHeight: 1.4 }}>
+                Descarga el reporte y envíalo por WhatsApp al grupo.
+              </p>
             </div>
             <div style={s.shareRow}>
               <button style={s.btnDl} onClick={() => descargarPDF(saved)}>
-                ↓ Descargar PDF
+                <Download size={14} /> Descargar PDF
               </button>
               <button style={s.btnWa} onClick={() => compartirPDF(saved)}>
-                ↗ Compartir
+                <Share2 size={14} /> Compartir
               </button>
             </div>
             <button style={s.btnClose} onClick={onCerrar}>Cerrar</button>
@@ -171,7 +203,7 @@ export default function ModalEntregaTurno({ centro, itemsList, onCerrar, onGuard
 
         <div style={s.body}>
           {paso === 0 && <StepDatosGenerales datos={datos} onChange={setDatos} centroNombre={centro.nombre} />}
-          {paso === 1 && <StepInspeccionROV  inspeccion={inspeccion} onChange={setInspeccion} />}
+          {paso === 1 && <StepInspeccionROV  inspeccion={inspeccion} onChange={setInspeccion} equipoPrincipal={datos.equipo} equipoBackup={datos.equipoBackup} />}
           {paso === 2 && <StepInventario     inventario={inventario} onChange={setInventario} observacionFinal={observacionFinal} onObsChange={setObsFinal} />}
         </div>
 

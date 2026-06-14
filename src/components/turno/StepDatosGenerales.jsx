@@ -22,23 +22,29 @@ export default function StepDatosGenerales({ datos, onChange, centroNombre }) {
           <input style={s.input} value={datos.hora} onChange={e => set('hora', e.target.value)} />
         </div>
       </div>
-      <div style={s.field}>
-        <label style={s.label}>Piloto que entrega</label>
-        <input style={s.input} placeholder="Nombre del piloto" value={datos.piloto} onChange={e => set('piloto', e.target.value)} />
-      </div>
-      <div style={s.field}>
-        <label style={s.label}>Piloto backup / relevo</label>
-        <input style={s.input} placeholder="Nombre del backup" value={datos.backup} onChange={e => set('backup', e.target.value)} />
+      <div style={s.row}>
+        <div style={s.field}>
+          <label style={s.label}>Piloto que entrega</label>
+          <input style={s.input} placeholder="Nombre del piloto" value={datos.piloto} onChange={e => set('piloto', e.target.value)} />
+        </div>
+        <div style={s.field}>
+          <label style={s.label}>Relevo</label>
+          <input style={s.input} placeholder="Nombre del relevo" value={datos.relevo} onChange={e => set('relevo', e.target.value)} />
+        </div>
       </div>
       <div style={s.row}>
         <div style={s.field}>
-          <label style={s.label}>Equipo ROV</label>
+          <label style={s.label}>Equipo principal</label>
           <input style={s.input} placeholder="DTG3" value={datos.equipo} onChange={e => set('equipo', e.target.value)} />
         </div>
         <div style={s.field}>
-          <label style={s.label}>Centro</label>
-          <input style={{ ...s.input, color: 'var(--gl-text-muted)' }} value={centroNombre} readOnly />
+          <label style={s.label}>Equipo backup</label>
+          <input style={s.input} placeholder="DTG4" value={datos.equipoBackup} onChange={e => set('equipoBackup', e.target.value)} />
         </div>
+      </div>
+      <div style={s.field}>
+        <label style={s.label}>Centro</label>
+        <input style={{ ...s.input, color: 'var(--gl-text-muted)' }} value={centroNombre} readOnly />
       </div>
       <div style={s.field}>
         <label style={s.label}>Observación general (opcional)</label>

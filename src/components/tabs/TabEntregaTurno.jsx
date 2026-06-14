@@ -4,7 +4,7 @@ import { useEntregasTurno } from '../../hooks/useEntregasTurno'
 import { descargarPDF, compartirPDF } from '../../lib/generatePDF'
 import ModalEntregaTurno from '../turno/ModalEntregaTurno'
 import { storage } from '../../lib/firebase'
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
+import { ref, uploadBytes, getDownloadURL, listAll, deleteObject } from 'firebase/storage'
 
 function formatFecha(iso) {
   if (!iso) return ''
@@ -13,8 +13,9 @@ function formatFecha(iso) {
   } catch { return iso }
 }
 
-function badgeEntrega(inspeccion = []) {
-  const anomalias = inspeccion.filter(s => s.estado === 'anomalia').length
+function badgeEntrega(entrega) {
+  const todas = [...(entrega.inspeccion ?? []), ...(entrega.inspeccionBackup ?? [])]
+  const anomalias = todas.filter(s => s.estado === 'anomalia').length
   if (anomalias === 0) return { label: 'Sin anomalías', bg: 'var(--gl-ok-tint)', color: 'var(--gl-ok)' }
   return { label: `${anomalias} anomalía${anomalias > 1 ? 's' : ''}`, bg: 'var(--gl-fault-tint)', color: 'var(--gl-fault)' }
 }
@@ -90,25 +91,77 @@ const ms = {
 }
 
 export default function TabEntregaTurno({ centro, role, uid }) {
-  const { entregas, itemsList, cargando, crearEntrega, eliminarEntrega, guardarItemsList } = useEntregasTurno(centro.id)
+  const { entregas, itemsList, cargando, crearEntrega, actualizarEntrega, eliminarEntrega, guardarItemsList } = useEntregasTurno(centro.id)
   const [modalNueva,    setModalNueva]    = useState(false)
   const [modalInventario, setModalInv]   = useState(false)
   const [confirmDel,    setConfirmDel]   = useState(null)
 
   const canCreate = role === 'operador'
 
-  const handleGuardar = async (entregaData, inspeccionArr) => {
-    const id = await crearEntrega(entregaData)
+  // Sube las fotos de un equipo y devuelve el array de inspección con las fotoUrl ya resueltas (sin file).
+  const subirFotos = async (id, equipo, inspeccionArr) => {
+    const resultado = []
     for (const sec of inspeccionArr) {
-      if (sec.file) {
+      const { file, ...limpio } = sec
+      if (file) {
         try {
-          const storageRef = ref(storage, `entregas/${centro.id}/${id}/${sec.id}`)
-          await uploadBytes(storageRef, sec.file)
-          sec.fotoUrl = await getDownloadURL(storageRef)
+          const storageRef = ref(storage, `entregas/${centro.id}/${id}/${equipo}_${sec.id}`)
+          await uploadBytes(storageRef, file)
+          limpio.fotoUrl = await getDownloadURL(storageRef)
         } catch (e) {
-          console.warn('No se pudo subir foto de sección', sec.id, e)
+          console.warn('No se pudo subir foto', equipo, sec.id, e)
         }
       }
+      resultado.push(limpio)
+    }
+    return resultado
+  }
+
+  // Borra las fotos de una entrega en Storage. Fire-and-forget: si Storage no está
+  // habilitado, listAll puede colgarse reintentando, así que NUNCA lo esperamos.
+  const borrarFotosEntrega = (entregaId) => {
+    listAll(ref(storage, `entregas/${centro.id}/${entregaId}`))
+      .then(({ items }) => Promise.all(items.map(it => deleteObject(it).catch(() => {}))))
+      .catch(() => {})
+  }
+
+  // Borra una entrega anterior: primero el doc de Firestore (rápido, libera la UI),
+  // luego sus fotos en Storage sin bloquear.
+  const borrarEntregaCompleta = async (entregaId) => {
+    try {
+      await eliminarEntrega(entregaId)
+    } catch (e) {
+      console.warn('No se pudo borrar entrega previa', entregaId, e)
+    }
+    borrarFotosEntrega(entregaId)
+  }
+
+  const handleGuardar = async (entregaData, principalArr, backupArr) => {
+    // Snapshot de las entregas previas ANTES de crear la nueva (la nueva aún no está en la lista).
+    const previas = entregas.map(e => e.id)
+    const id = await crearEntrega(entregaData)
+
+    // Solo se conserva la última entrega: borramos todas las anteriores en segundo plano.
+    if (previas.length) {
+      ;(async () => {
+        for (const pid of previas) await borrarEntregaCompleta(pid)
+      })()
+    }
+
+    // Subida de fotos en segundo plano (para el historial del admin cuando Storage esté activo).
+    const hayFotos = [...principalArr, ...backupArr].some(s => s.file)
+    if (hayFotos) {
+      ;(async () => {
+        try {
+          const [insp, inspBackup] = await Promise.all([
+            subirFotos(id, 'principal', principalArr),
+            subirFotos(id, 'backup', backupArr),
+          ])
+          await actualizarEntrega(id, { inspeccion: insp, inspeccionBackup: inspBackup })
+        } catch (e) {
+          console.warn('No se pudieron persistir las fotos de la entrega', id, e)
+        }
+      })()
     }
     return id
   }
@@ -142,15 +195,15 @@ export default function TabEntregaTurno({ centro, role, uid }) {
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {entregas.map(e => {
-          const badge = badgeEntrega(e.inspeccion)
+          const badge = badgeEntrega(e)
           return (
             <div key={e.id} style={s.card}>
               <div style={s.cardTop}>
                 <span style={s.fecha}>{formatFecha(e.creadoEn)}</span>
                 <span style={{ ...s.badge, background: badge.bg, color: badge.color }}>{badge.label}</span>
               </div>
-              <div style={s.piloto}>{e.piloto || '—'}</div>
-              <div style={s.equipo}>{e.equipo}{e.backup ? ` · Backup: ${e.backup}` : ''}</div>
+              <div style={s.piloto}>{e.piloto || '—'}{(e.relevo ?? e.backup) ? ` → ${e.relevo ?? e.backup}` : ''}</div>
+              <div style={s.equipo}>{e.equipo}{e.equipoBackup ? ` · Backup: ${e.equipoBackup}` : ''}</div>
               <div style={s.acciones}>
                 <button style={s.btnSm} onClick={() => descargarPDF(e)}>
                   <Download size={12} /> PDF
