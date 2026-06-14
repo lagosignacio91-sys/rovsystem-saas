@@ -7,25 +7,25 @@
 // código, indexados por `id`. Si la config no existe o le falta un id,
 // se cae a estos defaults y la app nunca queda rota.
 // ============================================================
-import { UserCog, Ship, Wrench, Box, Package, ClipboardCheck, Map, Building2, Users } from 'lucide-react'
+import { UserCog, Ship, Layers, Package, ClipboardCheck, BookOpen, Map, Building2, Users } from 'lucide-react'
 
 // ---- Pestañas del panel de centro ----
 export const TABS_DEFAULT = [
-  { id: 'operator', label: 'Operador' },
-  { id: 'rov',      label: 'ROV' },
-  { id: 'tools',    label: 'Herram.' },
-  { id: 'supplies', label: 'Insumos' },
-  { id: 'despacho', label: 'Despacho' },
-  { id: 'turno',    label: 'Turno' },
+  { id: 'operator',   label: 'Operador' },
+  { id: 'rov',        label: 'ROV' },
+  { id: 'inventario', label: 'Inventario' },
+  { id: 'despacho',   label: 'Despacho' },
+  { id: 'turno',      label: 'Turno' },
+  { id: 'bitacora',   label: 'Bitácora' },
 ]
 
 export const ICONOS_TAB = {
-  operator: UserCog,
-  rov:      Ship,
-  tools:    Wrench,
-  supplies: Box,
-  despacho: Package,
-  turno:    ClipboardCheck,
+  operator:   UserCog,
+  rov:        Ship,
+  inventario: Layers,
+  despacho:   Package,
+  turno:      ClipboardCheck,
+  bitacora:   BookOpen,
 }
 
 // ---- Menú principal (sidebar + bottom-nav) ----

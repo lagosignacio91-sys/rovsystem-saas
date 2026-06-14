@@ -7,20 +7,20 @@ import { EstadoBadge, Modal, Button } from '../kit'
 import { useAppConfig } from '../../hooks/useAppConfig'
 import { ICONOS_TAB } from '../../config/appDefaults'
 import TabROV from '../tabs/TabROV'
-import TabHerramientas from '../tabs/TabHerramientas'
 import TabOperador from '../tabs/TabOperador'
-import TabInsumos from '../tabs/TabInsumos'
+import TabInventario from '../tabs/TabInventario'
+import TabBitacora from '../tabs/TabBitacora'
 import PanelDespacho from '../dispatch/PanelDespacho'
 import TabEntregaTurno from '../tabs/TabEntregaTurno'
 
 // Registro id → componente de pestaña (no serializable, vive en código).
 const TAB_COMPONENTES = {
-  operator: (p) => <TabOperador {...p} />,
-  rov:      (p) => <TabROV {...p} />,
-  tools:    (p) => <TabHerramientas {...p} />,
-  supplies: (p) => <TabInsumos {...p} />,
-  despacho: (p) => <PanelDespacho {...p} />,
-  turno:    (p) => <TabEntregaTurno {...p} />,
+  operator:   (p) => <TabOperador {...p} />,
+  rov:        (p) => <TabROV {...p} />,
+  inventario: (p) => <TabInventario {...p} />,
+  despacho:   (p) => <PanelDespacho {...p} />,
+  turno:      (p) => <TabEntregaTurno {...p} />,
+  bitacora:   (p) => <TabBitacora {...p} />,
 }
 
 export default function PanelCentro({ centro, onCerrar, onEliminar, sincronizarEstado, role, uid }) {

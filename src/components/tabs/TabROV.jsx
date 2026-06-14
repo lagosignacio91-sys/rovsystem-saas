@@ -3,10 +3,12 @@ import { db } from '../../lib/firebase'
 import { doc, setDoc, getDoc } from 'firebase/firestore'
 
 const CAMPOS = [
-  { key: 'modelo',          label: 'Modelo',           sinFalla: true },
-  { key: 'codigoRov',       label: 'Código ROV' },
-  { key: 'codigoControl',   label: 'Código Control' },
-  { key: 'codigoUmbilical', label: 'Código Umbilical' },
+  { key: 'modelo',               label: 'Modelo',             sinFalla: true },
+  { key: 'codigoRov',            label: 'Código ROV' },
+  { key: 'codigoControl',        label: 'Código Control' },
+  { key: 'codigoUmbilical',      label: 'Código Umbilical' },
+  { key: 'codigoCargadorRov',    label: 'Cargador ROV' },
+  { key: 'codigoCargadorControl',label: 'Cargador Control' },
 ]
 
 function ModalFalla({ campo, valorActual, onConfirmar, onCerrar }) {
