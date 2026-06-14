@@ -1,8 +1,23 @@
 import { useState } from 'react'
 import { useOutletContext } from 'react-router-dom'
-import { Search, Mail, Phone, Gamepad2, Coffee, Users } from 'lucide-react'
+import { Search, Mail, Phone, Gamepad2, Coffee, Users, AtSign } from 'lucide-react'
 import { t } from '../theme/tokens'
 import { useOperadoresGlobal } from '../hooks/useOperadoresGlobal'
+
+function ContactoRow({ icon: Icon, valor, href }) {
+  const base = { fontSize: 10, display: 'flex', alignItems: 'center', gap: 6, overflow: 'hidden' }
+  const txt  = { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }
+  if (!valor) {
+    return <div style={{ ...base, color: t.textMuted }}><Icon size={13} style={{ flexShrink: 0 }} /><span style={txt}>—</span></div>
+  }
+  return (
+    <a href={href} style={{ ...base, color: t.brandSoft, textDecoration: 'none' }}
+      onMouseEnter={e => (e.currentTarget.style.textDecoration = 'underline')}
+      onMouseLeave={e => (e.currentTarget.style.textDecoration = 'none')}>
+      <Icon size={13} style={{ flexShrink: 0 }} /><span style={txt}>{valor}</span>
+    </a>
+  )
+}
 
 export default function OperadoresPage() {
   const { centros, empresaActiva } = useOutletContext()
@@ -73,8 +88,9 @@ export default function OperadoresPage() {
                   </div>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 5, marginTop: 11, paddingTop: 10, borderTop: `1px solid ${t.border}` }}>
-                  <div style={{ fontSize: 10, color: t.textMuted, display: 'flex', alignItems: 'center', gap: 6, overflow: 'hidden' }}><Mail size={13} style={{ flexShrink: 0 }} /><span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.correoCorp || o.correoPersonal || '—'}</span></div>
-                  <div style={{ fontSize: 10, color: t.textMuted, display: 'flex', alignItems: 'center', gap: 6 }}><Phone size={13} style={{ flexShrink: 0 }} />{o.telefono || '—'}</div>
+                  <ContactoRow icon={Phone} valor={o.telefono} href={o.telefono ? `tel:${o.telefono.replace(/[^\d+]/g, '')}` : null} />
+                  <ContactoRow icon={Mail} valor={o.correoPersonal} href={o.correoPersonal ? `mailto:${o.correoPersonal}` : null} />
+                  <ContactoRow icon={AtSign} valor={o.correoCorp} href={o.correoCorp ? `mailto:${o.correoCorp}` : null} />
                 </div>
               </div>
             )
