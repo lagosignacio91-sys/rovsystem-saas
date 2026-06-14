@@ -18,6 +18,8 @@ async function loadLogoBase64() {
 }
 
 async function urlToBase64(url) {
+  if (!url) return null
+  if (url.startsWith('data:')) return url
   try {
     const res = await fetch(url)
     const blob = await res.blob()
@@ -34,33 +36,48 @@ async function urlToBase64(url) {
 export async function generarPDFEntrega(entrega) {
   const doc = new jsPDF({ unit: 'mm', format: 'a4' })
   const W = doc.internal.pageSize.getWidth()
+  const H = doc.internal.pageSize.getHeight()
   const margin = 14
+  const contentW = W - margin * 2
 
   const logo = await loadLogoBase64()
+  let y = 0
 
-  // ── Encabezado ──
-  let headerY = 12
+  function addPageHeader() {
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(8)
+    doc.setTextColor(10, 37, 64)
+    doc.text('GL Robótica Submarina · Entrega de Turno', margin, 10)
+    doc.setDrawColor(200, 215, 230)
+    doc.line(margin, 12, W - margin, 12)
+    return 17
+  }
+
+  function checkPageBreak(neededH) {
+    if (y + neededH > H - 16) {
+      doc.addPage()
+      y = addPageHeader()
+    }
+  }
+
+  // ── Encabezado primera página ──
+  y = 12
   if (logo) {
-    doc.addImage(logo, 'PNG', margin, headerY, 14, 14)
+    doc.addImage(logo, 'PNG', margin, y, 14, 14)
   }
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(13)
   doc.setTextColor(10, 37, 64)
-  doc.text('GL Robótica Submarina', logo ? margin + 17 : margin, headerY + 5)
+  doc.text('GL Robótica Submarina', logo ? margin + 17 : margin, y + 5)
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(9)
   doc.setTextColor(80, 100, 120)
-  doc.text('Informe de entrega de turno', logo ? margin + 17 : margin, headerY + 10)
-
-  // línea separadora
+  doc.text('Informe de entrega de turno', logo ? margin + 17 : margin, y + 10)
   doc.setDrawColor(200, 215, 230)
-  doc.line(margin, headerY + 16, W - margin, headerY + 16)
+  doc.line(margin, y + 16, W - margin, y + 16)
+  y += 22
 
   // ── Datos generales ──
-  let y = headerY + 22
-  doc.setFontSize(8)
-  doc.setTextColor(100, 120, 140)
-
   const campos = [
     ['Centro',        entrega.centroNombre],
     ['Fecha',         entrega.fecha],
@@ -71,7 +88,7 @@ export async function generarPDFEntrega(entrega) {
     ['Equipo backup', entrega.equipoBackup],
   ]
 
-  const colW = (W - margin * 2) / 3
+  const colW = contentW / 3
   const filasDatos = Math.ceil(campos.length / 3)
   campos.forEach(([label, valor], i) => {
     const col = i % 3
@@ -79,53 +96,56 @@ export async function generarPDFEntrega(entrega) {
     const x   = margin + col * colW
     const ry  = y + row * 10
     doc.setFont('helvetica', 'bold')
+    doc.setFontSize(8)
     doc.setTextColor(80, 100, 120)
     doc.text(label + ':', x, ry)
     doc.setFont('helvetica', 'normal')
     doc.setTextColor(20, 40, 60)
-    doc.text(valor || '—', x + 22, ry)
+    doc.text(valor || '—', x + 25, ry)
   })
 
   if (entrega.observacionGeneral) {
-    y += filasDatos * 10
+    y += filasDatos * 10 + 2
     doc.setFont('helvetica', 'bold')
+    doc.setFontSize(8)
     doc.setTextColor(80, 100, 120)
     doc.text('Observación general:', margin, y)
     doc.setFont('helvetica', 'normal')
     doc.setTextColor(20, 40, 60)
-    const lines = doc.splitTextToSize(entrega.observacionGeneral, W - margin * 2 - 40)
-    doc.text(lines, margin + 40, y)
-    y += lines.length * 4 + 4
+    const lines = doc.splitTextToSize(entrega.observacionGeneral, contentW - 42)
+    doc.text(lines, margin + 42, y)
+    y += lines.length * 4 + 6
   } else {
-    y += filasDatos * 10 + 2
+    y += filasDatos * 10 + 4
   }
 
-  // ── Inspección de equipos (principal + backup) ──
+  // ── Función inspección: tabla + foto-grid ──
   async function dibujarInspeccion(titulo, inspeccion) {
     if (!inspeccion || inspeccion.length === 0) return
+
+    checkPageBreak(30)
 
     doc.setFont('helvetica', 'bold')
     doc.setFontSize(10)
     doc.setTextColor(10, 37, 64)
     doc.text(titulo, margin, y)
-    y += 3
+    y += 4
 
+    // Pre-cargar imágenes antes de dibujar la tabla
     const fotoImgs = []
     for (const sec of inspeccion) {
-      let img = null
-      if (sec.fotoUrl) img = await urlToBase64(sec.fotoUrl)
-      fotoImgs.push(img)
+      fotoImgs.push(sec.fotoUrl ? await urlToBase64(sec.fotoUrl) : null)
     }
 
+    // Tabla sin columna de foto
     autoTable(doc, {
       startY: y,
       margin: { left: margin, right: margin },
-      head: [['Componente', 'Estado', 'Nota', 'Foto']],
+      head: [['Componente', 'Estado', 'Observación']],
       body: inspeccion.map((sec) => [
         sec.label,
         sec.estado === 'ok' ? 'Sin anomalías' : 'Anomalía',
         sec.nota || '—',
-        '',
       ]),
       headStyles: {
         fillColor: [10, 37, 64],
@@ -134,12 +154,11 @@ export async function generarPDFEntrega(entrega) {
         fontStyle: 'bold',
       },
       columnStyles: {
-        0: { cellWidth: 52 },
-        1: { cellWidth: 28 },
+        0: { cellWidth: 60 },
+        1: { cellWidth: 34 },
         2: { cellWidth: 'auto' },
-        3: { cellWidth: 22 },
       },
-      bodyStyles: { fontSize: 8, textColor: [20, 40, 60] },
+      bodyStyles: { fontSize: 8, textColor: [20, 40, 60], minCellHeight: 8 },
       alternateRowStyles: { fillColor: [245, 248, 252] },
       didParseCell(data) {
         if (data.column.index === 1 && data.section === 'body') {
@@ -148,41 +167,89 @@ export async function generarPDFEntrega(entrega) {
           data.cell.styles.fontStyle = 'bold'
         }
       },
-      didDrawCell(data) {
-        if (data.column.index === 3 && data.section === 'body') {
-          const img = fotoImgs[data.row.index]
-          if (img) {
-            const pad = 1
-            doc.addImage(img, 'JPEG',
-              data.cell.x + pad,
-              data.cell.y + pad,
-              data.cell.width  - pad * 2,
-              data.cell.height - pad * 2
-            )
-          }
-        }
-      },
       rowPageBreak: 'avoid',
     })
 
-    y = doc.lastAutoTable.finalY + 8
+    y = doc.lastAutoTable.finalY + 6
+
+    // Fotos: grid de 2 columnas
+    const sectWithPhotos = inspeccion
+      .map((sec, i) => ({ sec, img: fotoImgs[i] }))
+      .filter(x => x.img)
+
+    if (sectWithPhotos.length > 0) {
+      const gap    = 5
+      const photoW = (contentW - gap) / 2
+      const photoH = Math.round(photoW * 0.65)
+      const labelH = 7
+
+      checkPageBreak(12)
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(8.5)
+      doc.setTextColor(10, 37, 64)
+      doc.text('Registro fotográfico', margin, y)
+      y += 5
+
+      for (let i = 0; i < sectWithPhotos.length; i += 2) {
+        const left  = sectWithPhotos[i]
+        const right = sectWithPhotos[i + 1]
+
+        checkPageBreak(photoH + labelH + 4)
+
+        const x1 = margin
+        const x2 = margin + photoW + gap
+
+        // Foto izquierda
+        doc.setDrawColor(180, 200, 220)
+        doc.setFillColor(230, 238, 246)
+        doc.rect(x1, y, photoW, photoH, 'FD')
+        try {
+          doc.addImage(left.img, 'JPEG', x1, y, photoW, photoH, undefined, 'FAST')
+        } catch (_) { /* imagen inválida — quedará fondo azul */ }
+        doc.setFont('helvetica', 'bold')
+        doc.setFontSize(7.5)
+        doc.setTextColor(50, 80, 120)
+        doc.text(left.sec.label, x1 + photoW / 2, y + photoH + 5, { align: 'center' })
+
+        // Foto derecha
+        if (right) {
+          doc.setDrawColor(180, 200, 220)
+          doc.setFillColor(230, 238, 246)
+          doc.rect(x2, y, photoW, photoH, 'FD')
+          try {
+            doc.addImage(right.img, 'JPEG', x2, y, photoW, photoH, undefined, 'FAST')
+          } catch (_) { /* imagen inválida */ }
+          doc.text(right.sec.label, x2 + photoW / 2, y + photoH + 5, { align: 'center' })
+        }
+
+        y += photoH + labelH + 4
+      }
+    }
+
+    y += 6
   }
 
-  const equipoPpalNombre = entrega.equipo ? `Inspección equipo principal (${entrega.equipo})` : 'Inspección equipo principal'
-  const equipoBkpNombre  = entrega.equipoBackup ? `Inspección equipo backup (${entrega.equipoBackup})` : 'Inspección equipo backup'
-  await dibujarInspeccion(equipoPpalNombre, entrega.inspeccion)
-  await dibujarInspeccion(equipoBkpNombre, entrega.inspeccionBackup)
+  const ppalTitulo = entrega.equipo
+    ? `Inspección equipo principal — ${entrega.equipo}`
+    : 'Inspección equipo principal'
+  const bkpTitulo = entrega.equipoBackup
+    ? `Inspección equipo backup — ${entrega.equipoBackup}`
+    : 'Inspección equipo backup'
+
+  await dibujarInspeccion(ppalTitulo, entrega.inspeccion)
+  await dibujarInspeccion(bkpTitulo,  entrega.inspeccionBackup)
 
   // ── Inventario ──
+  checkPageBreak(30)
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(10)
   doc.setTextColor(10, 37, 64)
   doc.text('Inventario de insumos', margin, y)
-  y += 3
+  y += 4
 
-  const mitad = Math.ceil(entrega.inventario.length / 2)
-  const col1  = entrega.inventario.slice(0, mitad)
-  const col2  = entrega.inventario.slice(mitad)
+  const mitad = Math.ceil((entrega.inventario ?? []).length / 2)
+  const col1  = (entrega.inventario ?? []).slice(0, mitad)
+  const col2  = (entrega.inventario ?? []).slice(mitad)
   const rows  = col1.map((item, i) => {
     const item2 = col2[i]
     return [
@@ -222,26 +289,30 @@ export async function generarPDFEntrega(entrega) {
 
   if (entrega.observacionFinal) {
     y = doc.lastAutoTable.finalY + 6
+    checkPageBreak(16)
     doc.setFont('helvetica', 'bold')
     doc.setFontSize(8)
     doc.setTextColor(80, 100, 120)
     doc.text('Observaciones finales:', margin, y)
     doc.setFont('helvetica', 'normal')
     doc.setTextColor(20, 40, 60)
-    const lines = doc.splitTextToSize(entrega.observacionFinal, W - margin * 2 - 38)
-    doc.text(lines, margin + 38, y)
+    const lines = doc.splitTextToSize(entrega.observacionFinal, contentW - 40)
+    doc.text(lines, margin + 40, y)
   }
 
-  // ── Pie de página ──
+  // ── Pie de página en todas las páginas ──
   const totalPages = doc.internal.getNumberOfPages()
   for (let p = 1; p <= totalPages; p++) {
     doc.setPage(p)
     doc.setDrawColor(200, 215, 230)
-    doc.line(margin, 287, W - margin, 287)
+    doc.line(margin, H - 8, W - margin, H - 8)
     doc.setFontSize(7)
     doc.setTextColor(150, 170, 190)
-    doc.text(`GL Robótica Submarina · Generado ${new Date().toLocaleString('es-CL')}`, margin, 291)
-    doc.text(`Página ${p} de ${totalPages}`, W - margin, 291, { align: 'right' })
+    doc.text(
+      `GL Robótica Submarina · Generado ${new Date().toLocaleString('es-CL')}`,
+      margin, H - 4
+    )
+    doc.text(`Página ${p} de ${totalPages}`, W - margin, H - 4, { align: 'right' })
   }
 
   return doc
@@ -250,13 +321,13 @@ export async function generarPDFEntrega(entrega) {
 export async function descargarPDF(entrega) {
   const doc = await generarPDFEntrega(entrega)
   const fecha = entrega.fecha?.replace(/\//g, '-') ?? 'informe'
-  doc.save(`Entrega-Turno-${entrega.centroNombre}-${fecha}.pdf`)
+  doc.save(`Entrega-Turno-${entrega.centroNombre ?? 'GL'}-${fecha}.pdf`)
 }
 
 export async function compartirPDF(entrega) {
   const doc = await generarPDFEntrega(entrega)
   const fecha = entrega.fecha?.replace(/\//g, '-') ?? 'informe'
-  const nombre = `Entrega-Turno-${entrega.centroNombre}-${fecha}.pdf`
+  const nombre = `Entrega-Turno-${entrega.centroNombre ?? 'GL'}-${fecha}.pdf`
   const blob = doc.output('blob')
   const file = new File([blob], nombre, { type: 'application/pdf' })
 

@@ -96,7 +96,8 @@ export default function TabEntregaTurno({ centro, role, uid }) {
   const [modalInventario, setModalInv]   = useState(false)
   const [confirmDel,    setConfirmDel]   = useState(null)
 
-  const canCreate = role === 'operador'
+  const canCreate    = role === 'operador'
+  const tieneReporte = entregas.length > 0
 
   // Sube las fotos de un equipo y devuelve el array de inspección con las fotoUrl ya resueltas (sin file).
   const subirFotos = async (id, equipo, inspeccionArr) => {
@@ -181,10 +182,15 @@ export default function TabEntregaTurno({ centro, role, uid }) {
               <Settings size={15} />
             </button>
           )}
-          {canCreate && (
+          {canCreate && !tieneReporte && (
             <button style={s.btnPrimary} onClick={() => setModalNueva(true)}>
               <Plus size={14} /> Nueva entrega
             </button>
+          )}
+          {canCreate && tieneReporte && (
+            <span style={{ fontSize: 10, color: 'var(--gl-fault)', maxWidth: 160, textAlign: 'right', lineHeight: 1.3 }}>
+              Elimina el reporte actual para generar uno nuevo
+            </span>
           )}
         </div>
       </div>
@@ -211,11 +217,9 @@ export default function TabEntregaTurno({ centro, role, uid }) {
                 <button style={s.btnSm} onClick={() => compartirPDF(e)}>
                   <Share2 size={12} /> Compartir
                 </button>
-                {role === 'admin' && (
-                  <button style={{ ...s.btnSm, color: 'var(--gl-fault)', borderColor: 'var(--gl-fault-tint)' }} onClick={() => setConfirmDel(e.id)}>
-                    <Trash2 size={12} />
-                  </button>
-                )}
+                <button style={{ ...s.btnSm, color: 'var(--gl-fault)', borderColor: 'var(--gl-fault-tint)' }} onClick={() => setConfirmDel(e.id)}>
+                  <Trash2 size={12} />
+                </button>
               </div>
             </div>
           )
