@@ -56,15 +56,29 @@ function MapEvents({ onMapClick, onZoom }) {
 }
 
 function Leyenda() {
+  const [open, setOpen] = useState(false)
   return (
-    <div style={leyenda.box}>
-      <div style={leyenda.titulo}>LEYENDA</div>
-      {ESTADOS_ORDEN.map(e => (
-        <div key={e} style={leyenda.fila}>
-          <span style={{ ...leyenda.punto, background: ESTADO_META[e].dot }} />
-          <span style={leyenda.label}>{ESTADO_META[e].label}</span>
+    <div style={leyenda.wrap}>
+      {open && (
+        <div style={leyenda.box}>
+          {ESTADOS_ORDEN.map(e => (
+            <div key={e} style={leyenda.fila}>
+              <span style={{ ...leyenda.punto, background: ESTADO_META[e].dot }} />
+              <span style={leyenda.label}>{ESTADO_META[e].label}</span>
+            </div>
+          ))}
         </div>
-      ))}
+      )}
+      <button
+        onClick={() => setOpen(v => !v)}
+        title="Leyenda"
+        style={leyenda.btn}
+        aria-label="Mostrar leyenda"
+      >
+        {ESTADOS_ORDEN.map(e => (
+          <span key={e} style={{ width: 7, height: 7, borderRadius: '50%', background: ESTADO_META[e].dot, flexShrink: 0 }} />
+        ))}
+      </button>
     </div>
   )
 }
@@ -204,16 +218,17 @@ const buscador = {
 }
 
 const leyenda = {
-  box:    { position: 'absolute', top: 12, right: 12, zIndex: 600, background: 'var(--gl-bg-surface)', border: '1px solid var(--gl-border)', borderRadius: 'var(--gl-radius-lg)', padding: '10px 13px', display: 'flex', flexDirection: 'column', gap: 6, boxShadow: 'var(--gl-shadow-md)' },
-  titulo: { fontSize: 9, color: 'var(--gl-text-muted)', fontWeight: 600, letterSpacing: '0.06em', marginBottom: 2 },
-  fila:   { display: 'flex', alignItems: 'center', gap: 8 },
-  punto:  { width: 9, height: 9, borderRadius: '50%', flexShrink: 0 },
-  label:  { fontSize: 11, color: 'var(--gl-text-secondary)' },
+  wrap:  { position: 'absolute', bottom: 50, right: 12, zIndex: 600, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 },
+  box:   { background: 'var(--gl-bg-surface)', border: '1px solid var(--gl-border)', borderRadius: 'var(--gl-radius-md)', padding: '8px 11px', display: 'flex', flexDirection: 'column', gap: 5, boxShadow: 'var(--gl-shadow-md)' },
+  fila:  { display: 'flex', alignItems: 'center', gap: 7 },
+  punto: { width: 8, height: 8, borderRadius: '50%', flexShrink: 0 },
+  label: { fontSize: 11, color: 'var(--gl-text-secondary)', whiteSpace: 'nowrap' },
+  btn:   { display: 'flex', alignItems: 'center', gap: 4, background: 'var(--gl-bg-surface)', border: '1px solid var(--gl-border)', borderRadius: 'var(--gl-radius-md)', padding: '6px 9px', cursor: 'pointer', boxShadow: 'var(--gl-shadow-sm)' },
 }
 const stats = {
-  box:   { position: 'absolute', bottom: 14, left: 14, zIndex: 600, background: 'var(--gl-bg-surface)', border: '1px solid var(--gl-border)', borderRadius: 'var(--gl-radius-lg)', padding: '10px 6px 10px 14px', display: 'flex', gap: 0, boxShadow: 'var(--gl-shadow-md)' },
-  item:  { display: 'flex', alignItems: 'center', gap: 8, padding: '0 14px' },
-  punto: { width: 10, height: 10, borderRadius: '50%', flexShrink: 0 },
-  num:   { fontSize: 17, fontWeight: 600, color: 'var(--gl-text-primary)', lineHeight: 1 },
+  box:   { position: 'absolute', bottom: 14, left: 14, zIndex: 600, background: 'var(--gl-bg-surface)', border: '1px solid var(--gl-border)', borderRadius: 'var(--gl-radius-md)', padding: '6px 4px 6px 10px', display: 'flex', gap: 0, boxShadow: 'var(--gl-shadow-sm)' },
+  item:  { display: 'flex', alignItems: 'center', gap: 6, padding: '0 10px' },
+  punto: { width: 8, height: 8, borderRadius: '50%', flexShrink: 0 },
+  num:   { fontSize: 14, fontWeight: 700, color: 'var(--gl-text-primary)', lineHeight: 1 },
   label: { fontSize: 9, color: 'var(--gl-text-muted)', marginTop: 1 },
 }
