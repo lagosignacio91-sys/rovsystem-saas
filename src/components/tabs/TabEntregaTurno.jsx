@@ -99,13 +99,15 @@ export default function TabEntregaTurno({ centro, role, uid }) {
 
   const handleGuardar = async (entregaData, inspeccionArr) => {
     const id = await crearEntrega(entregaData)
-    // subir fotos
     for (const sec of inspeccionArr) {
       if (sec.file) {
-        const storageRef = ref(storage, `entregas/${centro.id}/${id}/${sec.id}`)
-        await uploadBytes(storageRef, sec.file)
-        const url = await getDownloadURL(storageRef)
-        sec.fotoUrl = url
+        try {
+          const storageRef = ref(storage, `entregas/${centro.id}/${id}/${sec.id}`)
+          await uploadBytes(storageRef, sec.file)
+          sec.fotoUrl = await getDownloadURL(storageRef)
+        } catch (e) {
+          console.warn('No se pudo subir foto de sección', sec.id, e)
+        }
       }
     }
     return id

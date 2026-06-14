@@ -62,11 +62,16 @@ export function useEntregasTurno(centroId) {
   }
 
   const crearEntrega = async (datos) => {
-    const ref = await addDoc(
-      collection(db, 'centros', centroId, 'entregas'),
-      { ...datos, creadoEn: new Date().toISOString() }
-    )
-    return ref.id
+    try {
+      const docRef = await addDoc(
+        collection(db, 'centros', centroId, 'entregas'),
+        { ...datos, creadoEn: new Date().toISOString() }
+      )
+      return docRef.id
+    } catch (e) {
+      console.error('Error creando entrega:', e.code, e.message)
+      throw e
+    }
   }
 
   const eliminarEntrega = async (entregaId) => {

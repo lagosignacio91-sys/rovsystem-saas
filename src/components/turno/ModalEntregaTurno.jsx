@@ -51,7 +51,8 @@ const s = {
 export default function ModalEntregaTurno({ centro, itemsList, onCerrar, onGuardar }) {
   const [paso,    setPaso]    = useState(0)
   const [saving,  setSaving]  = useState(false)
-  const [saved,   setSaved]   = useState(null) // entrega guardada para PDF
+  const [saved,   setSaved]   = useState(null)
+  const [error,   setError]   = useState(null)
 
   const [datos, setDatos] = useState({
     fecha: hoy(), hora: ahora(),
@@ -74,6 +75,7 @@ export default function ModalEntregaTurno({ centro, itemsList, onCerrar, onGuard
 
   const guardar = async () => {
     setSaving(true)
+    setError(null)
     const inspeccionArr = SECCIONES_ROV.map(sec => {
       const d = inspeccion[sec.id] ?? {}
       return {
@@ -95,9 +97,15 @@ export default function ModalEntregaTurno({ centro, itemsList, onCerrar, onGuard
       observacionFinal,
     }
 
-    const id = await onGuardar(entregaData, inspeccionArr)
-    setSaved({ ...entregaData, id })
-    setSaving(false)
+    try {
+      const id = await onGuardar(entregaData, inspeccionArr)
+      setSaved({ ...entregaData, id })
+    } catch (e) {
+      console.error('Error guardando entrega:', e)
+      setError('Error al guardar. Verifica tu conexión e intenta de nuevo.')
+    } finally {
+      setSaving(false)
+    }
   }
 
   if (saved) {
@@ -175,10 +183,13 @@ export default function ModalEntregaTurno({ centro, itemsList, onCerrar, onGuard
             </button>
           )}
           {paso === 2 && (
-            <button style={s.btnSave} onClick={guardar} disabled={saving}>
-              {saving ? <Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} /> : <Check size={15} />}
-              {saving ? 'Guardando...' : 'Guardar entrega'}
-            </button>
+            <div style={{ flex: 2, display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {error && <p style={{ margin: 0, fontSize: 11, color: 'var(--gl-fault)', textAlign: 'center' }}>{error}</p>}
+              <button style={s.btnSave} onClick={guardar} disabled={saving}>
+                {saving ? <Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} /> : <Check size={15} />}
+                {saving ? 'Guardando...' : 'Guardar entrega'}
+              </button>
+            </div>
           )}
         </div>
       </div>
