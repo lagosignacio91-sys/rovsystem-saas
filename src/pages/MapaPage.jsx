@@ -20,7 +20,7 @@ export default function MapaPage() {
 
   return (
     <div style={{ width: '100%', height: '100%', position: 'relative' }}>
-      <MapView centros={centrosFiltrados} onMapClick={handleMapClick} onCentroClick={setCentroActivo} />
+      <MapView centros={centrosFiltrados} onMapClick={handleMapClick} onCentroClick={setCentroActivo} role={role} />
 
       {centroVivo && (
         <div className="panel-slide gl-panel-wrapper" style={{ position: 'absolute', top: 0, right: 0, height: '100%', zIndex: 1000 }}>

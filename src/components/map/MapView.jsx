@@ -156,7 +156,47 @@ function BuscadorCentros({ centros, mapRef, onSelect }) {
   )
 }
 
-function MapInner({ centros, onMapClick, onCentroClick }) {
+function BuscadorCoordenadas({ mapRef }) {
+  const [texto, setTexto] = useState('')
+  const [error, setError] = useState('')
+
+  const irACoordenadas = () => {
+    setError('')
+    const partes = texto.replace(/[,;]+/g, ' ').trim().split(/\s+/)
+    if (partes.length < 2) { setError('Ingresa lat y lng separados por coma'); return }
+    const lat = parseFloat(partes[0])
+    const lng = parseFloat(partes[1])
+    if (isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+      setError('Coordenadas inválidas')
+      return
+    }
+    if (mapRef.current) {
+      mapRef.current.flyTo([lat, lng], 14, { duration: 1.2 })
+    }
+    setTexto('')
+  }
+
+  return (
+    <div style={coords.wrap}>
+      <div style={coords.row}>
+        <input
+          value={texto}
+          onChange={e => { setTexto(e.target.value); setError('') }}
+          onKeyDown={e => e.key === 'Enter' && irACoordenadas()}
+          placeholder="-45.1234, -72.5678"
+          style={coords.input}
+          aria-label="Buscar por coordenadas"
+        />
+        <button onClick={irACoordenadas} style={coords.btn} title="Ir a coordenadas">
+          <MapPin size={15} />
+        </button>
+      </div>
+      {error && <div style={coords.error}>{error}</div>}
+    </div>
+  )
+}
+
+function MapInner({ centros, onMapClick, onCentroClick, role }) {
   const [popupCentro, setPopupCentro] = useState(null)
   const [popupPos, setPopupPos]       = useState(null)
   const [zoom, setZoom]               = useState(8)
@@ -187,6 +227,7 @@ function MapInner({ centros, onMapClick, onCentroClick }) {
       </MapContainer>
 
       <BuscadorCentros centros={centros} mapRef={mapRef} onSelect={onCentroClick} />
+      {role === 'admin' && <BuscadorCoordenadas mapRef={mapRef} />}
       <Leyenda />
       <StatsPanel centros={centros} />
 
@@ -202,8 +243,8 @@ function MapInner({ centros, onMapClick, onCentroClick }) {
   )
 }
 
-export default function MapView({ centros = [], onMapClick, onCentroClick }) {
-  return <MapInner centros={centros} onMapClick={onMapClick} onCentroClick={onCentroClick} />
+export default function MapView({ centros = [], onMapClick, onCentroClick, role }) {
+  return <MapInner centros={centros} onMapClick={onMapClick} onCentroClick={onCentroClick} role={role} />
 }
 
 const buscador = {
@@ -231,4 +272,12 @@ const stats = {
   punto: { width: 8, height: 8, borderRadius: '50%', flexShrink: 0 },
   num:   { fontSize: 14, fontWeight: 700, color: 'var(--gl-text-primary)', lineHeight: 1 },
   label: { fontSize: 9, color: 'var(--gl-text-muted)', marginTop: 1 },
+}
+
+const coords = {
+  wrap:  { position: 'absolute', top: 56, left: 52, zIndex: 600, width: 230, maxWidth: 'calc(100% - 76px)' },
+  row:   { display: 'flex', gap: 6 },
+  input: { flex: 1, background: 'var(--gl-bg-surface)', border: '1px solid var(--gl-border)', borderRadius: 'var(--gl-radius-md)', padding: '7px 10px', fontSize: 13, color: 'var(--gl-text-primary)', outline: 'none', boxShadow: 'var(--gl-shadow-md)', fontFamily: 'inherit', minWidth: 0 },
+  btn:   { background: 'var(--gl-brand)', border: 'none', borderRadius: 'var(--gl-radius-md)', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 10px', boxShadow: 'var(--gl-shadow-md)', flexShrink: 0 },
+  error: { marginTop: 4, fontSize: 11, color: 'var(--gl-fault)', background: 'var(--gl-bg-surface)', borderRadius: 6, padding: '3px 8px', boxShadow: 'var(--gl-shadow-sm)' },
 }

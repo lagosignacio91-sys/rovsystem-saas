@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { db } from '../../lib/firebase'
-import { doc, setDoc, getDoc } from 'firebase/firestore'
+import { doc, setDoc, getDoc, onSnapshot } from 'firebase/firestore'
 import { Send, FileText, ChevronDown, ChevronUp } from 'lucide-react'
 
 function hoy() {
@@ -73,19 +73,30 @@ export default function TabBitacora({ centro, role }) {
 
   useEffect(() => {
     const cargar = async () => {
-      const [snapBit, snapRov] = await Promise.all([
+      const [snapBit, snapRov, snapOps] = await Promise.all([
         getDoc(doc(db, 'centros', centro.id, 'datos', 'bitacora')),
         getDoc(doc(db, 'centros', centro.id, 'equipos', 'rov')),
+        getDoc(doc(db, 'centros', centro.id, 'datos', 'operadores')),
       ])
-      if (snapBit.exists()) {
-        setDatos(d => ({ ...d, ...snapBit.data() }))
-      }
-      if (snapRov.exists()) {
-        setRov(snapRov.data())
+      if (snapBit.exists()) setDatos(d => ({ ...d, ...snapBit.data() }))
+      if (snapRov.exists()) setRov(snapRov.data())
+      // Auto-piloto: siempre usa el operador en faena si existe
+      if (snapOps.exists()) {
+        const ops = snapOps.data()
+        const enFaena = [ops.op1, ops.op2].find(op => op?.estado === 'faena' && op?.nombre)
+        if (enFaena) setDatos(d => ({ ...d, piloto: enFaena.nombre }))
       }
       setCargando(false)
     }
     cargar()
+    // Suscribir cambios de operadores en tiempo real para actualizar piloto
+    const unsub = onSnapshot(doc(db, 'centros', centro.id, 'datos', 'operadores'), (snap) => {
+      if (!snap.exists()) return
+      const ops = snap.data()
+      const enFaena = [ops.op1, ops.op2].find(op => op?.estado === 'faena' && op?.nombre)
+      if (enFaena) setDatos(d => ({ ...d, piloto: enFaena.nombre }))
+    })
+    return () => unsub()
   }, [centro.id])
 
   const set = (campo, valor) => setDatos(d => ({ ...d, [campo]: valor }))
