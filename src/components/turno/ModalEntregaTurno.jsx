@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { X, ChevronLeft, ChevronRight, Check, Loader2, Download, Share2 } from 'lucide-react'
-import { SECCIONES_ROV } from './StepInspeccionROV'
+import { useAppConfig } from '../../hooks/useAppConfig'
 import StepDatosGenerales from './StepDatosGenerales'
 import StepInspeccionROV  from './StepInspeccionROV'
 import StepInventario     from './StepInventario'
@@ -57,6 +57,8 @@ const s = {
 }
 
 export default function ModalEntregaTurno({ centro, itemsList, onCerrar, onGuardar }) {
+  const { listas } = useAppConfig()
+  const secciones  = listas.inspeccionRov
   const [paso,    setPaso]    = useState(0)
   const [saving,  setSaving]  = useState(false)
   const [saved,   setSaved]   = useState(null)
@@ -81,7 +83,7 @@ export default function ModalEntregaTurno({ centro, itemsList, onCerrar, onGuard
     return true
   }
 
-  const buildInspeccion = (equipo) => SECCIONES_ROV.map(sec => {
+  const buildInspeccion = (equipo) => secciones.map(sec => {
     const d = inspeccion[equipo]?.[sec.id] ?? {}
     return {
       id:      sec.id,

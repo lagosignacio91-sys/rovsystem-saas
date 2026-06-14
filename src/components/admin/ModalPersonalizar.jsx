@@ -2,9 +2,10 @@
 // el menú principal y las pestañas del centro, y ajustar la marca
 // (nombre, color, logo). Guarda en config/app (Firestore).
 import { useState } from 'react'
-import { X, Check, RotateCcw, Image as ImageIcon } from 'lucide-react'
+import { X, Check, RotateCcw, Image as ImageIcon, Plus } from 'lucide-react'
 import { t } from '../../theme/tokens'
 import { useAppConfig } from '../../hooks/useAppConfig'
+import { generarId, NIVELES_PERMISO, NIVEL_LABEL } from '../../config/appDefaults'
 import ListaOrdenable from './ListaOrdenable'
 
 function fileADataURL(file) {
@@ -17,11 +18,24 @@ function fileADataURL(file) {
 }
 
 export default function ModalPersonalizar({ onCerrar }) {
-  const { tabs, nav, branding, guardarConfig } = useAppConfig()
+  const { tabs, nav, branding, listas, permisos, guardarConfig } = useAppConfig()
   const [navDraft, setNavDraft]   = useState(nav)
   const [tabsDraft, setTabsDraft] = useState(tabs)
   const [marca, setMarca]         = useState(branding)
+  const [inspDraft, setInspDraft] = useState(listas.inspeccionRov)
+  const [permDraft, setPermDraft] = useState(permisos)
+  const [nuevaSeccion, setNuevaSeccion] = useState('')
   const [guardando, setGuardando] = useState(false)
+
+  const agregarSeccion = () => {
+    const txt = nuevaSeccion.trim()
+    if (!txt) return
+    setInspDraft((l) => [...l, { id: generarId(txt), label: txt }])
+    setNuevaSeccion('')
+  }
+
+  const setPermiso = (tabId, role, nivel) =>
+    setPermDraft((p) => ({ ...p, [tabId]: { ...p[tabId], [role]: nivel } }))
 
   const guardar = async () => {
     setGuardando(true)
@@ -30,6 +44,8 @@ export default function ModalPersonalizar({ onCerrar }) {
         nav:  navDraft.map(({ id, label, hidden, order }) => ({ id, label, hidden, order })),
         tabs: tabsDraft.map(({ id, label, hidden, order }) => ({ id, label, hidden, order })),
         branding: marca,
+        listas: { inspeccionRov: inspDraft.map(({ id, label }) => ({ id, label })) },
+        permisos: permDraft,
       })
       onCerrar()
     } catch (e) {
@@ -100,6 +116,37 @@ export default function ModalPersonalizar({ onCerrar }) {
           <Seccion titulo="Pestañas del centro" sub="Arrastra para reordenar · ojo para ocultar · escribe para renombrar">
             <ListaOrdenable items={tabsDraft} onChange={setTabsDraft} />
           </Seccion>
+
+          {/* ---- Secciones de inspección ROV ---- */}
+          <Seccion titulo="Secciones de inspección (turno)" sub="Lo que el operador revisa en cada equipo · arrastra, renombra o elimina">
+            <ListaOrdenable items={inspDraft} onChange={setInspDraft} conOcultar={false} conEliminar />
+            <div style={s.addRow}>
+              <input value={nuevaSeccion} onChange={(e) => setNuevaSeccion(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && agregarSeccion()}
+                placeholder="Nueva sección de inspección…" style={s.textInput} />
+              <button onClick={agregarSeccion} style={s.addBtn} aria-label="Agregar sección"><Plus size={16} /></button>
+            </div>
+          </Seccion>
+
+          {/* ---- Permisos por pestaña ---- */}
+          <Seccion titulo="Permisos por pestaña" sub="Qué puede hacer cada rol en cada pestaña del centro">
+            <div style={s.permHead}>
+              <span style={{ flex: 1 }} />
+              <span style={s.permCol}>Operador</span>
+              <span style={s.permCol}>Admin</span>
+            </div>
+            {tabsDraft.map((tab) => (
+              <div key={tab.id} style={s.permRow}>
+                <span style={s.permName}>{tab.label}</span>
+                <select value={permDraft[tab.id]?.operador ?? 'edit'} onChange={(e) => setPermiso(tab.id, 'operador', e.target.value)} style={s.select}>
+                  {NIVELES_PERMISO.map((n) => <option key={n} value={n}>{NIVEL_LABEL[n]}</option>)}
+                </select>
+                <select value={permDraft[tab.id]?.admin ?? 'edit'} onChange={(e) => setPermiso(tab.id, 'admin', e.target.value)} style={s.select}>
+                  {NIVELES_PERMISO.filter((n) => n !== 'hidden').map((n) => <option key={n} value={n}>{NIVEL_LABEL[n]}</option>)}
+                </select>
+              </div>
+            ))}
+          </Seccion>
         </div>
 
         <div style={s.footer}>
@@ -139,5 +186,12 @@ const s = {
   logoBox: { width: 44, height: 44, borderRadius: 10, background: '#fff', padding: 4, flexShrink: 0, border: '1px solid var(--gl-border)' },
   logoImg: { width: '100%', height: '100%', objectFit: 'contain' },
   upload:  { display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--gl-brand-tint)', border: '1px solid var(--gl-brand-soft)', color: 'var(--gl-brand-soft)', borderRadius: 8, fontSize: 12, fontWeight: 600, padding: '7px 11px', cursor: 'pointer' },
+  addRow:  { display: 'flex', gap: 8, marginTop: 8 },
+  addBtn:  { background: 'var(--gl-brand)', border: 'none', borderRadius: 8, color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '0 12px', flexShrink: 0 },
+  permHead: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 },
+  permCol: { width: 92, textAlign: 'center', fontSize: 10, fontWeight: 600, color: 'var(--gl-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' },
+  permRow: { display: 'flex', alignItems: 'center', gap: 8, padding: '5px 0', borderTop: '1px solid var(--gl-border)' },
+  permName: { flex: 1, fontSize: 13, color: 'var(--gl-text-primary)', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+  select:  { width: 92, flexShrink: 0, background: 'var(--gl-bg-input)', border: '1px solid var(--gl-border)', borderRadius: 7, color: 'var(--gl-text-primary)', fontSize: 12, padding: '6px 6px', outline: 'none', fontFamily: 'inherit', cursor: 'pointer' },
   footer:  { display: 'flex', gap: 8, padding: 16, borderTop: '1px solid var(--gl-border)', justifyContent: 'flex-end' },
 }

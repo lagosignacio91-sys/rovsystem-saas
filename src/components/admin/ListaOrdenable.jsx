@@ -9,10 +9,10 @@ import {
   sortableKeyboardCoordinates,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { GripVertical, Eye, EyeOff } from 'lucide-react'
+import { GripVertical, Eye, EyeOff, Trash2 } from 'lucide-react'
 import { t } from '../../theme/tokens'
 
-function Fila({ item, onToggle, onRename }) {
+function Fila({ item, onToggle, onRename, onEliminar, conOcultar }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.id })
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -31,19 +31,26 @@ function Fila({ item, onToggle, onRename }) {
         style={s.input}
         aria-label="Nombre"
       />
-      <button
-        onClick={() => onToggle(item.id)}
-        style={{ ...s.eye, color: item.hidden ? t.textMuted : t.brandSoft }}
-        aria-label={item.hidden ? 'Mostrar' : 'Ocultar'}
-        title={item.hidden ? 'Mostrar' : 'Ocultar'}
-      >
-        {item.hidden ? <EyeOff size={16} /> : <Eye size={16} />}
-      </button>
+      {conOcultar && (
+        <button
+          onClick={() => onToggle(item.id)}
+          style={{ ...s.eye, color: item.hidden ? t.textMuted : t.brandSoft }}
+          aria-label={item.hidden ? 'Mostrar' : 'Ocultar'}
+          title={item.hidden ? 'Mostrar' : 'Ocultar'}
+        >
+          {item.hidden ? <EyeOff size={16} /> : <Eye size={16} />}
+        </button>
+      )}
+      {onEliminar && (
+        <button onClick={() => onEliminar(item.id)} style={{ ...s.eye, color: t.fault }} aria-label="Eliminar" title="Eliminar">
+          <Trash2 size={15} />
+        </button>
+      )}
     </div>
   )
 }
 
-export default function ListaOrdenable({ items, onChange }) {
+export default function ListaOrdenable({ items, onChange, conOcultar = true, conEliminar = false }) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 6 } }),
@@ -60,13 +67,15 @@ export default function ListaOrdenable({ items, onChange }) {
 
   const onToggle = (id) => onChange(items.map((i) => (i.id === id ? { ...i, hidden: !i.hidden } : i)))
   const onRename = (id, label) => onChange(items.map((i) => (i.id === id ? { ...i, label } : i)))
+  const onEliminar = conEliminar ? (id) => onChange(items.filter((i) => i.id !== id)) : null
 
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
       <SortableContext items={items.map((i) => i.id)} strategy={verticalListSortingStrategy}>
         <div style={s.lista}>
           {items.map((item) => (
-            <Fila key={item.id} item={item} onToggle={onToggle} onRename={onRename} />
+            <Fila key={item.id} item={item} onToggle={onToggle} onRename={onRename}
+              onEliminar={onEliminar} conOcultar={conOcultar} />
           ))}
         </div>
       </SortableContext>

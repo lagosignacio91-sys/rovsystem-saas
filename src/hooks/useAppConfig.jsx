@@ -9,7 +9,8 @@ import { createContext, useContext, useEffect, useMemo, useState, useCallback } 
 import { doc, onSnapshot, setDoc } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import {
-  TABS_DEFAULT, NAV_DEFAULT, BRANDING_DEFAULT, resolverLista,
+  TABS_DEFAULT, NAV_DEFAULT, BRANDING_DEFAULT, LISTAS_DEFAULT,
+  resolverLista, nivelPermiso,
 } from '../config/appDefaults'
 
 const AppConfigContext = createContext(null)
@@ -68,13 +69,23 @@ export function AppConfigProvider({ children }) {
   const tabs = useMemo(() => resolverLista(TABS_DEFAULT, raw?.tabs), [raw])
   const nav  = useMemo(() => resolverLista(NAV_DEFAULT, raw?.nav), [raw])
 
+  // Listas con add/remove (no solo reorden): usar config si existe, si no el default.
+  const listas = useMemo(() => ({
+    inspeccionRov: raw?.listas?.inspeccionRov?.length
+      ? raw.listas.inspeccionRov
+      : LISTAS_DEFAULT.inspeccionRov,
+  }), [raw])
+
+  const permisos = useMemo(() => raw?.permisos ?? {}, [raw])
+  const permiso  = useCallback((tabId, role) => nivelPermiso(permisos, tabId, role), [permisos])
+
   const guardarConfig = useCallback(async (patch) => {
     await setDoc(CONFIG_REF(), patch, { merge: true })
   }, [])
 
   const value = useMemo(
-    () => ({ tabs, nav, branding, guardarConfig, cargando }),
-    [tabs, nav, branding, guardarConfig, cargando],
+    () => ({ tabs, nav, branding, listas, permisos, permiso, guardarConfig, cargando }),
+    [tabs, nav, branding, listas, permisos, permiso, guardarConfig, cargando],
   )
 
   return <AppConfigContext.Provider value={value}>{children}</AppConfigContext.Provider>

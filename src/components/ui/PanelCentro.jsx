@@ -24,9 +24,14 @@ const TAB_COMPONENTES = {
 }
 
 export default function PanelCentro({ centro, onCerrar, onEliminar, sincronizarEstado, role, uid }) {
-  const { tabs } = useAppConfig()
-  const tabsVisibles = tabs.filter((tb) => !tb.hidden && TAB_COMPONENTES[tb.id])
+  const { tabs, permiso } = useAppConfig()
+  const tabsVisibles = tabs.filter(
+    (tb) => !tb.hidden && TAB_COMPONENTES[tb.id] && permiso(tb.id, role) !== 'hidden',
+  )
   const [tabActiva, setTabActiva]   = useState(tabsVisibles[0]?.id ?? 'operator')
+  // En modo "solo ver", pasamos un rol sin permisos de edición a la pestaña:
+  // todos sus controles (que exigen admin/operador) quedan ocultos sin tocar cada tab.
+  const rolEfectivo = permiso(tabActiva, role) === 'view' ? 'lector' : role
   const [operadores, setOperadores] = useState({ op1: {}, op2: {} })
   const [estadoActual, setEstadoActual] = useState(centro.estado)
   const [aEliminar, setAEliminar]   = useState(false)
@@ -104,7 +109,7 @@ export default function PanelCentro({ centro, onCerrar, onEliminar, sincronizarE
       </div>
 
       <div style={styles.contenido}>
-        {TAB_COMPONENTES[tabActiva]?.({ centro, role, uid, sincronizarEstado })}
+        {TAB_COMPONENTES[tabActiva]?.({ centro, role: rolEfectivo, uid, sincronizarEstado })}
       </div>
 
       {aEliminar && (

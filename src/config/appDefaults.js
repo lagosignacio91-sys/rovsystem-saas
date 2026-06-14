@@ -51,6 +51,46 @@ export const BRANDING_DEFAULT = {
   logoDataUrl: '',          // vacío = usa /logo.png
 }
 
+// ---- Listas editables (Fase 3) ----
+// Secciones de inspección ROV del wizard de entrega de turno.
+export const INSPECCION_ROV_DEFAULT = [
+  { id: 'pines_pod',         label: 'Pines sensor POD' },
+  { id: 'pines_umbilical',   label: 'Pines umbilical' },
+  { id: 'pines_carga',       label: 'Pines de carga' },
+  { id: 'pines_grabber',     label: 'Pines Grabber' },
+  { id: 'conectores',        label: 'Conectores sensor y umbilical' },
+  { id: 'rov_controlador',   label: 'ROV y controlador' },
+  { id: 'caja_herramientas', label: 'Caja de herramientas' },
+]
+
+export const LISTAS_DEFAULT = {
+  inspeccionRov: INSPECCION_ROV_DEFAULT,
+}
+
+// ---- Permisos por pestaña y rol (Fase 5) ----
+// Niveles: 'edit' (ver y editar) · 'view' (solo lectura) · 'hidden' (no ve la pestaña).
+// Default vacío = todo 'edit' para todos. El helper resuelve a 'edit' si falta.
+export const NIVELES_PERMISO = ['edit', 'view', 'hidden']
+export const NIVEL_LABEL = { edit: 'Editar', view: 'Solo ver', hidden: 'Oculto' }
+export const PERMISOS_DEFAULT = {}
+
+export function nivelPermiso(permisos, tabId, role) {
+  if (role === 'admin') {
+    // El admin nunca se auto-bloquea por completo; respeta 'view' pero no 'hidden'.
+    const n = permisos?.[tabId]?.admin
+    return n === 'view' ? 'view' : 'edit'
+  }
+  return permisos?.[tabId]?.[role] ?? 'edit'
+}
+
+// Genera un id estable a partir de un texto libre (para items nuevos de listas).
+export function generarId(texto) {
+  return (
+    (texto || 'item').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+      .replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '').slice(0, 30) + '_' + Date.now().toString(36)
+  )
+}
+
 // ============================================================
 // Helper: combina los defaults (código) con los overrides (Firestore).
 // Devuelve un array de items { id, label, hidden, order } ordenado por

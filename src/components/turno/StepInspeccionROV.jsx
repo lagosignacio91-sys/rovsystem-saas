@@ -1,15 +1,9 @@
 import { useRef, useState } from 'react'
 import { Camera, CheckCircle, AlertTriangle, ImagePlus } from 'lucide-react'
+import { useAppConfig } from '../../hooks/useAppConfig'
 
-export const SECCIONES_ROV = [
-  { id: 'pines_pod',        label: 'Pines sensor POD' },
-  { id: 'pines_umbilical',  label: 'Pines umbilical' },
-  { id: 'pines_carga',      label: 'Pines de carga' },
-  { id: 'pines_grabber',    label: 'Pines Grabber' },
-  { id: 'conectores',       label: 'Conectores sensor y umbilical' },
-  { id: 'rov_controlador',  label: 'ROV y controlador' },
-  { id: 'caja_herramientas',label: 'Caja de herramientas' },
-]
+// Compat: secciones por defecto (la fuente real es config/app via useAppConfig).
+export { INSPECCION_ROV_DEFAULT as SECCIONES_ROV } from '../../config/appDefaults'
 
 const s = {
   card:      { background: 'var(--gl-bg-input)', border: '1px solid var(--gl-border)', borderRadius: 10, padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 8 },
@@ -93,15 +87,17 @@ function SeccionItem({ sec, data, onChange }) {
 }
 
 export default function StepInspeccionROV({ inspeccion, onChange, equipoPrincipal, equipoBackup }) {
+  const { listas } = useAppConfig()
+  const secciones  = listas.inspeccionRov
   const [activo, setActivo] = useState('principal')
 
   // inspeccion = { principal: {secId:{...}}, backup: {secId:{...}} }
   const datosEquipo = inspeccion[activo] ?? {}
-  const completadas = SECCIONES_ROV.filter(s => datosEquipo[s.id]?.estado).length
+  const completadas = secciones.filter(s => datosEquipo[s.id]?.estado).length
 
   const tieneAnomalia = (equipo) => {
     const d = inspeccion[equipo] ?? {}
-    return SECCIONES_ROV.some(s => d[s.id]?.estado === 'anomalia')
+    return secciones.some(s => d[s.id]?.estado === 'anomalia')
   }
 
   const handleChange = (id, data) =>
@@ -124,7 +120,7 @@ export default function StepInspeccionROV({ inspeccion, onChange, equipoPrincipa
         {tabLabel('principal', 'Equipo principal', equipoPrincipal)}
         {tabLabel('backup', 'Equipo backup', equipoBackup)}
       </div>
-      {SECCIONES_ROV.map(sec => (
+      {secciones.map(sec => (
         <SeccionItem
           key={`${activo}-${sec.id}`}
           sec={sec}
@@ -132,7 +128,7 @@ export default function StepInspeccionROV({ inspeccion, onChange, equipoPrincipa
           onChange={handleChange}
         />
       ))}
-      <p style={s.progress}>{completadas} de {SECCIONES_ROV.length} secciones evaluadas · {activo === 'principal' ? 'equipo principal' : 'equipo backup'}</p>
+      <p style={s.progress}>{completadas} de {secciones.length} secciones evaluadas · {activo === 'principal' ? 'equipo principal' : 'equipo backup'}</p>
     </div>
   )
 }
