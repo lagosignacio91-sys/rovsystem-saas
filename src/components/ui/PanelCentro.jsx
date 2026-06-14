@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { db } from '../../lib/firebase'
 import { doc, onSnapshot } from 'firebase/firestore'
-import { UserCog, Ship, Wrench, Box, Package, Trash2, X, Gamepad2 } from 'lucide-react'
+import { UserCog, Ship, Wrench, Box, Package, Trash2, X, Gamepad2, ClipboardCheck } from 'lucide-react'
 import { t } from '../../theme/tokens'
 import { EstadoBadge, Modal, Button } from '../kit'
 import TabROV from '../tabs/TabROV'
@@ -9,6 +9,7 @@ import TabHerramientas from '../tabs/TabHerramientas'
 import TabOperador from '../tabs/TabOperador'
 import TabInsumos from '../tabs/TabInsumos'
 import PanelDespacho from '../dispatch/PanelDespacho'
+import TabEntregaTurno from '../tabs/TabEntregaTurno'
 
 const TABS = [
   { id: 'operator', label: 'Operador',    icon: UserCog },
@@ -16,9 +17,10 @@ const TABS = [
   { id: 'tools',    label: 'Herram.',     icon: Wrench },
   { id: 'supplies', label: 'Insumos',     icon: Box },
   { id: 'despacho', label: 'Despacho',    icon: Package },
+  { id: 'turno',    label: 'Turno',       icon: ClipboardCheck },
 ]
 
-export default function PanelCentro({ centro, onCerrar, onEliminar, sincronizarEstado, role }) {
+export default function PanelCentro({ centro, onCerrar, onEliminar, sincronizarEstado, role, uid }) {
   const [tabActiva, setTabActiva]   = useState('operator')
   const [operadores, setOperadores] = useState({ op1: {}, op2: {} })
   const [estadoActual, setEstadoActual] = useState(centro.estado)
@@ -93,7 +95,8 @@ export default function PanelCentro({ centro, onCerrar, onEliminar, sincronizarE
         {tabActiva === 'tools'    && <TabHerramientas centro={centro} role={role} sincronizarEstado={sincronizarEstado} />}
         {tabActiva === 'operator' && <TabOperador     centro={centro} role={role} />}
         {tabActiva === 'supplies' && <TabInsumos      centro={centro} role={role} sincronizarEstado={sincronizarEstado} />}
-        {tabActiva === 'despacho' && <PanelDespacho   centro={centro} role={role} sincronizarEstado={sincronizarEstado} />}
+        {tabActiva === 'despacho' && <PanelDespacho    centro={centro} role={role} sincronizarEstado={sincronizarEstado} />}
+        {tabActiva === 'turno'    && <TabEntregaTurno  centro={centro} role={role} uid={uid} />}
       </div>
 
       {aEliminar && (

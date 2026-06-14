@@ -5,7 +5,7 @@ import FormCentro from '../components/map/FormCentro'
 import PanelCentro from '../components/ui/PanelCentro'
 
 export default function MapaPage() {
-  const { centros, cargando, agregarCentro, eliminarCentro, sincronizarEstado, role, empresaActiva } = useOutletContext()
+  const { centros, cargando, agregarCentro, eliminarCentro, sincronizarEstado, role, uid, empresaActiva } = useOutletContext()
   const [latlng, setLatlng]           = useState(null)
   const [centroActivo, setCentroActivo] = useState(null)
 
@@ -27,6 +27,7 @@ export default function MapaPage() {
           <PanelCentro
             centro={centroVivo}
             role={role}
+            uid={uid}
             sincronizarEstado={sincronizarEstado}
             onCerrar={() => setCentroActivo(null)}
             onEliminar={handleEliminar}

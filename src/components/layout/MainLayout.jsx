@@ -98,7 +98,7 @@ export default function MainLayout() {
         </header>
 
         <main className="gl-content">
-          <Outlet context={{ ...centrosState, role, empresaActiva }} />
+          <Outlet context={{ ...centrosState, role, uid: user?.uid, empresaActiva }} />
         </main>
 
         {/* Bottom nav móvil */}
