@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { LogOut, Menu, X, Clock, SlidersHorizontal } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import { useCentros } from '../../hooks/useCentros'
 import { useDespachosGlobal } from '../../hooks/useDespachosGlobal'
 import { useAppConfig } from '../../hooks/useAppConfig'
+import { useEmpresas } from '../../hooks/useEmpresas'
 import { NAV_META } from '../../config/appDefaults'
 import { t } from '../../theme/tokens'
 import { useReloj } from '../../hooks/useReloj'
@@ -14,18 +15,27 @@ import ModalPersonalizar from '../admin/ModalPersonalizar'
 import './layout.css'
 
 export default function MainLayout() {
-  const { user, role, signOut } = useAuth()
+  const { user, role, teamId, empresaId, nombre, signOut } = useAuth()
   const { nav, branding }       = useAppConfig()
   const centrosState            = useCentros()
   const { pendientes }          = useDespachosGlobal()
+  const { empresas }            = useEmpresas()
   const [empresaActiva, setEmpresaActiva] = useState(null)
   const [drawerOpen, setDrawerOpen]       = useState(false)
   const [personalizar, setPersonalizar]   = useState(false)
   const { horaStr, fechaStr }   = useReloj()
   const location                = useLocation()
 
-  const usuario = user?.email?.split('@')[0] ?? ''
-  const inicial = (usuario[0] ?? '?').toUpperCase()
+  // Para operadores: auto-aplicar la empresa que les corresponde (sin que puedan cambiarla)
+  useEffect(() => {
+    if (role === 'operador' && empresaId && empresas.length > 0 && !empresaActiva) {
+      const emp = empresas.find(e => e.id === empresaId)
+      if (emp) setEmpresaActiva(emp)
+    }
+  }, [role, empresaId, empresas, empresaActiva])
+
+  const usuarioLabel = nombre || user?.email?.split('@')[0] || ''
+  const inicial = (usuarioLabel[0] ?? '?').toUpperCase()
   const badges  = { despachos: pendientes.length }
 
   // Solo ítems visibles, ya ordenados; combina datos de config + meta de código.
@@ -70,7 +80,7 @@ export default function MainLayout() {
         <div style={userBox}>
           <div style={avatar}>{inicial}</div>
           <div style={{ flex: 1, lineHeight: 1.25, minWidth: 0 }}>
-            <div style={{ fontSize: 11, color: t.textPrimary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{usuario}</div>
+            <div style={{ fontSize: 11, color: t.textPrimary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{usuarioLabel}</div>
             <div style={{ fontSize: 9, color: t.textMuted, textTransform: 'capitalize' }}>{role ?? '—'}</div>
           </div>
           <button className="gl-icon-btn" onClick={signOut} aria-label="Cerrar sesión" title="Cerrar sesión"><LogOut size={16} /></button>
@@ -83,7 +93,14 @@ export default function MainLayout() {
           <button className="gl-icon-btn gl-menu-btn" onClick={() => setDrawerOpen(true)} aria-label="Abrir menú"><Menu size={20} /></button>
           <div style={{ fontSize: t.textBase, fontWeight: 600, color: t.textPrimary, whiteSpace: 'nowrap' }}>{titulo}</div>
           <div style={{ flex: 1, minWidth: 0, display: 'flex', justifyContent: 'center' }}>
-            <SelectorEmpresa empresaActiva={empresaActiva} onCambiar={cambiarEmpresa} role={role} />
+            {role === 'admin'
+              ? <SelectorEmpresa empresaActiva={empresaActiva} onCambiar={cambiarEmpresa} role={role} />
+              : empresaActiva && (
+                  <span style={{ fontSize: 12, fontWeight: 600, color: t.brandSoft, background: t.brandTint, border: `1px solid ${t.border}`, borderRadius: t.radiusMd, padding: '4px 10px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 160 }}>
+                    {empresaActiva.nombre}
+                  </span>
+                )
+            }
           </div>
           <div className="gl-topbar-clock" style={relojBox}>
             <Clock size={14} color={t.brandSoft} />
@@ -101,7 +118,7 @@ export default function MainLayout() {
         </header>
 
         <main className="gl-content">
-          <Outlet context={{ ...centrosState, role, uid: user?.uid, empresaActiva }} />
+          <Outlet context={{ ...centrosState, role, uid: user?.uid, teamId, empresaActiva }} />
         </main>
 
         {/* Bottom nav móvil */}

@@ -4,6 +4,7 @@ import { Search, X, MapPin } from 'lucide-react'
 import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
 import PopupCentro from './PopupCentro'
+import PopupCentroContactos from './PopupCentroContactos'
 import { t, ESTADO_META } from '../../theme/tokens'
 
 delete L.Icon.Default.prototype._getIconUrl
@@ -47,10 +48,22 @@ function crearIcono(estado, size = 26) {
   })
 }
 
-function MapEvents({ onMapClick, onZoom }) {
+// Icono azul neutro para centros que no pertenecen al team del operador
+function crearIconoAzul(size = 26) {
+  const borde = Math.max(1.5, size * 0.09).toFixed(1)
+  return L.divIcon({
+    className: '',
+    html: `<div style="width:${size}px;height:${size}px;background:#3b82f6;border:${borde}px solid #fff;border-radius:50%;box-shadow:0 1px 5px rgba(0,0,0,0.4)"></div>`,
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
+  })
+}
+
+function MapEvents({ onMapClick, onZoom, onMouseMove }) {
   useMapEvents({
-    click(e) { if (onMapClick) onMapClick(e.latlng) },
-    zoomend(e) { if (onZoom) onZoom(e.target.getZoom()) },
+    click(e)    { if (onMapClick)   onMapClick(e.latlng) },
+    zoomend(e)  { if (onZoom)       onZoom(e.target.getZoom()) },
+    mousemove(e){ if (onMouseMove)  onMouseMove(e.latlng) },
   })
   return null
 }
@@ -196,55 +209,83 @@ function BuscadorCoordenadas({ mapRef }) {
   )
 }
 
-function MapInner({ centros, onMapClick, onCentroClick, role }) {
+function MapInner({ centros, onMapClick, onCentroClick, role, userTeamId }) {
   const [popupCentro, setPopupCentro] = useState(null)
   const [popupPos, setPopupPos]       = useState(null)
+  const [popupTipo, setPopupTipo]     = useState('propio') // 'propio' | 'ajeno'
+  const [mouseCoords, setMouseCoords] = useState(null)
   const [zoom, setZoom]               = useState(8)
   const mapRef = useRef(null)
   const size = tamPorZoom(zoom)
+
+  const esAjeno = (centro) =>
+    role === 'operador' && centro.teamId !== userTeamId
 
   const handleMarkerClick = (e, centro) => {
     L.DomEvent.stopPropagation(e)
     const point = mapRef.current.latLngToContainerPoint([centro.lat, centro.lng])
     setPopupCentro(centro)
     setPopupPos({ x: point.x, y: point.y })
+    setPopupTipo(esAjeno(centro) ? 'ajeno' : 'propio')
   }
   const handleMapClick = (latlng) => {
     setPopupCentro(null); setPopupPos(null)
     onMapClick && onMapClick(latlng)
   }
+  const cerrarPopup = () => { setPopupCentro(null); setPopupPos(null) }
 
   return (
     <div style={{ width: '100%', height: '100%', position: 'relative' }}>
       <MapContainer center={[-45.5, -72.5]} zoom={8} style={{ width: '100%', height: '100%' }} ref={mapRef}>
         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution='&copy; OpenStreetMap contributors' maxZoom={19} />
         <TileLayer url="https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png" attribution='&copy; OpenSeaMap' maxZoom={19} />
-        <MapEvents onMapClick={handleMapClick} onZoom={setZoom} />
+        <MapEvents onMapClick={handleMapClick} onZoom={setZoom} onMouseMove={role === 'admin' ? setMouseCoords : null} />
         {centros.map(c => (
-          <Marker key={c.id} position={[c.lat, c.lng]} icon={crearIcono(c.estado, size)}
+          <Marker key={c.id} position={[c.lat, c.lng]}
+            icon={esAjeno(c) ? crearIconoAzul(size) : crearIcono(c.estado, size)}
             eventHandlers={{ click: (e) => handleMarkerClick(e, c) }} />
         ))}
       </MapContainer>
 
-      <BuscadorCentros centros={centros} mapRef={mapRef} onSelect={onCentroClick} />
+      <BuscadorCentros centros={centros} mapRef={mapRef} onSelect={(c) => {
+        if (!esAjeno(c)) onCentroClick && onCentroClick(c)
+        else {
+          const point = mapRef.current?.latLngToContainerPoint([c.lat, c.lng])
+          if (point) { setPopupCentro(c); setPopupPos({ x: point.x, y: point.y }); setPopupTipo('ajeno') }
+        }
+      }} />
       {role === 'admin' && <BuscadorCoordenadas mapRef={mapRef} />}
       <Leyenda />
-      <StatsPanel centros={centros} />
+      {role !== 'operador' && <StatsPanel centros={centros} />}
 
-      {popupCentro && popupPos && (
+      {/* Indicador coordenadas del mouse (solo admin) */}
+      {role === 'admin' && mouseCoords && (
+        <div style={mouseCoordStyle}>
+          📍 {mouseCoords.lat.toFixed(5)}, {mouseCoords.lng.toFixed(5)}
+        </div>
+      )}
+
+      {popupCentro && popupPos && popupTipo === 'propio' && (
         <div style={{ position: 'absolute', left: popupPos.x + 16, top: popupPos.y - 30, zIndex: 1000 }}
           onClick={e => e.stopPropagation()} onMouseDown={e => e.stopPropagation()}>
           <PopupCentro centro={popupCentro}
-            onAbrir={(c) => { setPopupCentro(null); setPopupPos(null); onCentroClick && onCentroClick(c) }}
-            onCerrar={() => { setPopupCentro(null); setPopupPos(null) }} />
+            onAbrir={(c) => { cerrarPopup(); onCentroClick && onCentroClick(c) }}
+            onCerrar={cerrarPopup} />
+        </div>
+      )}
+
+      {popupCentro && popupPos && popupTipo === 'ajeno' && (
+        <div style={{ position: 'absolute', left: Math.min(popupPos.x + 16, window.innerWidth - 260), top: popupPos.y - 30, zIndex: 1000 }}
+          onClick={e => e.stopPropagation()} onMouseDown={e => e.stopPropagation()}>
+          <PopupCentroContactos centro={popupCentro} onCerrar={cerrarPopup} />
         </div>
       )}
     </div>
   )
 }
 
-export default function MapView({ centros = [], onMapClick, onCentroClick, role }) {
-  return <MapInner centros={centros} onMapClick={onMapClick} onCentroClick={onCentroClick} role={role} />
+export default function MapView({ centros = [], onMapClick, onCentroClick, role, userTeamId }) {
+  return <MapInner centros={centros} onMapClick={onMapClick} onCentroClick={onCentroClick} role={role} userTeamId={userTeamId} />
 }
 
 const buscador = {
@@ -273,6 +314,8 @@ const stats = {
   num:   { fontSize: 14, fontWeight: 700, color: 'var(--gl-text-primary)', lineHeight: 1 },
   label: { fontSize: 9, color: 'var(--gl-text-muted)', marginTop: 1 },
 }
+
+const mouseCoordStyle = { position: 'absolute', bottom: 50, right: 56, zIndex: 600, background: 'var(--gl-bg-surface)', border: '1px solid var(--gl-border)', borderRadius: 8, padding: '4px 10px', fontSize: 11, color: 'var(--gl-text-secondary)', fontFamily: "'JetBrains Mono', monospace", boxShadow: 'var(--gl-shadow-sm)', pointerEvents: 'none' }
 
 const coords = {
   wrap:  { position: 'absolute', top: 56, left: 52, zIndex: 600, width: 230, maxWidth: 'calc(100% - 76px)' },

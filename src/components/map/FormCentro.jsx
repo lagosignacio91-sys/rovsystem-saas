@@ -1,7 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Building2, MapPin } from 'lucide-react'
 import { t } from '../../theme/tokens'
 import { Modal, Button, Input, Select, Field } from '../kit'
+import { db } from '../../lib/firebase'
+import { collection, getDocs } from 'firebase/firestore'
 
 const ESTADOS = [
   { value: 'OK',              label: 'Operativo' },
@@ -14,14 +16,28 @@ const ESTADOS = [
 export default function FormCentro({ latlng, onGuardar, onCancelar, cargando, empresaActiva }) {
   const [nombre, setNombre] = useState('')
   const [estado, setEstado] = useState('OK')
+  const [teamId, setTeamId] = useState('')
+  const [teams,  setTeams]  = useState([])
+
+  useEffect(() => {
+    // Cargar lista de operadores/teams para el selector
+    getDocs(collection(db, 'usuarios')).then(snap => {
+      const ops = snap.docs
+        .map(d => ({ uid: d.id, ...d.data() }))
+        .filter(u => u.rol === 'operador')
+      setTeams(ops)
+    })
+  }, [])
 
   const submit = (e) => {
     e.preventDefault()
     if (!nombre.trim()) return
     onGuardar({
-      nombre, estado, lat: latlng.lat, lng: latlng.lng,
-      empresaId: empresaActiva?.id ?? null,
+      nombre, estado,
+      lat: latlng.lat, lng: latlng.lng,
+      empresaId:     empresaActiva?.id ?? null,
       empresaNombre: empresaActiva?.nombre ?? 'Sin empresa',
+      teamId:        teamId || null,
     })
   }
 
@@ -49,6 +65,14 @@ export default function FormCentro({ latlng, onGuardar, onCancelar, cargando, em
         <Field label="Estado inicial">
           <Select value={estado} onChange={e => setEstado(e.target.value)}>
             {ESTADOS.map(e => <option key={e.value} value={e.value}>{e.label}</option>)}
+          </Select>
+        </Field>
+        <Field label="Team asignado">
+          <Select value={teamId} onChange={e => setTeamId(e.target.value)}>
+            <option value="">— Sin team —</option>
+            {teams.map(t => (
+              <option key={t.uid} value={t.uid}>{t.nombre || t.email || t.uid}</option>
+            ))}
           </Select>
         </Field>
       </form>

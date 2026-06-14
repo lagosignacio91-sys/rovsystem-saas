@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { db } from '../../lib/firebase'
-import { doc, onSnapshot } from 'firebase/firestore'
-import { Trash2, X, Gamepad2 } from 'lucide-react'
+import { doc, onSnapshot, collection, getDocs } from 'firebase/firestore'
+import { Trash2, X, Gamepad2, Users } from 'lucide-react'
 import { t } from '../../theme/tokens'
 import { EstadoBadge, Modal, Button } from '../kit'
 import { useAppConfig } from '../../hooks/useAppConfig'
@@ -23,7 +23,7 @@ const TAB_COMPONENTES = {
   bitacora:   (p) => <TabBitacora {...p} />,
 }
 
-export default function PanelCentro({ centro, onCerrar, onEliminar, sincronizarEstado, role, uid }) {
+export default function PanelCentro({ centro, onCerrar, onEliminar, sincronizarEstado, actualizarCentro, role, uid }) {
   const { tabs, permiso } = useAppConfig()
   const tabsVisibles = tabs.filter(
     (tb) => !tb.hidden && TAB_COMPONENTES[tb.id] && permiso(tb.id, role) !== 'hidden',
@@ -32,12 +32,27 @@ export default function PanelCentro({ centro, onCerrar, onEliminar, sincronizarE
   // En modo "solo ver", pasamos un rol sin permisos de edición a la pestaña:
   // todos sus controles (que exigen admin/operador) quedan ocultos sin tocar cada tab.
   const rolEfectivo = permiso(tabActiva, role) === 'view' ? 'lector' : role
-  const [operadores, setOperadores] = useState({ op1: {}, op2: {} })
+  const [operadores, setOperadores]   = useState({ op1: {}, op2: {} })
   const [estadoActual, setEstadoActual] = useState(centro.estado)
-  const [aEliminar, setAEliminar]   = useState(false)
-  const [expanded, setExpanded]     = useState(false)
+  const [aEliminar, setAEliminar]     = useState(false)
+  const [expanded, setExpanded]       = useState(false)
+  const [teams, setTeams]             = useState([])
+  const [asignandoTeam, setAsignandoTeam] = useState(false)
 
   const toggleExpanded = useCallback(() => setExpanded(v => !v), [])
+
+  // Cargar teams solo si es admin
+  useEffect(() => {
+    if (role !== 'admin') return
+    getDocs(collection(db, 'usuarios')).then(snap => {
+      setTeams(snap.docs.map(d => ({ uid: d.id, ...d.data() })).filter(u => u.rol === 'operador'))
+    })
+  }, [role])
+
+  const handleAsignarTeam = async (teamId) => {
+    if (actualizarCentro) await actualizarCentro(centro.id, { teamId: teamId || null })
+    setAsignandoTeam(false)
+  }
 
   useEffect(() => { setEstadoActual(centro.estado) }, [centro.estado])
 
@@ -74,9 +89,29 @@ export default function PanelCentro({ centro, onCerrar, onEliminar, sincronizarE
           <h2 style={styles.nombre}>{centro.nombre}</h2>
           <div style={{ marginTop: 4 }}><EstadoBadge estado={estadoActual} /></div>
         </div>
-        <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
+        <div style={{ display: 'flex', gap: 4, flexShrink: 0, alignItems: 'center' }}>
           {role === 'admin' && (
-            <button className="gl-icon-btn" onClick={() => setAEliminar(true)} aria-label="Eliminar centro" style={{ color: t.fault }}><Trash2 size={17} /></button>
+            <>
+              {asignandoTeam ? (
+                <select
+                  defaultValue={centro.teamId ?? ''}
+                  onChange={e => handleAsignarTeam(e.target.value)}
+                  onBlur={() => setAsignandoTeam(false)}
+                  autoFocus
+                  style={{ fontSize: 11, background: 'var(--gl-bg-input)', border: '1px solid var(--gl-border)', borderRadius: 6, color: 'var(--gl-text-primary)', padding: '3px 6px', maxWidth: 130 }}
+                >
+                  <option value="">— Sin team —</option>
+                  {teams.map(tm => (
+                    <option key={tm.uid} value={tm.uid}>{tm.nombre || tm.uid}</option>
+                  ))}
+                </select>
+              ) : (
+                <button className="gl-icon-btn" onClick={() => setAsignandoTeam(true)} aria-label="Asignar team" title={`Team: ${teams.find(t => t.uid === centro.teamId)?.nombre ?? 'Sin asignar'}`}>
+                  <Users size={16} />
+                </button>
+              )}
+              <button className="gl-icon-btn" onClick={() => setAEliminar(true)} aria-label="Eliminar centro" style={{ color: t.fault }}><Trash2 size={17} /></button>
+            </>
           )}
           <button className="gl-icon-btn" onClick={onCerrar} aria-label="Cerrar"><X size={18} /></button>
         </div>
