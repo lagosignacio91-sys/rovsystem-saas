@@ -43,7 +43,7 @@ const s = {
   stepLbl:  { fontSize: 9, color: 'var(--gl-text-muted)', flex: 1, textAlign: 'center' },
   stepLblA: { color: 'var(--gl-brand)', fontWeight: 600 },
   body:     { flex: 1, overflowY: 'auto', padding: '14px 16px 6px' },
-  footer:   { display: 'flex', gap: 8, padding: '10px 16px 20px' },
+  footer:   { display: 'flex', gap: 8, padding: '10px 16px', paddingBottom: 'max(20px, env(safe-area-inset-bottom, 0px))' },
   btnBack:  { flex: 1, padding: '10px', borderRadius: 10, border: '1px solid var(--gl-border)', background: 'var(--gl-bg-input)', color: 'var(--gl-text-secondary)', fontSize: 13, cursor: 'pointer' },
   btnNext:  { flex: 2, padding: '10px', borderRadius: 10, border: 'none', background: 'var(--gl-brand)', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 },
   btnSave:  { flex: 2, padding: '10px', borderRadius: 10, border: 'none', background: 'var(--gl-ok)', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 },

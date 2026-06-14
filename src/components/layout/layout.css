@@ -3,9 +3,20 @@
    Mobile-first: por defecto móvil; >=900px = escritorio.
    ============================================================ */
 
+:root {
+  /* Insets seguros del dispositivo (notch, barra de estado, barra de gestos) */
+  --gl-safe-top: env(safe-area-inset-top, 0px);
+  --gl-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --gl-safe-left: env(safe-area-inset-left, 0px);
+  --gl-safe-right: env(safe-area-inset-right, 0px);
+  /* Alto total de la barra inferior (contenido + área segura) */
+  --gl-bottomnav-h: 64px;
+}
+
 .gl-shell {
   display: flex;
-  height: 100vh;
+  height: 100vh;          /* fallback */
+  height: 100dvh;         /* respeta barras dinámicas del navegador móvil */
   width: 100%;
   overflow: hidden;
   background: var(--gl-bg-base);
@@ -55,12 +66,14 @@
 }
 
 .gl-topbar {
-  height: 56px;
+  height: calc(56px + var(--gl-safe-top));
+  padding-top: var(--gl-safe-top);
+  padding-left: max(var(--gl-space-4), var(--gl-safe-left));
+  padding-right: max(var(--gl-space-4), var(--gl-safe-right));
   flex-shrink: 0;
   display: flex;
   align-items: center;
   gap: var(--gl-space-3);
-  padding: 0 var(--gl-space-4);
   background: var(--gl-bg-surface);
   border-bottom: 1px solid var(--gl-border);
 }
@@ -79,6 +92,9 @@
 @media (max-width: 899px) {
   .gl-sidebar {
     position: fixed; top: 0; bottom: 0; left: 0; z-index: 2000;
+    padding-top: calc(var(--gl-space-4) + var(--gl-safe-top));
+    padding-bottom: calc(var(--gl-space-4) + var(--gl-safe-bottom));
+    padding-left: max(var(--gl-space-3), var(--gl-safe-left));
     transform: translateX(-100%);
     transition: transform var(--gl-dur) var(--gl-ease);
     box-shadow: var(--gl-shadow-lg);
@@ -205,7 +221,7 @@
   .gl-panel-wrapper {
     position: fixed !important;
     top: auto !important;
-    bottom: 60px !important;
+    bottom: calc(64px + var(--gl-safe-bottom)) !important;
     left: 0 !important;
     right: 0 !important;
     height: auto !important;
@@ -244,10 +260,12 @@
     font-size: 10px !important;
   }
 
-  /* Bottom nav: safe-area y touch targets */
+  /* Bottom nav: el área segura se SUMA a la altura, no resta a los botones */
   .gl-bottomnav {
-    height: 64px;
-    padding-bottom: max(env(safe-area-inset-bottom, 0px), 8px);
+    height: calc(64px + var(--gl-safe-bottom));
+    padding-bottom: var(--gl-safe-bottom);
+    padding-left: var(--gl-safe-left);
+    padding-right: var(--gl-safe-right);
   }
   .gl-bottomnav-item {
     min-height: 44px;
@@ -277,8 +295,8 @@
 @media (max-width: 599px) {
   .gl-panel-wrapper--page {
     position: fixed !important;
-    top: 56px !important;  /* debajo del topbar */
-    bottom: 64px !important;
+    top: calc(56px + var(--gl-safe-top)) !important;  /* debajo del topbar */
+    bottom: calc(64px + var(--gl-safe-bottom)) !important;
     left: 0 !important; right: 0 !important;
     height: auto !important;
   }
