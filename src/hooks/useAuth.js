@@ -22,13 +22,11 @@ export function useAuth() {
           const docRef  = doc(db, 'usuarios', firebaseUser.uid)
           const docSnap = await getDoc(docRef)
           const rolReal = docSnap.exists() ? docSnap.data().rol : 'operador'
-          // TEMPORAL: el perfil operador tiene acceso total (igual que admin)
-          // hasta definir su perfil propio. Quitar este mapeo para restringirlo.
-          setRole(rolReal === 'operador' ? 'admin' : rolReal)
+          setRole(rolReal)
         } catch (e) {
           console.error('Error obteniendo rol:', e)
-          // TEMPORAL: ver nota arriba
-          setRole('admin')
+          // Sin permiso de lectura → privilegio mínimo (operador), nunca admin
+          setRole('operador')
         }
       } else {
         setUser(null)
