@@ -169,7 +169,7 @@ function BuscadorCentros({ centros, mapRef, onSelect }) {
   )
 }
 
-function BuscadorCoordenadas({ mapRef }) {
+function BuscadorCoordenadas({ mapRef, mouseCoords }) {
   const [texto, setTexto] = useState('')
   const [error, setError] = useState('')
 
@@ -189,6 +189,11 @@ function BuscadorCoordenadas({ mapRef }) {
     setTexto('')
   }
 
+  // El placeholder muestra la coordenada bajo el cursor en tiempo real.
+  const placeholder = mouseCoords
+    ? `${mouseCoords.lat.toFixed(5)}, ${mouseCoords.lng.toFixed(5)}`
+    : '-45.1234, -72.5678'
+
   return (
     <div style={coords.wrap}>
       <div style={coords.row}>
@@ -196,7 +201,7 @@ function BuscadorCoordenadas({ mapRef }) {
           value={texto}
           onChange={e => { setTexto(e.target.value); setError('') }}
           onKeyDown={e => e.key === 'Enter' && irACoordenadas()}
-          placeholder="-45.1234, -72.5678"
+          placeholder={placeholder}
           style={coords.input}
           aria-label="Buscar por coordenadas"
         />
@@ -254,16 +259,9 @@ function MapInner({ centros, onMapClick, onCentroClick, role, userTeamId }) {
           if (point) { setPopupCentro(c); setPopupPos({ x: point.x, y: point.y }); setPopupTipo('ajeno') }
         }
       }} />
-      {role === 'admin' && <BuscadorCoordenadas mapRef={mapRef} />}
+      {role === 'admin' && <BuscadorCoordenadas mapRef={mapRef} mouseCoords={mouseCoords} />}
       <Leyenda />
       {role !== 'operador' && <StatsPanel centros={centros} />}
-
-      {/* Indicador coordenadas del mouse (solo admin) */}
-      {role === 'admin' && mouseCoords && (
-        <div style={mouseCoordStyle}>
-          📍 {mouseCoords.lat.toFixed(5)}, {mouseCoords.lng.toFixed(5)}
-        </div>
-      )}
 
       {popupCentro && popupPos && popupTipo === 'propio' && (
         <div style={{ position: 'absolute', left: popupPos.x + 16, top: popupPos.y - 30, zIndex: 1000 }}
@@ -314,8 +312,6 @@ const stats = {
   num:   { fontSize: 14, fontWeight: 700, color: 'var(--gl-text-primary)', lineHeight: 1 },
   label: { fontSize: 9, color: 'var(--gl-text-muted)', marginTop: 1 },
 }
-
-const mouseCoordStyle = { position: 'absolute', bottom: 50, right: 56, zIndex: 600, background: 'var(--gl-bg-surface)', border: '1px solid var(--gl-border)', borderRadius: 8, padding: '4px 10px', fontSize: 11, color: 'var(--gl-text-secondary)', fontFamily: "'JetBrains Mono', monospace", boxShadow: 'var(--gl-shadow-sm)', pointerEvents: 'none' }
 
 const coords = {
   wrap:  { position: 'absolute', top: 56, left: 52, zIndex: 600, width: 230, maxWidth: 'calc(100% - 76px)' },
