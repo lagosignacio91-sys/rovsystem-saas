@@ -1,6 +1,6 @@
-import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet'
-import { useState, useRef } from 'react'
-import { Search, X, MapPin } from 'lucide-react'
+import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet'
+import { useState, useRef, useCallback, useEffect } from 'react'
+import { Search, X, MapPin, Maximize2 } from 'lucide-react'
 import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
 import PopupCentro from './PopupCentro'
@@ -35,14 +35,19 @@ function crearIcono(estado, size = 26) {
   const color = meta.dot
   const alerta = estado === 'LOW_STOCK' || estado === 'EQUIPMENT_FAULT'
   const grande = size >= 22
-  const borde  = Math.max(1.5, size * 0.09).toFixed(1)
-  const halo   = (alerta && grande) ? `box-shadow:0 0 0 ${Math.round(size * 0.22)}px ${color}38;animation:markerPulse 2s ease-out infinite;` : `box-shadow:0 1px 5px rgba(0,0,0,0.5);`
+  const borde  = Math.max(1.5, size * 0.085).toFixed(1)
+  // Halo de estado siempre presente (instrumento); pulso solo en alertas grandes.
+  const glow   = `0 0 ${Math.round(size * 0.55)}px ${color}99, 0 0 0 1px ${color}55, 0 2px 6px rgba(0,0,0,0.55)`
+  const pulso  = (alerta && grande) ? `animation:markerPulse 2s ease-out infinite;` : ''
   const iconHtml = grande
-    ? `<svg xmlns="http://www.w3.org/2000/svg" width="${Math.round(size * 0.5)}" height="${Math.round(size * 0.5)}" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">${SVG[estado] ?? SVG.NO_OPERATOR}</svg>`
+    ? `<svg xmlns="http://www.w3.org/2000/svg" width="${Math.round(size * 0.5)}" height="${Math.round(size * 0.5)}" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">${SVG[estado] ?? SVG.NO_OPERATOR}</svg>`
     : ''
+  // Anillo exterior fino + núcleo de color = lectura "instrumentada" a distancia.
   return L.divIcon({
     className: '',
-    html: `<div style="width:${size}px;height:${size}px;background:${color};border:${borde}px solid #fff;border-radius:50%;display:flex;align-items:center;justify-content:center;${halo}">${iconHtml}</div>`,
+    html: `<div style="width:${size}px;height:${size}px;display:flex;align-items:center;justify-content:center;border-radius:50%;color:${color};box-shadow:${glow};${pulso}">
+      <div style="width:${size}px;height:${size}px;background:${color};border:${borde}px solid rgba(255,255,255,0.92);border-radius:50%;display:flex;align-items:center;justify-content:center;">${iconHtml}</div>
+    </div>`,
     iconSize: [size, size],
     iconAnchor: [size / 2, size / 2],
   })
@@ -50,13 +55,50 @@ function crearIcono(estado, size = 26) {
 
 // Icono azul neutro para centros que no pertenecen al team del operador
 function crearIconoAzul(size = 26) {
-  const borde = Math.max(1.5, size * 0.09).toFixed(1)
+  const borde = Math.max(1.5, size * 0.085).toFixed(1)
+  const c = '#3b82f6'
   return L.divIcon({
     className: '',
-    html: `<div style="width:${size}px;height:${size}px;background:#3b82f6;border:${borde}px solid #fff;border-radius:50%;box-shadow:0 1px 5px rgba(0,0,0,0.4)"></div>`,
+    html: `<div style="width:${size}px;height:${size}px;background:${c};border:${borde}px solid rgba(255,255,255,0.9);border-radius:50%;box-shadow:0 0 ${Math.round(size*0.4)}px ${c}88, 0 2px 6px rgba(0,0,0,0.45)"></div>`,
     iconSize: [size, size],
     iconAnchor: [size / 2, size / 2],
   })
+}
+
+// Ajusta vista para mostrar todos los centros
+function fitBoundsCentros(map, centros) {
+  if (!centros.length) { map.setView([-45.5, -72.5], 8); return }
+  const bounds = L.latLngBounds(centros.filter(c => c.lat && c.lng).map(c => [c.lat, c.lng]))
+  if (bounds.isValid()) map.fitBounds(bounds, { padding: [60, 60], maxZoom: 14 })
+}
+
+// Se dispara una sola vez cuando los centros cargan (pueden llegar async desde Firebase)
+function FitOnMount({ centros }) {
+  const map = useMap()
+  const done = useRef(false)
+  useEffect(() => {
+    if (!done.current && centros.length > 0) {
+      done.current = true
+      fitBoundsCentros(map, centros)
+    }
+  }, [centros, map])
+  return null
+}
+
+// Botón que ajusta la vista para mostrar todos los centros
+function FitCentros({ centros }) {
+  const map = useMap()
+  const fit = useCallback(() => fitBoundsCentros(map, centros), [map, centros])
+
+  return (
+    <div className="leaflet-top leaflet-left" style={{ marginTop: 80 }}>
+      <div className="leaflet-control leaflet-bar">
+        <button onClick={fit} title="Ver todos los centros" className="gl-map-fit-btn">
+          <Maximize2 size={14} />
+        </button>
+      </div>
+    </div>
+  )
 }
 
 function MapEvents({ onMapClick, onZoom, onMouseMove }) {
@@ -73,7 +115,7 @@ function Leyenda() {
   return (
     <div style={leyenda.wrap}>
       {open && (
-        <div style={leyenda.box}>
+        <div className="gl-glass" style={leyenda.box}>
           {ESTADOS_ORDEN.map(e => (
             <div key={e} style={leyenda.fila}>
               <span style={{ ...leyenda.punto, background: ESTADO_META[e].dot }} />
@@ -85,6 +127,7 @@ function Leyenda() {
       <button
         onClick={() => setOpen(v => !v)}
         title="Leyenda"
+        className="gl-glass"
         style={leyenda.btn}
         aria-label="Mostrar leyenda"
       >
@@ -100,13 +143,13 @@ function StatsPanel({ centros }) {
   const conteo = ESTADOS_ORDEN.map(e => ({ e, n: centros.filter(c => c.estado === e).length })).filter(x => x.n > 0)
   if (conteo.length === 0) return null
   return (
-    <div style={stats.box}>
+    <div className="gl-glass" style={stats.box}>
       {conteo.map(({ e, n }, i) => (
-        <div key={e} style={{ ...stats.item, borderRight: i < conteo.length - 1 ? '1px solid var(--gl-border)' : 'none' }}>
-          <span style={{ ...stats.punto, background: ESTADO_META[e].dot }} />
+        <div key={e} style={{ ...stats.item, borderRight: i < conteo.length - 1 ? '1px solid var(--gl-glass-border)' : 'none' }}>
+          <span style={{ ...stats.punto, background: ESTADO_META[e].dot, boxShadow: `0 0 7px ${ESTADO_META[e].dot}` }} />
           <div>
-            <div style={stats.num}>{n}</div>
-            <div style={stats.label}>{ESTADO_META[e].label}</div>
+            <div className="gl-mono" style={stats.num}>{n}</div>
+            <div className="gl-label" style={stats.label}>{ESTADO_META[e].label}</div>
           </div>
         </div>
       ))}
@@ -114,14 +157,71 @@ function StatsPanel({ centros }) {
   )
 }
 
-function BuscadorCentros({ centros, mapRef, onSelect }) {
-  const [query, setQuery] = useState('')
-  const [focus, setFocus] = useState(false)
+// Detecta si el texto parece coordenadas (decimal, DMS o con hemisferio)
+function detectarCoordenadas(texto) {
+  const s = texto.trim()
+  if (!s || s.length < 3) return false
+  if (/[°º]/.test(s)) return true
+  if (/[NSEWnsew]/.test(s)) return true
+  return /^[+-]?\d+\.?\d*\s*[,;]\s*[+-]?\d+\.?\d*/.test(s)
+}
 
-  const q = query.trim().toLowerCase()
-  const resultados = q
-    ? centros.filter(c => c.nombre?.toLowerCase().includes(q) || c.empresaNombre?.toLowerCase().includes(q)).slice(0, 6)
+// Icono tipo chincheta/pin para el punto de coordenadas ingresado
+function crearIconoChincheta() {
+  const c = '#22d3ee'
+  return L.divIcon({
+    className: '',
+    html: `<div style="filter:drop-shadow(0 3px 10px ${c}cc);width:28px;height:36px">
+      <svg viewBox="0 0 28 36" xmlns="http://www.w3.org/2000/svg" width="28" height="36">
+        <path d="M14 0C6.27 0 0 6.27 0 14c0 10.5 14 22 14 22S28 24.5 28 14C28 6.27 21.73 0 14 0z" fill="${c}" stroke="rgba(255,255,255,0.9)" stroke-width="1.5"/>
+        <circle cx="14" cy="14" r="5" fill="rgba(0,0,0,0.22)"/>
+        <line x1="14" y1="9" x2="14" y2="19" stroke="white" stroke-width="2" stroke-linecap="round"/>
+        <line x1="9" y1="14" x2="19" y2="14" stroke="white" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+    </div>`,
+    iconSize:    [28, 36],
+    iconAnchor:  [14, 36],
+    popupAnchor: [0, -36],
+  })
+}
+
+function BuscadorUnificado({ centros, mapRef, onSelect, onCoordsPin, role, mouseCoords }) {
+  const [query, setQuery]       = useState('')
+  const [focus, setFocus]       = useState(false)
+  const [coordError, setCoordError] = useState('')
+
+  const esCoord = detectarCoordenadas(query)
+  const q       = query.trim().toLowerCase()
+
+  const resultadosCentros = q && !esCoord
+    ? centros.filter(c =>
+        c.nombre?.toLowerCase().includes(q) ||
+        c.empresaNombre?.toLowerCase().includes(q) ||
+        (c.teamId ?? '').replace(/-/g, ' ').toLowerCase().includes(q)
+      ).slice(0, 7)
     : []
+
+  const showDropdown = focus && (esCoord || resultadosCentros.length > 0 || (q && !esCoord && resultadosCentros.length === 0))
+
+  const coordsFromQuery = () => {
+    const partes = splitCoordenadas(query)
+    if (partes.length < 2) return null
+    const lat = parsearCoordenada(partes[0])
+    const lng = parsearCoordenada(partes[1])
+    if (isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) return null
+    return { lat, lng }
+  }
+
+  const coordsParsed = esCoord ? coordsFromQuery() : null
+
+  const irACoords = () => {
+    setCoordError('')
+    const c = coordsParsed
+    if (!c) { setCoordError('Formato no reconocido'); return }
+    if (mapRef.current) mapRef.current.flyTo([c.lat, c.lng], 14, { duration: 1.2 })
+    onCoordsPin && onCoordsPin(c)
+    setQuery(''); setFocus(false)
+  }
 
   const elegir = (c) => {
     if (mapRef.current && typeof c.lat === 'number' && typeof c.lng === 'number') {
@@ -131,88 +231,119 @@ function BuscadorCentros({ centros, mapRef, onSelect }) {
     onSelect && onSelect(c)
   }
 
+  const limpiar = () => { setQuery(''); setCoordError('') }
+
   return (
     <div style={buscador.box}>
-      <div style={buscador.inputRow}>
-        <Search size={16} color={t.textMuted} style={{ flexShrink: 0 }} />
+      <div className="gl-glass" style={buscador.inputRow}>
+        <Search size={16} color={t.accent} style={{ flexShrink: 0 }} />
         <input
           value={query}
-          onChange={e => setQuery(e.target.value)}
+          onChange={e => { setQuery(e.target.value); setCoordError('') }}
           onFocus={() => setFocus(true)}
-          onBlur={() => setTimeout(() => setFocus(false), 150)}
-          placeholder="Buscar centro..."
+          onBlur={() => setTimeout(() => setFocus(false), 180)}
+          onKeyDown={e => {
+            if (e.key === 'Enter') { esCoord ? irACoords() : resultadosCentros[0] && elegir(resultadosCentros[0]) }
+            if (e.key === 'Escape') limpiar()
+          }}
+          placeholder=""
           style={buscador.input}
         />
-        {query && <button className="gl-icon-btn" style={{ padding: 2 }} onMouseDown={() => setQuery('')} aria-label="Limpiar"><X size={14} /></button>}
+        {query && (
+          <button className="gl-icon-btn" style={{ padding: 2 }} onMouseDown={limpiar} aria-label="Limpiar"><X size={14} /></button>
+        )}
       </div>
-      {focus && resultados.length > 0 && (
-        <div style={buscador.lista}>
-          {resultados.map(c => {
+
+      {/* Coords del cursor en tiempo real (solo admin, solo cuando no hay texto) */}
+      {!query && mouseCoords && role === 'admin' && (
+        <div className="gl-mono" style={buscador.hintCoords}>
+          {mouseCoords.lat.toFixed(5)}, {mouseCoords.lng.toFixed(5)}
+        </div>
+      )}
+
+      {showDropdown && (
+        <div className="gl-glass" style={buscador.lista}>
+          {/* Opción ir a coordenadas */}
+          {esCoord && role === 'admin' && (
+            <button className="gl-search-item" onMouseDown={irACoords} style={buscador.item}>
+              <MapPin size={14} color={t.accent} style={{ flexShrink: 0 }} />
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ ...buscador.itemNombre, color: t.accent }}>
+                  {coordsParsed
+                    ? `Ir a ${coordsParsed.lat.toFixed(5)}, ${coordsParsed.lng.toFixed(5)}`
+                    : 'Ir a coordenadas'}
+                </span>
+                <span style={buscador.itemEmpresa}>Aparece un pin · haz clic en él para agregar un centro</span>
+              </span>
+            </button>
+          )}
+          {coordError && <div style={{ ...buscador.vacio, color: 'var(--gl-fault)' }}>{coordError}</div>}
+
+          {/* Resultados de centros */}
+          {resultadosCentros.map(c => {
             const meta = ESTADO_META[c.estado] ?? ESTADO_META.NO_OPERATOR
+            const teamLabel = c.teamId
+              ? c.teamId.replace('team-', 'Team ').replace(/^Team (\d)$/, 'Team 0$1')
+              : null
             return (
               <button key={c.id} className="gl-search-item" onMouseDown={() => elegir(c)} style={buscador.item}>
-                <span style={{ width: 8, height: 8, borderRadius: '50%', background: meta.dot, flexShrink: 0 }} />
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: meta.dot, flexShrink: 0, boxShadow: `0 0 6px ${meta.dot}` }} />
                 <span style={{ flex: 1, minWidth: 0 }}>
                   <span style={buscador.itemNombre}>{c.nombre}</span>
-                  <span style={buscador.itemEmpresa}>{c.empresaNombre ?? 'Sin empresa'}</span>
+                  <span style={buscador.itemEmpresa}>
+                    {c.empresaNombre ?? 'Sin empresa'}{teamLabel ? ` · ${teamLabel}` : ''}
+                  </span>
                 </span>
-                <MapPin size={14} color={t.textMuted} style={{ flexShrink: 0 }} />
+                <MapPin size={13} color={t.textMuted} style={{ flexShrink: 0 }} />
               </button>
             )
           })}
+
+          {q && !esCoord && resultadosCentros.length === 0 && (
+            <div style={buscador.vacio}>Sin resultados para "{query}"</div>
+          )}
         </div>
       )}
-      {focus && q && resultados.length === 0 && (
-        <div style={buscador.lista}><div style={buscador.vacio}>Sin resultados para "{query}"</div></div>
-      )}
     </div>
   )
 }
 
-function BuscadorCoordenadas({ mapRef, mouseCoords }) {
-  const [texto, setTexto] = useState('')
-  const [error, setError] = useState('')
-
-  const irACoordenadas = () => {
-    setError('')
-    const partes = texto.replace(/[,;]+/g, ' ').trim().split(/\s+/)
-    if (partes.length < 2) { setError('Ingresa lat y lng separados por coma'); return }
-    const lat = parseFloat(partes[0])
-    const lng = parseFloat(partes[1])
-    if (isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
-      setError('Coordenadas inválidas')
-      return
-    }
-    if (mapRef.current) {
-      mapRef.current.flyTo([lat, lng], 14, { duration: 1.2 })
-    }
-    setTexto('')
+// Parsea un token de coordenada en cualquier formato:
+//   Decimal:  -45.1234  |  45.1234S
+//   DMS:      45°07'24.4"S  |  45° 7' 24" S  |  45 7 24 S
+function parsearCoordenada(token) {
+  const s = token.trim()
+  // DMS con símbolos: 45°07'24.4"S  o  45°7'24"  o  45 7 24.4S
+  const dms = s.match(/^(\d+)[°º\s]\s*(\d+)[''′\s]\s*([\d.]+)["""″\s]?\s*([NSEWnsew])?$/)
+  if (dms) {
+    const val = parseFloat(dms[1]) + parseFloat(dms[2]) / 60 + parseFloat(dms[3]) / 3600
+    const h = (dms[4] || '').toUpperCase()
+    return (h === 'S' || h === 'W') ? -val : val
   }
-
-  // El placeholder muestra la coordenada bajo el cursor en tiempo real.
-  const placeholder = mouseCoords
-    ? `${mouseCoords.lat.toFixed(5)}, ${mouseCoords.lng.toFixed(5)}`
-    : '-45.1234, -72.5678'
-
-  return (
-    <div style={coords.wrap}>
-      <div style={coords.row}>
-        <input
-          value={texto}
-          onChange={e => { setTexto(e.target.value); setError('') }}
-          onKeyDown={e => e.key === 'Enter' && irACoordenadas()}
-          placeholder={placeholder}
-          style={coords.input}
-          aria-label="Buscar por coordenadas"
-        />
-        <button onClick={irACoordenadas} style={coords.btn} title="Ir a coordenadas">
-          <MapPin size={15} />
-        </button>
-      </div>
-      {error && <div style={coords.error}>{error}</div>}
-    </div>
-  )
+  // Decimal con o sin hemisferio: -45.1234 | 45.1234S | 45,1234S (coma decimal)
+  const dec = s.replace(',', '.').match(/^([+-]?[\d.]+)\s*([NSEWnsew])?$/)
+  if (dec) {
+    const val = Math.abs(parseFloat(dec[1]))
+    const h = (dec[2] || '').toUpperCase()
+    const neg = parseFloat(dec[1]) < 0 || h === 'S' || h === 'W'
+    return neg ? -val : val
+  }
+  return NaN
 }
+
+// Divide el texto en dos tokens (lat, lng) tolerando coma, punto y coma,
+// o el límite natural N/S → E/W en formato DMS sin coma.
+function splitCoordenadas(texto) {
+  // Si hay coma o punto y coma: split ahí
+  if (/[,;]/.test(texto)) return texto.split(/[,;]/).map(s => s.trim())
+  // DMS sin coma: "45°07'24"S 72°34'04"W" — dividir después del primer hemisferio N/S
+  const dmsMatch = texto.match(/^(.+?[NSns])\s+(.+)$/)
+  if (dmsMatch) return [dmsMatch[1].trim(), dmsMatch[2].trim()]
+  // Fallback: primer y segundo token separados por espacio
+  const partes = texto.trim().split(/\s+/)
+  return partes.length >= 2 ? [partes[0], partes.slice(1).join(' ')] : []
+}
+
 
 function MapInner({ centros, onMapClick, onCentroClick, role, userTeamId }) {
   const [popupCentro, setPopupCentro] = useState(null)
@@ -220,6 +351,7 @@ function MapInner({ centros, onMapClick, onCentroClick, role, userTeamId }) {
   const [popupTipo, setPopupTipo]     = useState('propio') // 'propio' | 'ajeno'
   const [mouseCoords, setMouseCoords] = useState(null)
   const [zoom, setZoom]               = useState(8)
+  const [coordPin, setCoordPin]       = useState(null) // { lat, lng } pin temporal de coordenadas
   const mapRef = useRef(null)
   const size = tamPorZoom(zoom)
 
@@ -235,6 +367,7 @@ function MapInner({ centros, onMapClick, onCentroClick, role, userTeamId }) {
   }
   const handleMapClick = (latlng) => {
     setPopupCentro(null); setPopupPos(null)
+    setCoordPin(null)
     onMapClick && onMapClick(latlng)
   }
   const cerrarPopup = () => { setPopupCentro(null); setPopupPos(null) }
@@ -245,26 +378,49 @@ function MapInner({ centros, onMapClick, onCentroClick, role, userTeamId }) {
         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution='&copy; OpenStreetMap contributors' maxZoom={19} />
         <TileLayer url="https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png" attribution='&copy; OpenSeaMap' maxZoom={19} />
         <MapEvents onMapClick={handleMapClick} onZoom={setZoom} onMouseMove={role === 'admin' ? setMouseCoords : null} />
+        <FitOnMount centros={centros} />
+        <FitCentros centros={centros} />
         {centros.map(c => (
           <Marker key={c.id} position={[c.lat, c.lng]}
             icon={esAjeno(c) ? crearIconoAzul(size) : crearIcono(c.estado, size)}
             eventHandlers={{ click: (e) => handleMarkerClick(e, c) }} />
         ))}
+        {/* Pin temporal de coordenadas: clic para agregar centro ahí exactamente */}
+        {coordPin && role === 'admin' && (
+          <Marker
+            position={[coordPin.lat, coordPin.lng]}
+            icon={crearIconoChincheta()}
+            eventHandlers={{
+              click: (e) => {
+                L.DomEvent.stopPropagation(e)
+                const ll = { lat: coordPin.lat, lng: coordPin.lng }
+                setCoordPin(null)
+                onMapClick && onMapClick(ll)
+              }
+            }}
+          />
+        )}
       </MapContainer>
 
-      <BuscadorCentros centros={centros} mapRef={mapRef} onSelect={(c) => {
-        if (!esAjeno(c)) onCentroClick && onCentroClick(c)
-        else {
-          const point = mapRef.current?.latLngToContainerPoint([c.lat, c.lng])
-          if (point) { setPopupCentro(c); setPopupPos({ x: point.x, y: point.y }); setPopupTipo('ajeno') }
-        }
-      }} />
-      {role === 'admin' && <BuscadorCoordenadas mapRef={mapRef} mouseCoords={mouseCoords} />}
+      <BuscadorUnificado
+        centros={centros}
+        mapRef={mapRef}
+        mouseCoords={mouseCoords}
+        role={role}
+        onCoordsPin={setCoordPin}
+        onSelect={(c) => {
+          if (!esAjeno(c)) onCentroClick && onCentroClick(c)
+          else {
+            const point = mapRef.current?.latLngToContainerPoint([c.lat, c.lng])
+            if (point) { setPopupCentro(c); setPopupPos({ x: point.x, y: point.y }); setPopupTipo('ajeno') }
+          }
+        }}
+      />
       <Leyenda />
       {role !== 'operador' && <StatsPanel centros={centros} />}
 
       {popupCentro && popupPos && popupTipo === 'propio' && (
-        <div style={{ position: 'absolute', left: popupPos.x + 16, top: popupPos.y - 30, zIndex: 1000 }}
+        <div style={{ position: 'absolute', left: Math.min(Math.max(8, popupPos.x + 16), window.innerWidth - 240), top: Math.max(8, popupPos.y - 30), zIndex: 1000 }}
           onClick={e => e.stopPropagation()} onMouseDown={e => e.stopPropagation()}>
           <PopupCentro centro={popupCentro}
             onAbrir={(c) => { cerrarPopup(); onCentroClick && onCentroClick(c) }}
@@ -273,7 +429,7 @@ function MapInner({ centros, onMapClick, onCentroClick, role, userTeamId }) {
       )}
 
       {popupCentro && popupPos && popupTipo === 'ajeno' && (
-        <div style={{ position: 'absolute', left: Math.min(popupPos.x + 16, window.innerWidth - 260), top: popupPos.y - 30, zIndex: 1000 }}
+        <div style={{ position: 'absolute', left: Math.min(Math.max(8, popupPos.x + 16), window.innerWidth - 240), top: Math.max(8, popupPos.y - 30), zIndex: 1000 }}
           onClick={e => e.stopPropagation()} onMouseDown={e => e.stopPropagation()}>
           <PopupCentroContactos centro={popupCentro} onCerrar={cerrarPopup} />
         </div>
@@ -287,10 +443,11 @@ export default function MapView({ centros = [], onMapClick, onCentroClick, role,
 }
 
 const buscador = {
-  box:        { position: 'absolute', top: 12, left: 52, zIndex: 600, width: 250, maxWidth: 'calc(100% - 76px)' },
-  inputRow:   { display: 'flex', alignItems: 'center', gap: 8, background: 'var(--gl-bg-surface)', border: '1px solid var(--gl-border)', borderRadius: 'var(--gl-radius-md)', padding: '8px 11px', boxShadow: 'var(--gl-shadow-md)' },
+  box:        { position: 'absolute', top: 10, left: 48, zIndex: 600, width: 'min(300px, calc(100% - 58px))' },
+  inputRow:   { display: 'flex', alignItems: 'center', gap: 8, borderRadius: 'var(--gl-radius-md)', padding: '8px 11px', boxShadow: 'var(--gl-shadow-md)' },
   input:      { flex: 1, background: 'transparent', border: 'none', outline: 'none', color: 'var(--gl-text-primary)', fontSize: 'var(--gl-text-sm)', minWidth: 0 },
-  lista:      { marginTop: 6, background: 'var(--gl-bg-surface)', border: '1px solid var(--gl-border)', borderRadius: 'var(--gl-radius-md)', boxShadow: 'var(--gl-shadow-md)', overflow: 'hidden' },
+  hintCoords: { fontSize: 10, color: 'var(--gl-text-muted)', padding: '3px 4px', opacity: 0.75, letterSpacing: '-0.01em' },
+  lista:      { marginTop: 6, borderRadius: 'var(--gl-radius-md)', boxShadow: 'var(--gl-shadow-md)', overflow: 'hidden' },
   item:       { display: 'flex', alignItems: 'center', gap: 9, width: '100%', textAlign: 'left', background: 'transparent', border: 'none', cursor: 'pointer', padding: '9px 12px' },
   itemNombre: { display: 'block', fontSize: 'var(--gl-text-sm)', fontWeight: 600, color: 'var(--gl-text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
   itemEmpresa:{ display: 'block', fontSize: 10, color: 'var(--gl-text-muted)' },
@@ -299,24 +456,17 @@ const buscador = {
 
 const leyenda = {
   wrap:  { position: 'absolute', bottom: 50, right: 12, zIndex: 600, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 },
-  box:   { background: 'var(--gl-bg-surface)', border: '1px solid var(--gl-border)', borderRadius: 'var(--gl-radius-md)', padding: '8px 11px', display: 'flex', flexDirection: 'column', gap: 5, boxShadow: 'var(--gl-shadow-md)' },
+  box:   { borderRadius: 'var(--gl-radius-md)', padding: '8px 11px', display: 'flex', flexDirection: 'column', gap: 5, boxShadow: 'var(--gl-shadow-md)' },
   fila:  { display: 'flex', alignItems: 'center', gap: 7 },
   punto: { width: 8, height: 8, borderRadius: '50%', flexShrink: 0 },
   label: { fontSize: 11, color: 'var(--gl-text-secondary)', whiteSpace: 'nowrap' },
-  btn:   { display: 'flex', alignItems: 'center', gap: 4, background: 'var(--gl-bg-surface)', border: '1px solid var(--gl-border)', borderRadius: 'var(--gl-radius-md)', padding: '6px 9px', cursor: 'pointer', boxShadow: 'var(--gl-shadow-sm)' },
+  btn:   { display: 'flex', alignItems: 'center', gap: 4, borderRadius: 'var(--gl-radius-md)', padding: '6px 9px', cursor: 'pointer', boxShadow: 'var(--gl-shadow-sm)' },
 }
 const stats = {
-  box:   { position: 'absolute', bottom: 14, left: 14, zIndex: 600, background: 'var(--gl-bg-surface)', border: '1px solid var(--gl-border)', borderRadius: 'var(--gl-radius-md)', padding: '6px 4px 6px 10px', display: 'flex', gap: 0, boxShadow: 'var(--gl-shadow-sm)' },
-  item:  { display: 'flex', alignItems: 'center', gap: 6, padding: '0 10px' },
+  box:   { position: 'absolute', bottom: 14, left: 14, zIndex: 600, borderRadius: 'var(--gl-radius-md)', padding: '7px 4px 7px 10px', display: 'flex', gap: 0, boxShadow: 'var(--gl-shadow-md)' },
+  item:  { display: 'flex', alignItems: 'center', gap: 7, padding: '0 12px' },
   punto: { width: 8, height: 8, borderRadius: '50%', flexShrink: 0 },
-  num:   { fontSize: 14, fontWeight: 700, color: 'var(--gl-text-primary)', lineHeight: 1 },
-  label: { fontSize: 9, color: 'var(--gl-text-muted)', marginTop: 1 },
+  num:   { fontSize: 17, fontWeight: 700, color: 'var(--gl-text-primary)', lineHeight: 1 },
+  label: { fontSize: 9, marginTop: 2 },
 }
 
-const coords = {
-  wrap:  { position: 'absolute', top: 56, left: 52, zIndex: 600, width: 230, maxWidth: 'calc(100% - 76px)' },
-  row:   { display: 'flex', gap: 6 },
-  input: { flex: 1, background: 'var(--gl-bg-surface)', border: '1px solid var(--gl-border)', borderRadius: 'var(--gl-radius-md)', padding: '7px 10px', fontSize: 13, color: 'var(--gl-text-primary)', outline: 'none', boxShadow: 'var(--gl-shadow-md)', fontFamily: 'inherit', minWidth: 0 },
-  btn:   { background: 'var(--gl-brand)', border: 'none', borderRadius: 'var(--gl-radius-md)', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 10px', boxShadow: 'var(--gl-shadow-md)', flexShrink: 0 },
-  error: { marginTop: 4, fontSize: 11, color: 'var(--gl-fault)', background: 'var(--gl-bg-surface)', borderRadius: 6, padding: '3px 8px', boxShadow: 'var(--gl-shadow-sm)' },
-}

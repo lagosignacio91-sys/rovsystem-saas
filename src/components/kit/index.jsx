@@ -6,6 +6,7 @@
 import { useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { X, Loader2 } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { t, ESTADO_META } from '../../theme/tokens'
 
 /* ---------- Button ---------- */
@@ -81,9 +82,10 @@ export function EstadoBadge({ estado, style }) {
     <span style={{
       display: 'inline-flex', alignItems: 'center', gap: 6,
       background: meta.tint, color: meta.color, fontSize: t.textXs, fontWeight: 600,
-      padding: '3px 10px', borderRadius: t.radiusFull, lineHeight: 1.5, ...style,
+      padding: '3px 10px', borderRadius: t.radiusFull, lineHeight: 1.5,
+      border: `1px solid ${meta.color}33`, letterSpacing: '0.01em', ...style,
     }}>
-      <span style={{ width: 7, height: 7, borderRadius: '50%', background: meta.color }} />
+      <span style={{ width: 7, height: 7, borderRadius: '50%', background: meta.color, boxShadow: `0 0 6px ${meta.color}` }} />
       {meta.label}
     </span>
   )
@@ -103,40 +105,48 @@ export function Modal({ open = true, onClose, title, children, footer, maxWidth 
     return () => window.removeEventListener('keydown', onKey)
   }, [open, onClose])
 
-  if (!open) return null
-
   return createPortal(
-    <div
-      onMouseDown={(e) => { if (e.target === e.currentTarget) onClose?.() }}
-      style={{
-        position: 'fixed', inset: 0, background: t.scrim, zIndex: 9999,
-        display: 'flex', alignItems: 'center', justifyContent: 'center', padding: t.space4,
-        animation: 'fadeIn 0.18s ease-out',
-      }}
-    >
-      <div
-        role="dialog" aria-modal="true" aria-label={title}
-        className="gl-card"
-        style={{
-          width: '100%', maxWidth, boxShadow: t.shadowLg, overflow: 'hidden',
-          animation: 'modalIn 0.22s cubic-bezier(0.16,1,0.3,1)',
-        }}
-      >
-        {title && (
-          <div style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            padding: `${t.space4} ${t.space5}`, borderBottom: `1px solid ${t.border}`,
-          }}>
-            <h3 style={{ margin: 0, fontSize: t.textLg, fontWeight: 700, color: t.textPrimary }}>{title}</h3>
-            <IconButton icon={X} label="Cerrar" onClick={onClose} />
-          </div>
-        )}
-        <div style={{ padding: t.space5 }}>{children}</div>
-        {footer && (
-          <div style={{ display: 'flex', gap: t.space3, padding: `0 ${t.space5} ${t.space5}` }}>{footer}</div>
-        )}
-      </div>
-    </div>,
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          key="modal-scrim"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.18 }}
+          onMouseDown={(e) => { if (e.target === e.currentTarget) onClose?.() }}
+          style={{
+            position: 'fixed', inset: 0, background: t.scrim, zIndex: 9999,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: t.space4,
+          }}
+        >
+          <motion.div
+            key="modal-box"
+            initial={{ opacity: 0, y: 16, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 10, scale: 0.97 }}
+            transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+            role="dialog" aria-modal="true" aria-label={title}
+            className="gl-card gl-glass"
+            style={{ width: '100%', maxWidth, boxShadow: t.shadowLg, overflow: 'hidden', borderRadius: t.radiusLg }}
+          >
+            {title && (
+              <div style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: `${t.space4} ${t.space5}`, borderBottom: `1px solid ${t.border}`,
+              }}>
+                <h3 style={{ margin: 0, fontSize: t.textLg, fontWeight: 700, color: t.textPrimary }}>{title}</h3>
+                <IconButton icon={X} label="Cerrar" onClick={onClose} />
+              </div>
+            )}
+            <div style={{ padding: t.space5 }}>{children}</div>
+            {footer && (
+              <div style={{ display: 'flex', gap: t.space3, padding: `0 ${t.space5} ${t.space5}` }}>{footer}</div>
+            )}
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>,
     document.body
   )
 }

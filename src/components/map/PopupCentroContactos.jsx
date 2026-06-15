@@ -41,11 +41,11 @@ export default function PopupCentroContactos({ centro, onCerrar }) {
   const tieneOps = ops.op1?.nombre || ops.op2?.nombre
 
   return (
-    <div style={s.card}>
+    <div className="gl-glass" style={s.card}>
       <div style={s.header}>
         <div>
           <div style={s.nombre}>{centro.nombre}</div>
-          <div style={s.coords}>
+          <div className="gl-mono" style={s.coords}>
             📍 {Number(centro.lat).toFixed(5)}, {Number(centro.lng).toFixed(5)}
           </div>
         </div>
@@ -69,7 +69,7 @@ export default function PopupCentroContactos({ centro, onCerrar }) {
 }
 
 const s = {
-  card:        { background: t.bgSurface, border: `1px solid ${t.border}`, borderRadius: 14, width: 230, boxShadow: t.shadowLg, overflow: 'hidden' },
+  card:        { borderRadius: 14, width: 230, boxShadow: t.shadowLg, overflow: 'hidden' },
   header:      { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, padding: '12px 12px 10px' },
   nombre:      { fontSize: 13, fontWeight: 700, color: t.textPrimary, lineHeight: 1.2 },
   coords:      { fontSize: 10, color: t.textMuted, marginTop: 3, fontFamily: "'JetBrains Mono', monospace" },

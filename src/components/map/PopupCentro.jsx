@@ -7,7 +7,7 @@ export default function PopupCentro({ centro, onAbrir, onCerrar }) {
   const { fallas, solicitudes } = useResumenCentro(centro.id)
 
   return (
-    <div style={s.wrapper} onClick={e => e.stopPropagation()} onMouseDown={e => e.stopPropagation()}>
+    <div className="gl-glass" style={s.wrapper} onClick={e => e.stopPropagation()} onMouseDown={e => e.stopPropagation()}>
       <div style={s.header}>
         <div style={{ minWidth: 0 }}>
           <div style={s.nombre}>{centro.nombre}</div>
@@ -52,7 +52,7 @@ export default function PopupCentro({ centro, onAbrir, onCerrar }) {
 }
 
 const s = {
-  wrapper:       { minWidth: 240, maxWidth: 290, background: t.bgElevated, border: `1px solid ${t.border}`, borderRadius: t.radiusLg, padding: 13, boxShadow: t.shadowLg },
+  wrapper:       { minWidth: 240, maxWidth: 290, borderRadius: t.radiusLg, padding: 13, boxShadow: t.shadowLg },
   header:        { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10, gap: 8 },
   nombre:        { color: t.textPrimary, fontSize: t.textSm, fontWeight: 700 },
   seccionTitulo: { display: 'flex', alignItems: 'center', gap: 5, color: t.textMuted, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 4 },

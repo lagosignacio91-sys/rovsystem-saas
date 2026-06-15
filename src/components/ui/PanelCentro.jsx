@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { db } from '../../lib/firebase'
-import { doc, onSnapshot, collection, getDocs } from 'firebase/firestore'
+import { doc, onSnapshot } from 'firebase/firestore'
 import { Trash2, X, Gamepad2, Users } from 'lucide-react'
 import { t } from '../../theme/tokens'
 import { EstadoBadge, Modal, Button } from '../kit'
@@ -41,12 +42,13 @@ export default function PanelCentro({ centro, onCerrar, onEliminar, sincronizarE
 
   const toggleExpanded = useCallback(() => setExpanded(v => !v), [])
 
-  // Cargar teams solo si es admin
+  // Teams fijos Team 01–10
   useEffect(() => {
     if (role !== 'admin') return
-    getDocs(collection(db, 'usuarios')).then(snap => {
-      setTeams(snap.docs.map(d => ({ uid: d.id, ...d.data() })).filter(u => u.rol === 'operador'))
-    })
+    setTeams(Array.from({ length: 10 }, (_, i) => ({
+      uid:    `team-${String(i + 1).padStart(2, '0')}`,
+      nombre: `Team ${String(i + 1).padStart(2, '0')}`,
+    })))
   }, [role])
 
   const handleAsignarTeam = async (teamId) => {
@@ -86,7 +88,7 @@ export default function PanelCentro({ centro, onCerrar, onEliminar, sincronizarE
 
       <div style={styles.header} onClick={(e) => { if (e.currentTarget === e.target) toggleExpanded() }}>
         <div style={{ minWidth: 0, flex: 1, cursor: 'pointer' }} onClick={toggleExpanded}>
-          <h2 style={styles.nombre}>{centro.nombre}</h2>
+          <h2 className="gl-display" style={styles.nombre}>{centro.nombre}</h2>
           <div style={{ marginTop: 4 }}><EstadoBadge estado={estadoActual} /></div>
         </div>
         <div style={{ display: 'flex', gap: 4, flexShrink: 0, alignItems: 'center' }}>
@@ -137,15 +139,24 @@ export default function PanelCentro({ centro, onCerrar, onEliminar, sincronizarE
             <button key={id} className="gl-tab-btn" onClick={() => { setTabActiva(id); setExpanded(true) }}
               style={{ ...styles.tab, color: active ? t.brandSoft : t.textMuted, borderBottom: `2px solid ${active ? t.brand : 'transparent'}` }}>
               {Icon && <Icon size={17} strokeWidth={2} />}
-              <span className="gl-tab-label" style={{ fontSize: 9 }}>{label}</span>
+              <span className="gl-tab-label" style={{ fontSize: 9, letterSpacing: '0.04em', fontWeight: 600 }}>{label}</span>
             </button>
           )
         })}
       </div>
 
-      <div style={styles.contenido}>
-        {TAB_COMPONENTES[tabActiva]?.({ centro, role: rolEfectivo, uid, sincronizarEstado })}
-      </div>
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={tabActiva}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -6 }}
+          transition={{ duration: 0.18, ease: [0.4, 0, 0.2, 1] }}
+          style={styles.contenido}
+        >
+          {TAB_COMPONENTES[tabActiva]?.({ centro, role: rolEfectivo, uid, sincronizarEstado })}
+        </motion.div>
+      </AnimatePresence>
 
       {aEliminar && (
         <Modal open title="Eliminar centro" onClose={() => setAEliminar(false)} maxWidth={340}

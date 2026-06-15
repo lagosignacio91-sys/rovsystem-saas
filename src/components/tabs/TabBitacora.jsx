@@ -113,8 +113,8 @@ export default function TabBitacora({ centro, role }) {
   const enviarWhatsApp = async () => {
     await guardar()
     const texto = generarTexto({ centro, datos, rov })
-    const url   = `https://wa.me/?text=${encodeURIComponent(texto)}`
-    window.open(url, '_blank', 'noopener')
+    const url   = `whatsapp://send?text=${encodeURIComponent(texto)}`
+    window.location.href = url
   }
 
   if (cargando) return <p style={{ color: 'var(--gl-text-muted)', fontSize: 13 }}>Cargando...</p>

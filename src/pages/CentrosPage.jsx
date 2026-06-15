@@ -1,9 +1,12 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useOutletContext } from 'react-router-dom'
-import { Search, MapPin, ChevronRight, Building2 } from 'lucide-react'
+import { Search, MapPin, ChevronRight, Building2, Phone, Mail, Users } from 'lucide-react'
 import { t, ESTADO_META } from '../theme/tokens'
 import { logoEmpresa } from '../lib/empresaLogos'
 import { EstadoBadge } from '../components/kit'
+import { useOperadoresGlobal } from '../hooks/useOperadoresGlobal'
+import { db } from '../lib/firebase'
+import { collection, getDocs } from 'firebase/firestore'
 import PanelCentro from '../components/ui/PanelCentro'
 
 const ESTADOS_FILTRO = [
@@ -16,14 +19,26 @@ const ESTADOS_FILTRO = [
 ]
 
 export default function CentrosPage() {
-  const { centros, eliminarCentro, sincronizarEstado, role, empresaActiva } = useOutletContext()
+  const { centros, eliminarCentro, sincronizarEstado, actualizarCentro, role, uid, empresaActiva } = useOutletContext()
   const [busca, setBusca]               = useState('')
   const [filtroEstado, setFiltroEstado] = useState(null)
   const [centroActivo, setCentroActivo] = useState(null)
+  const [teams, setTeams]               = useState([])
+
+  useEffect(() => {
+    getDocs(collection(db, 'usuarios')).then(snap => {
+      setTeams(snap.docs.map(d => ({ uid: d.id, ...d.data() })).filter(u => u.rol === 'operador'))
+    })
+  }, [])
 
   const base = empresaActiva ? centros.filter(c => c.empresaId === empresaActiva.id) : centros
+  const { operadores } = useOperadoresGlobal(base)
 
-  // Conteos para los chips (siempre sobre la base sin filtro de estado)
+  const opFaenaPorCentro = (centroId) =>
+    operadores.find(o => o.centroId === centroId && o.estado === 'faena') ?? null
+
+  const teamNombre = (teamId) => teams.find(t => t.uid === teamId)?.nombre ?? null
+
   const conteos = ESTADOS_FILTRO.slice(1).reduce((acc, f) => {
     acc[f.key] = base.filter(c => c.estado === f.key).length
     return acc
@@ -36,14 +51,21 @@ export default function CentrosPage() {
   }
   lista = [...lista].sort((a, b) => (a.nombre ?? '').localeCompare(b.nombre ?? ''))
 
+  // Agrupar por empresa
+  const porEmpresa = lista.reduce((acc, c) => {
+    const emp = c.empresaNombre ?? 'Sin empresa'
+    ;(acc[emp] = acc[emp] ?? []).push(c)
+    return acc
+  }, {})
+
   const centroVivo = centroActivo ? centros.find(c => c.id === centroActivo.id) ?? centroActivo : null
   const handleEliminar = async (id) => { await eliminarCentro(id); setCentroActivo(null) }
 
   return (
     <div style={{ height: '100%', overflowY: 'auto', padding: t.space5 }}>
-      <div style={{ maxWidth: 760, margin: '0 auto' }}>
+      <div style={{ maxWidth: 820, margin: '0 auto' }}>
 
-        {/* Stats / filtro por estado */}
+        {/* Filtros por estado */}
         <div className="gl-stats-row">
           {ESTADOS_FILTRO.map(f => {
             const active  = filtroEstado === f.key
@@ -53,8 +75,8 @@ export default function CentrosPage() {
               <button key={String(f.key)} className={`gl-stat-chip${active ? ' active' : ''}`}
                 onClick={() => setFiltroEstado(active ? null : f.key)}
                 style={active ? { color: f.dot ?? t.brand, borderColor: f.dot ?? t.brand, background: f.dot ? `${f.dot}18` : t.brandTint } : {}}>
-                {f.dot && <span className="gl-stat-dot" style={{ background: f.dot }} />}
-                {f.label} <span style={{ opacity: 0.65 }}>{count}</span>
+                {f.dot && <span className="gl-stat-dot" style={{ background: f.dot, boxShadow: `0 0 6px ${f.dot}` }} />}
+                {f.label} <span className="gl-mono" style={{ opacity: 0.7 }}>{count}</span>
               </button>
             )
           })}
@@ -65,7 +87,7 @@ export default function CentrosPage() {
           <Search size={16} color={t.textMuted} />
           <input value={busca} onChange={e => setBusca(e.target.value)} placeholder="Buscar centro o empresa..."
             style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: t.textPrimary, fontSize: t.textSm }} />
-          <span style={{ fontSize: t.textXs, color: t.textMuted }}>{lista.length}</span>
+          <span className="gl-mono" style={{ fontSize: t.textXs, color: t.textMuted }}>{lista.length}</span>
         </div>
 
         {lista.length === 0 && (
@@ -74,36 +96,78 @@ export default function CentrosPage() {
           </div>
         )}
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {lista.map(c => {
-            const meta = ESTADO_META[c.estado] ?? ESTADO_META.NO_OPERATOR
-            const logo = logoEmpresa(c.empresaNombre)
-            return (
-              <button key={c.id} className="gl-list-row" onClick={() => setCentroActivo(c)}
-                style={{ borderLeft: `3px solid ${meta.dot}` }}>
-                <MapPin size={18} color={t.textMuted} style={{ flexShrink: 0 }} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: t.textSm, fontWeight: 600, color: t.textPrimary }}>{c.nombre}</div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3 }}>
-                    {logo && (
-                      <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 56, height: 20, background: '#fff', borderRadius: 4, padding: '2px 5px', flexShrink: 0 }}>
-                        <img src={logo.src} alt={logo.alt} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
-                      </span>
-                    )}
-                    <span style={{ fontSize: t.textXs, color: t.textMuted }}>{c.empresaNombre ?? 'Sin empresa'}</span>
-                  </div>
-                </div>
-                <EstadoBadge estado={c.estado} />
-                <ChevronRight size={16} color={t.textMuted} style={{ flexShrink: 0 }} />
-              </button>
-            )
-          })}
-        </div>
+        {/* Grupos por empresa */}
+        {Object.entries(porEmpresa).map(([empNombre, centrosGrupo]) => {
+          const logo = logoEmpresa(empNombre)
+          return (
+            <div key={empNombre} style={{ marginBottom: 20 }}>
+              {/* Encabezado empresa */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, paddingBottom: 6, borderBottom: `1px solid ${t.border}` }}>
+                {logo
+                  ? <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 64, height: 22, background: '#fff', borderRadius: 4, padding: '2px 6px', flexShrink: 0 }}>
+                      <img src={logo.src} alt={logo.alt} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                    </span>
+                  : <Building2 size={14} color={t.textMuted} />}
+                <span style={{ fontSize: t.textSm, fontWeight: 600, color: t.textPrimary }}>{empNombre}</span>
+                <span style={{ fontSize: t.textXs, color: t.textMuted }}>({centrosGrupo.length})</span>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {centrosGrupo.map(c => {
+                  const meta    = ESTADO_META[c.estado] ?? ESTADO_META.NO_OPERATOR
+                  const opFaena = opFaenaPorCentro(c.id)
+                  const tnombre = teamNombre(c.teamId)
+                  return (
+                    <button key={c.id} className="gl-list-row" onClick={() => setCentroActivo(c)}
+                      style={{ borderLeft: `3px solid ${meta.dot}`, flexDirection: 'column', alignItems: 'stretch', gap: 0 }}>
+                      {/* Fila principal */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <MapPin size={16} color={t.textMuted} style={{ flexShrink: 0 }} />
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: t.textSm, fontWeight: 600, color: t.textPrimary }}>{c.nombre}</div>
+                        </div>
+                        <EstadoBadge estado={c.estado} />
+                        <ChevronRight size={16} color={t.textMuted} style={{ flexShrink: 0 }} />
+                      </div>
+                      {/* Fila secundaria: team + op en faena */}
+                      {(tnombre || opFaena) && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 6, paddingTop: 6, borderTop: `1px solid ${t.border}` }}>
+                          {tnombre && (
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, color: t.brandSoft, background: t.brandTint, borderRadius: t.radiusMd, padding: '2px 7px', fontWeight: 600 }}>
+                              <Users size={11} /> {tnombre}
+                            </span>
+                          )}
+                          {opFaena && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+                              {opFaena.foto
+                                ? <img src={opFaena.foto} alt="" style={{ width: 20, height: 20, borderRadius: '50%', objectFit: 'cover', border: `1.5px solid ${t.ok}`, flexShrink: 0 }} />
+                                : <div style={{ width: 20, height: 20, borderRadius: '50%', background: t.brandTint, color: t.brandSoft, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, flexShrink: 0 }}>{(opFaena.nombre[0] ?? '?').toUpperCase()}</div>}
+                              <span style={{ fontSize: 10, color: t.ok, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{opFaena.nombre}</span>
+                              {opFaena.telefono && (
+                                <a href={`tel:${opFaena.telefono.replace(/[^\d+]/g,'')}`} onClick={e => e.stopPropagation()}
+                                  style={{ color: t.textMuted, display: 'flex' }}><Phone size={12} /></a>
+                              )}
+                              {opFaena.correoPersonal && (
+                                <a href={`mailto:${opFaena.correoPersonal}`} onClick={e => e.stopPropagation()}
+                                  style={{ color: t.textMuted, display: 'flex' }}><Mail size={12} /></a>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )
+        })}
       </div>
 
       {centroVivo && (
         <div className="panel-slide gl-panel-wrapper gl-panel-wrapper--page" style={{ position: 'absolute', top: 0, right: 0, height: '100%', zIndex: 1000 }}>
-          <PanelCentro centro={centroVivo} role={role} sincronizarEstado={sincronizarEstado}
+          <PanelCentro centro={centroVivo} role={role} uid={uid} sincronizarEstado={sincronizarEstado}
+            actualizarCentro={actualizarCentro}
             onCerrar={() => setCentroActivo(null)} onEliminar={handleEliminar} />
         </div>
       )}

@@ -26,6 +26,23 @@ export const t = {
   brandSoft:   'var(--gl-brand-soft)',
   brandTint:   'var(--gl-brand-tint)',
 
+  // Acento táctico (cian HUD)
+  accent:     'var(--gl-accent)',
+  accentSoft: 'var(--gl-accent-soft)',
+  accentTint: 'var(--gl-accent-tint)',
+
+  // Glass / glow
+  glassBg:     'var(--gl-glass-bg)',
+  glassBorder: 'var(--gl-glass-border)',
+  glow:        'var(--gl-glow)',
+  glowAccent:  'var(--gl-glow-accent)',
+  gridLine:    'var(--gl-grid-line)',
+
+  // Fuentes
+  fontSans:    'var(--gl-font-sans)',
+  fontDisplay: 'var(--gl-font-display)',
+  fontMono:    'var(--gl-font-mono)',
+
   // Estados
   ok:       'var(--gl-ok)',
   low:      'var(--gl-low)',

@@ -49,12 +49,25 @@ export default function MainLayout() {
   const cambiarEmpresa = (e) => { setEmpresaActiva(e); setDrawerOpen(false) }
 
   const navItems = (onClick) => navVisible.map(({ to, label, icon: Icon, end, badgeKey, id }) => (
-    <NavLink key={id} to={to} end={end} onClick={onClick}
-      className={({ isActive }) => `gl-nav-item ${isActive ? 'active' : ''}`}>
-      <Icon size={19} strokeWidth={2} />
-      <span>{label}</span>
-      {badgeKey && badges[badgeKey] > 0 && <span className="gl-nav-badge">{badges[badgeKey]}</span>}
-    </NavLink>
+    <div key={id} style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+      <NavLink to={to} end={end} onClick={onClick}
+        className={({ isActive }) => `gl-nav-item ${isActive ? 'active' : ''}`}
+        style={{ flex: 1 }}>
+        <Icon size={19} strokeWidth={2} />
+        <span style={{ flex: 1 }}>{label}</span>
+        {badgeKey && badges[badgeKey] > 0 && <span className="gl-nav-badge">{badges[badgeKey]}</span>}
+      </NavLink>
+      {role === 'admin' && (
+        <button
+          className="gl-icon-btn gl-nav-config-btn"
+          onClick={(e) => { e.stopPropagation(); setPersonalizar(true) }}
+          title="Personalizar app"
+          aria-label="Configurar"
+          style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', padding: 4, opacity: 0, flexShrink: 0 }}>
+          <SlidersHorizontal size={12} />
+        </button>
+      )}
+    </div>
   ))
 
   return (
@@ -67,8 +80,8 @@ export default function MainLayout() {
         <div style={brandBox}>
           <div style={logoWrap}><img src={branding.logoDataUrl || '/logo.png'} alt="GL" style={logoImg} /></div>
           <div style={{ lineHeight: 1.25 }}>
-            <div style={{ fontSize: t.textSm, fontWeight: 600, color: t.textPrimary }}>{branding.appName || 'GL Robótica'}</div>
-            <div style={{ fontSize: 10, color: t.brandSoft }}>Aysén · Chile</div>
+            <div className="gl-display" style={{ fontSize: t.textBase, fontWeight: 600, color: t.textPrimary }}>{branding.appName || 'GL Robótica'}</div>
+            <div className="gl-label" style={{ fontSize: 10, color: t.accentSoft }}>Aysén · Chile</div>
           </div>
           <button className="gl-icon-btn gl-menu-btn" style={{ marginLeft: 'auto' }} onClick={() => setDrawerOpen(false)} aria-label="Cerrar menú"><X size={18} /></button>
         </div>
@@ -91,7 +104,7 @@ export default function MainLayout() {
       <div className="gl-main">
         <header className="gl-topbar">
           <button className="gl-icon-btn gl-menu-btn" onClick={() => setDrawerOpen(true)} aria-label="Abrir menú"><Menu size={20} /></button>
-          <div style={{ fontSize: t.textBase, fontWeight: 600, color: t.textPrimary, whiteSpace: 'nowrap' }}>{titulo}</div>
+          <div className="gl-display" style={{ fontSize: t.textLg, fontWeight: 600, color: t.textPrimary, whiteSpace: 'nowrap' }}>{titulo}</div>
           <div style={{ flex: 1, minWidth: 0, display: 'flex', justifyContent: 'center' }}>
             {role === 'admin'
               ? <SelectorEmpresa empresaActiva={empresaActiva} onCambiar={cambiarEmpresa} role={role} />
@@ -105,15 +118,10 @@ export default function MainLayout() {
           <div className="gl-topbar-clock" style={relojBox}>
             <Clock size={14} color={t.brandSoft} />
             <div style={{ lineHeight: 1.1 }}>
-              <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 13, fontWeight: 600, color: t.brandSoft }}>{horaStr}</div>
+              <div className="gl-mono" style={{ fontSize: 13, fontWeight: 600, color: t.accentSoft, textShadow: '0 0 10px var(--gl-accent-tint)' }}>{horaStr}</div>
               <div style={{ fontSize: 9, color: t.textMuted, textTransform: 'capitalize' }}>{fechaStr}</div>
             </div>
           </div>
-          {role === 'admin' && (
-            <button className="gl-icon-btn" onClick={() => setPersonalizar(true)} aria-label="Personalizar app" title="Personalizar app">
-              <SlidersHorizontal size={18} />
-            </button>
-          )}
           <ThemeToggle />
         </header>
 

@@ -7,6 +7,8 @@ import MapaPage from './pages/MapaPage'
 import CentrosPage from './pages/CentrosPage'
 import DespachosPage from './pages/DespachosPage'
 import OperadoresPage from './pages/OperadoresPage'
+import BitacorasPage  from './pages/BitacorasPage'
+import TurnosPage     from './pages/TurnosPage'
 
 function PantallaCarga() {
   return (
@@ -38,19 +40,27 @@ function PublicRoute({ children }) {
   return user ? <Navigate to="/" replace /> : children
 }
 
+function AnimatedRoutes() {
+  return (
+    <Routes>
+      <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+      <Route path="/" element={<PrivateRoute><MainLayout /></PrivateRoute>}>
+        <Route index element={<MapaPage />} />
+        <Route path="centros"    element={<CentrosPage />} />
+        <Route path="despachos"  element={<DespachosPage />} />
+        <Route path="operadores" element={<OperadoresPage />} />
+        <Route path="bitacoras"  element={<BitacorasPage />} />
+        <Route path="turnos"     element={<TurnosPage />} />
+      </Route>
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  )
+}
+
 export default function App() {
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
-        <Route path="/" element={<PrivateRoute><MainLayout /></PrivateRoute>}>
-          <Route index element={<MapaPage />} />
-          <Route path="centros" element={<CentrosPage />} />
-          <Route path="despachos" element={<DespachosPage />} />
-          <Route path="operadores" element={<OperadoresPage />} />
-        </Route>
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+      <AnimatedRoutes />
     </BrowserRouter>
   )
 }

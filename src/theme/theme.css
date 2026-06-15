@@ -7,28 +7,33 @@
 
 :root,
 :root[data-theme='dark'] {
-  /* Superficies (de más profunda a más elevada) */
-  --gl-bg-base:      #060d1a;
-  --gl-bg-surface:   #0d1b2e;
-  --gl-bg-elevated:  #14253f;
-  --gl-bg-input:     #0a1424;
-  --gl-bg-hover:     #1b2d49;
+  /* Superficies (de más profunda a más elevada) — capas reales de elevación */
+  --gl-bg-base:      #03070f;
+  --gl-bg-surface:   #0a1422;
+  --gl-bg-elevated:  #11203a;
+  --gl-bg-input:     #060e1c;
+  --gl-bg-hover:     #18294a;
 
   /* Bordes */
-  --gl-border:        #1d3556;
-  --gl-border-strong: #284b73;
+  --gl-border:        #1a3050;
+  --gl-border-strong: #2b517d;
 
   /* Texto */
-  --gl-text-primary:   #f1f5f9;
-  --gl-text-secondary: #9fb2cc;
-  --gl-text-muted:     #64748b;
+  --gl-text-primary:   #f3f7fc;
+  --gl-text-secondary: #a3b6d1;
+  --gl-text-muted:     #5f7290;
   --gl-text-on-brand:  #ffffff;
 
   /* Marca */
   --gl-brand:        #2563eb;
   --gl-brand-strong: #1d4ed8;
   --gl-brand-soft:   #5ba4f0;
-  --gl-brand-tint:   rgba(37, 99, 235, 0.14);
+  --gl-brand-tint:   rgba(37, 99, 235, 0.16);
+
+  /* Acento táctico — cian eléctrico (HUD / telemetría / focus) */
+  --gl-accent:       #22d3ee;
+  --gl-accent-soft:  #67e8f9;
+  --gl-accent-tint:  rgba(34, 211, 238, 0.14);
 
   /* Estados de centro / semánticos */
   --gl-ok:        #22c55e;
@@ -41,35 +46,50 @@
   --gl-fault-tint:    rgba(239, 68, 68, 0.14);
   --gl-dispatch-tint: rgba(59, 130, 246, 0.14);
 
-  /* Sombras */
-  --gl-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
-  --gl-shadow-md: 0 8px 24px rgba(0, 0, 0, 0.45);
-  --gl-shadow-lg: 0 24px 50px rgba(0, 0, 0, 0.55);
+  /* Glass — superficies translúcidas con blur (paneles flotantes) */
+  --gl-glass-bg:     rgba(10, 20, 34, 0.72);
+  --gl-glass-border: rgba(91, 164, 240, 0.18);
+  --gl-glass-blur:   14px;
 
-  --gl-scrim: rgba(0, 0, 0, 0.65);
+  /* Glow reutilizable + línea de retícula HUD */
+  --gl-glow:      0 0 16px rgba(37, 99, 235, 0.35);
+  --gl-glow-accent: 0 0 16px rgba(34, 211, 238, 0.32);
+  --gl-grid-line: rgba(91, 164, 240, 0.045);
+
+  /* Sombras */
+  --gl-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.5);
+  --gl-shadow-md: 0 8px 28px rgba(0, 0, 0, 0.5), 0 1px 0 rgba(91,164,240,0.04) inset;
+  --gl-shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.62), 0 0 0 1px rgba(91,164,240,0.05);
+
+  --gl-scrim: rgba(2, 6, 14, 0.7);
 
   color-scheme: dark;
 }
 
 :root[data-theme='light'] {
-  --gl-bg-base:      #eef2f7;
-  --gl-bg-surface:   #ffffff;
+  --gl-bg-base:      #e9eef4;
+  --gl-bg-surface:   #f6f8fb;
   --gl-bg-elevated:  #ffffff;
-  --gl-bg-input:     #f1f5f9;
-  --gl-bg-hover:     #e8eef6;
+  --gl-bg-input:     #eef2f7;
+  --gl-bg-hover:     #e3eaf3;
 
-  --gl-border:        #d8e0ea;
-  --gl-border-strong: #c2cfde;
+  --gl-border:        #d2dce8;
+  --gl-border-strong: #b6c5d8;
 
-  --gl-text-primary:   #0d1b2e;
-  --gl-text-secondary: #44566e;
-  --gl-text-muted:     #7e8ea6;
+  --gl-text-primary:   #0a1626;
+  --gl-text-secondary: #3d4f66;
+  --gl-text-muted:     #74859c;
   --gl-text-on-brand:  #ffffff;
 
-  --gl-brand:        #2563eb;
-  --gl-brand-strong: #1d4ed8;
+  --gl-brand:        #1d4ed8;
+  --gl-brand-strong: #1e40af;
   --gl-brand-soft:   #1d4ed8;
-  --gl-brand-tint:   rgba(37, 99, 235, 0.10);
+  --gl-brand-tint:   rgba(29, 78, 216, 0.10);
+
+  /* Acento táctico (versión legible en claro) */
+  --gl-accent:       #0891b2;
+  --gl-accent-soft:  #0e7490;
+  --gl-accent-tint:  rgba(8, 145, 178, 0.10);
 
   --gl-ok:        #16a34a;
   --gl-low:       #ca8a04;
@@ -81,9 +101,18 @@
   --gl-fault-tint:    rgba(220, 38, 38, 0.12);
   --gl-dispatch-tint: rgba(37, 99, 235, 0.12);
 
-  --gl-shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.10);
-  --gl-shadow-md: 0 8px 24px rgba(15, 23, 42, 0.12);
-  --gl-shadow-lg: 0 24px 50px rgba(15, 23, 42, 0.18);
+  /* Glass claro */
+  --gl-glass-bg:     rgba(246, 248, 251, 0.78);
+  --gl-glass-border: rgba(29, 78, 216, 0.14);
+  --gl-glass-blur:   14px;
+
+  --gl-glow:        0 0 14px rgba(29, 78, 216, 0.16);
+  --gl-glow-accent: 0 0 14px rgba(8, 145, 178, 0.18);
+  --gl-grid-line:   rgba(29, 78, 216, 0.04);
+
+  --gl-shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.08);
+  --gl-shadow-md: 0 8px 24px rgba(15, 23, 42, 0.10);
+  --gl-shadow-lg: 0 24px 50px rgba(15, 23, 42, 0.16);
 
   --gl-scrim: rgba(15, 23, 42, 0.45);
 
@@ -116,6 +145,27 @@
   --gl-dur-fast: 0.12s;
   --gl-dur: 0.2s;
   --gl-dur-slow: 0.32s;
+
+  /* Familias tipográficas — orientación ingeniería */
+  --gl-font-sans:    'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --gl-font-display: 'Space Grotesk', 'Inter', sans-serif;
+  --gl-font-mono:    'JetBrains Mono', ui-monospace, 'SF Mono', monospace;
+}
+
+/* ---- Utilidades tipográficas ---- */
+.gl-display { font-family: var(--gl-font-display); letter-spacing: -0.02em; }
+.gl-mono    { font-family: var(--gl-font-mono); font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+.gl-label {
+  font-size: 10px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.09em; color: var(--gl-text-muted);
+}
+
+/* ---- Glass: superficie translúcida con blur ---- */
+.gl-glass {
+  background: var(--gl-glass-bg);
+  border: 1px solid var(--gl-glass-border);
+  -webkit-backdrop-filter: blur(var(--gl-glass-blur)) saturate(1.4);
+  backdrop-filter: blur(var(--gl-glass-blur)) saturate(1.4);
 }
 
 /* ============================================================
@@ -237,3 +287,86 @@ body {
   *, *::before, *::after { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
 }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* ============================================================
+   Lenguaje táctico — Mission Control
+   Detalles de glow, retícula HUD y acentos. Ligado a tokens,
+   así que responde a ambos temas (dark/light).
+   ============================================================ */
+
+/* Subrayado luminoso del tab activo */
+.gl-tab-btn { position: relative; }
+.gl-tab-btn[style*="border-bottom: 2px solid var(--gl-brand)"]::after {
+  content: '';
+  position: absolute;
+  bottom: -1px; left: 18%; right: 18%;
+  height: 2px;
+  background: var(--gl-accent);
+  filter: blur(4px);
+  border-radius: 2px;
+}
+
+/* Sidebar — retícula HUD sutil + borde acento */
+.gl-sidebar {
+  background:
+    linear-gradient(180deg, var(--gl-glass-border) 0%, transparent 1px) 0 0 / 100% 22px,
+    var(--gl-bg-surface);
+  background-blend-mode: overlay;
+  border-right-color: var(--gl-glass-border);
+}
+
+/* Nav item activo — barra de acento + resplandor */
+.gl-nav-item.active {
+  background: linear-gradient(90deg, var(--gl-brand-tint) 0%, transparent 100%);
+  box-shadow: inset 3px 0 0 var(--gl-accent);
+}
+.gl-nav-item.active::before { background: var(--gl-accent) !important; }
+
+/* Topbar — línea de datos inferior */
+.gl-topbar {
+  border-bottom: 1px solid var(--gl-glass-border);
+  box-shadow: 0 1px 0 var(--gl-grid-line);
+}
+
+/* Panel lateral — borde luminoso */
+.gl-panel-centro { border-left-color: var(--gl-glass-border); }
+
+/* Botón primario con glow táctil (solo dark, sutil) */
+:root:not([data-theme='light']) .gl-btn--primary:not(:disabled) { box-shadow: var(--gl-glow); }
+:root:not([data-theme='light']) .gl-btn--primary:hover:not(:disabled) {
+  box-shadow: 0 0 22px rgba(37,99,235,0.55);
+}
+
+/* Cards: borde acento en hover */
+.gl-card:hover { border-color: var(--gl-glass-border); }
+
+/* Input focus — anillo de acento cian */
+.gl-input:focus {
+  border-color: var(--gl-accent);
+  box-shadow: 0 0 0 3px var(--gl-accent-tint);
+}
+
+/* Fondo base — retícula de monitoreo muy tenue (solo dark) */
+:root:not([data-theme='light']) body {
+  background-image:
+    linear-gradient(var(--gl-grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--gl-grid-line) 1px, transparent 1px);
+  background-size: 44px 44px, 44px 44px;
+}
+
+/* Bottom nav — glow del ítem activo */
+.gl-bottomnav-item.active { color: var(--gl-accent-soft); }
+:root:not([data-theme='light']) .gl-bottomnav-item.active { text-shadow: 0 0 10px var(--gl-accent); }
+
+/* Entrada escalonada de los nav items */
+@keyframes navSlideIn {
+  from { opacity: 0; transform: translateX(-8px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.gl-nav-item { animation: navSlideIn 0.3s var(--gl-ease) both; }
+.gl-nav-item:nth-child(1) { animation-delay: 0.03s; }
+.gl-nav-item:nth-child(2) { animation-delay: 0.07s; }
+.gl-nav-item:nth-child(3) { animation-delay: 0.11s; }
+.gl-nav-item:nth-child(4) { animation-delay: 0.15s; }
+.gl-nav-item:nth-child(5) { animation-delay: 0.19s; }
+.gl-nav-item:nth-child(6) { animation-delay: 0.23s; }

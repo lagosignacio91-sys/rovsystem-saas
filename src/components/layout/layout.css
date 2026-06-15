@@ -159,8 +159,29 @@
   font-family: inherit;
   color: inherit;
 }
-.gl-list-row:hover  { background: var(--gl-bg-hover); border-color: var(--gl-border-strong); }
+.gl-list-row:hover  { background: var(--gl-bg-hover); border-color: var(--gl-glass-border); box-shadow: -1px 0 0 var(--gl-accent); }
 .gl-list-row:active { transform: scale(0.99); }
+
+/* Entrada escalonada de filas de lista */
+@keyframes rowIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+.gl-list-row { animation: rowIn 0.3s var(--gl-ease) both; }
+.gl-list-row:nth-child(1) { animation-delay: 0.02s; }
+.gl-list-row:nth-child(2) { animation-delay: 0.05s; }
+.gl-list-row:nth-child(3) { animation-delay: 0.08s; }
+.gl-list-row:nth-child(4) { animation-delay: 0.11s; }
+.gl-list-row:nth-child(5) { animation-delay: 0.14s; }
+.gl-list-row:nth-child(n+6) { animation-delay: 0.16s; }
+
+/* ---- Sidebar: icono configuración por ítem (visible al hover en PC, siempre en móvil) ---- */
+.gl-nav-config-btn { transition: opacity 0.15s ease, color 0.15s ease; }
+@media (hover: hover) {
+  div:has(.gl-nav-item):hover > .gl-nav-config-btn { opacity: 0.45 !important; }
+  .gl-nav-config-btn:hover { opacity: 1 !important; color: var(--gl-accent) !important; }
+}
+@media (hover: none) {
+  /* Pantallas táctiles: siempre visible */
+  .gl-nav-config-btn { opacity: 0.5 !important; }
+}
 
 /* ---- Sidebar: acento izquierdo en ítem activo ---- */
 .gl-nav-item { position: relative; }
@@ -201,7 +222,7 @@
   font-family: inherit;
 }
 .gl-stat-chip:hover { background: var(--gl-bg-hover); border-color: var(--gl-border-strong); color: var(--gl-text-primary); }
-.gl-stat-chip.active { border-color: currentColor; }
+.gl-stat-chip.active { border-color: currentColor; box-shadow: 0 0 12px -2px currentColor; }
 .gl-stat-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
 
 /* ============================================================
@@ -295,7 +316,7 @@
 @media (max-width: 599px) {
   .gl-panel-wrapper--page {
     position: fixed !important;
-    top: calc(56px + var(--gl-safe-top)) !important;  /* debajo del topbar */
+    top: calc(56px + var(--gl-safe-top)) !important;
     bottom: calc(64px + var(--gl-safe-bottom)) !important;
     left: 0 !important; right: 0 !important;
     height: auto !important;
@@ -307,4 +328,30 @@
     border-top: 1px solid var(--gl-border) !important;
     box-shadow: none !important;
   }
+}
+
+/* ============================================================
+   RESPONSIVE EXTRA
+   ============================================================ */
+
+/* Topbar: en pantallas muy estrechas el selector de empresa usa menos espacio */
+@media (max-width: 400px) {
+  .gl-topbar { gap: 6px; }
+}
+
+/* Nav items en sidebar: en móvil el texto puede truncarse */
+.gl-nav-item span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Panel centro escritorio: altura completa */
+@media (min-width: 900px) {
+  .gl-panel-centro { overflow-y: auto; }
+}
+
+/* Leyenda del mapa: en móvil sube para no tapar el bottom panel */
+@media (max-width: 899px) {
+  .leaflet-bottom.leaflet-right { bottom: 0 !important; }
 }

@@ -1,9 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Building2, MapPin } from 'lucide-react'
 import { t } from '../../theme/tokens'
 import { Modal, Button, Input, Select, Field } from '../kit'
-import { db } from '../../lib/firebase'
-import { collection, getDocs } from 'firebase/firestore'
 
 const ESTADOS = [
   { value: 'OK',              label: 'Operativo' },
@@ -13,21 +11,15 @@ const ESTADOS = [
   { value: 'NO_OPERATOR',     label: 'Sin operador' },
 ]
 
+const TEAMS = Array.from({ length: 10 }, (_, i) => ({
+  id:    `team-${String(i + 1).padStart(2, '0')}`,
+  label: `Team ${String(i + 1).padStart(2, '0')}`,
+}))
+
 export default function FormCentro({ latlng, onGuardar, onCancelar, cargando, empresaActiva }) {
   const [nombre, setNombre] = useState('')
   const [estado, setEstado] = useState('OK')
   const [teamId, setTeamId] = useState('')
-  const [teams,  setTeams]  = useState([])
-
-  useEffect(() => {
-    // Cargar lista de operadores/teams para el selector
-    getDocs(collection(db, 'usuarios')).then(snap => {
-      const ops = snap.docs
-        .map(d => ({ uid: d.id, ...d.data() }))
-        .filter(u => u.rol === 'operador')
-      setTeams(ops)
-    })
-  }, [])
 
   const submit = (e) => {
     e.preventDefault()
@@ -70,8 +62,8 @@ export default function FormCentro({ latlng, onGuardar, onCancelar, cargando, em
         <Field label="Team asignado">
           <Select value={teamId} onChange={e => setTeamId(e.target.value)}>
             <option value="">— Sin team —</option>
-            {teams.map(t => (
-              <option key={t.uid} value={t.uid}>{t.nombre || t.email || t.uid}</option>
+            {TEAMS.map(tm => (
+              <option key={tm.id} value={tm.id}>{tm.label}</option>
             ))}
           </Select>
         </Field>
