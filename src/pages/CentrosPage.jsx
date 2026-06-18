@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'
 import { useOutletContext } from 'react-router-dom'
-import { Search, MapPin, ChevronRight, Building2, Phone, Mail, Users } from 'lucide-react'
+import { Search, MapPin, ChevronRight, Building2, Phone, Mail, Users, RefreshCw, Database } from 'lucide-react'
 import { t, ESTADO_META } from '../theme/tokens'
 import { logoEmpresa } from '../lib/empresaLogos'
 import { EstadoBadge } from '../components/kit'
 import { useOperadoresGlobal } from '../hooks/useOperadoresGlobal'
+import { useEmpresas } from '../hooks/useEmpresas'
+import { CENTROS_GL } from '../hooks/useCentros'
 import { db } from '../lib/firebase'
 import { collection, getDocs } from 'firebase/firestore'
 import PanelCentro from '../components/ui/PanelCentro'
@@ -19,17 +21,52 @@ const ESTADOS_FILTRO = [
 ]
 
 export default function CentrosPage() {
-  const { centros, eliminarCentro, sincronizarEstado, actualizarCentro, role, uid, empresaActiva } = useOutletContext()
+  const { centros, eliminarCentro, sincronizarEstado, actualizarCentro, inicializarCentrosGL, sincronizarOperadoresCentros, role, uid, empresaActiva } = useOutletContext()
+  const { empresas }                    = useEmpresas()
   const [busca, setBusca]               = useState('')
   const [filtroEstado, setFiltroEstado] = useState(null)
   const [centroActivo, setCentroActivo] = useState(null)
   const [teams, setTeams]               = useState([])
+  const [usuarios, setUsuarios]         = useState([])
+
+  // modales admin
+  const [showInit, setShowInit]         = useState(false)
+  const [empresaSelId, setEmpresaSelId] = useState('')
+  const [cargandoInit, setCargandoInit] = useState(false)
+  const [cargandoSync, setCargandoSync] = useState(false)
+  const [resultado, setResultado]       = useState(null)
 
   useEffect(() => {
     getDocs(collection(db, 'usuarios')).then(snap => {
-      setTeams(snap.docs.map(d => ({ uid: d.id, ...d.data() })).filter(u => u.rol === 'operador'))
+      const lista = snap.docs.map(d => ({ uid: d.id, ...d.data() }))
+      setTeams(lista.filter(u => u.rol === 'operador'))
+      setUsuarios(lista)
     })
   }, [])
+
+  const handleSincronizar = async () => {
+    setCargandoSync(true)
+    try {
+      const { centrosActualizados, operadoresAsignados } = await sincronizarOperadoresCentros(usuarios)
+      setResultado({ ok: true, msg: `✅ ${operadoresAsignados} operadores asignados a ${centrosActualizados} centros` })
+    } catch {
+      setResultado({ ok: false, msg: '❌ Error al sincronizar' })
+    }
+    setCargandoSync(false)
+  }
+
+  const handleInicializar = async () => {
+    if (!empresaSelId) return
+    setCargandoInit(true)
+    try {
+      await inicializarCentrosGL(empresaSelId)
+      setResultado({ ok: true, msg: '✅ 10 centros GL cargados correctamente' })
+    } catch {
+      setResultado({ ok: false, msg: '❌ Error al cargar centros' })
+    }
+    setCargandoInit(false)
+    setShowInit(false)
+  }
 
   const base = empresaActiva ? centros.filter(c => c.empresaId === empresaActiva.id) : centros
   const { operadores } = useOperadoresGlobal(base)
@@ -64,6 +101,30 @@ export default function CentrosPage() {
   return (
     <div style={{ height: '100%', overflowY: 'auto', padding: t.space5 }}>
       <div style={{ maxWidth: 820, margin: '0 auto' }}>
+
+        {/* Acciones admin */}
+        {role === 'admin' && (
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: t.space4 }}>
+            <button
+              onClick={handleSincronizar}
+              disabled={cargandoSync || centros.length === 0}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'transparent', border: `1px solid ${t.brand}`, color: t.brandSoft, borderRadius: t.radiusMd, padding: '7px 14px', cursor: 'pointer', fontSize: t.textSm, fontWeight: 600, opacity: (cargandoSync || centros.length === 0) ? 0.5 : 1 }}>
+              <RefreshCw size={14} /> {cargandoSync ? 'Sincronizando...' : 'Sincronizar operadores'}
+            </button>
+            <button
+              onClick={() => setShowInit(true)}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, background: t.brand, border: 'none', color: '#fff', borderRadius: t.radiusMd, padding: '7px 14px', cursor: 'pointer', fontSize: t.textSm, fontWeight: 600 }}>
+              <Database size={14} /> Cargar centros GL
+            </button>
+          </div>
+        )}
+
+        {resultado && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: t.bgElevated, border: `1px solid ${resultado.ok ? t.ok : t.fault}`, borderRadius: t.radiusMd, padding: '9px 13px', marginBottom: t.space3, fontSize: t.textSm, color: t.textPrimary }}>
+            <span>{resultado.msg}</span>
+            <button onClick={() => setResultado(null)} style={{ background: 'none', border: 'none', color: t.textMuted, cursor: 'pointer', fontSize: 14, padding: '0 4px' }}>✕</button>
+          </div>
+        )}
 
         {/* Filtros por estado */}
         <div className="gl-stats-row">
@@ -163,6 +224,39 @@ export default function CentrosPage() {
           )
         })}
       </div>
+
+      {showInit && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: 16 }}>
+          <div style={{ background: t.bgElevated, border: `1px solid ${t.border}`, borderRadius: t.radiusLg, padding: 28, width: '100%', maxWidth: 480, maxHeight: '90vh', overflowY: 'auto' }}>
+            <h3 style={{ color: t.textPrimary, fontSize: t.textBase, fontWeight: 700, marginBottom: 12 }}>Cargar centros GL Robótica</h3>
+            <p style={{ color: t.textMuted, fontSize: t.textSm, lineHeight: 1.6, marginBottom: 20 }}>
+              Esta acción <strong style={{ color: t.fault }}>eliminará los {centros.length} centros actuales</strong> y creará los 10 centros reales con sus coordenadas y teams.
+            </p>
+            <label style={{ color: t.textMuted, fontSize: 12, fontWeight: 500, display: 'block', marginBottom: 6 }}>Empresa propietaria</label>
+            <select value={empresaSelId} onChange={e => setEmpresaSelId(e.target.value)}
+              style={{ width: '100%', background: t.bgInput, border: `1px solid ${t.border}`, borderRadius: t.radiusMd, color: t.textPrimary, fontSize: t.textSm, padding: '8px 10px', outline: 'none', boxSizing: 'border-box', marginBottom: 16 }}>
+              <option value="">— Selecciona una empresa —</option>
+              {empresas.map(e => <option key={e.id} value={e.id}>{e.nombre}</option>)}
+            </select>
+            <p style={{ color: t.textMuted, fontSize: 12, fontWeight: 500, marginBottom: 6 }}>Centros que se crearán:</p>
+            <ul style={{ listStyle: 'none', padding: '10px 12px', margin: '0 0 20px', background: t.bgInput, borderRadius: t.radiusMd }}>
+              {CENTROS_GL.map(c => (
+                <li key={c.nombre} style={{ color: t.textMuted, fontSize: 12, padding: '3px 0' }}>· {c.nombre} ({c.teamAsignado})</li>
+              ))}
+            </ul>
+            <div style={{ display: 'flex', gap: 12 }}>
+              <button onClick={() => setShowInit(false)} disabled={cargandoInit}
+                style={{ flex: 1, background: 'transparent', border: `1px solid ${t.border}`, color: t.textMuted, borderRadius: t.radiusMd, padding: 9, cursor: 'pointer', fontSize: t.textSm }}>
+                Cancelar
+              </button>
+              <button onClick={handleInicializar} disabled={!empresaSelId || cargandoInit}
+                style={{ flex: 1, background: t.fault, border: 'none', color: '#fff', borderRadius: t.radiusMd, padding: 9, cursor: 'pointer', fontSize: t.textSm, fontWeight: 600, opacity: (!empresaSelId || cargandoInit) ? 0.5 : 1 }}>
+                {cargandoInit ? 'Creando...' : 'Confirmar y cargar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {centroVivo && (
         <div className="panel-slide gl-panel-wrapper gl-panel-wrapper--page" style={{ position: 'absolute', top: 0, right: 0, height: '100%', zIndex: 1000 }}>

@@ -318,6 +318,50 @@ export async function generarPDFEntrega(entrega) {
   return doc
 }
 
+export async function descargarPDFBitacora(bitacora, centro) {
+  const { jsPDF } = await import('jspdf')
+  const doc   = new jsPDF({ unit: 'mm', format: 'a4' })
+  const W     = doc.internal.pageSize.getWidth()
+  const margin = 14
+  let y = 20
+
+  doc.setFontSize(14)
+  doc.setFont('helvetica', 'bold')
+  doc.text(`Bitácora Diaria — ${centro.nombre}`, margin, y)
+  y += 8
+
+  doc.setFontSize(9)
+  doc.setFont('helvetica', 'normal')
+  doc.setTextColor(100)
+  doc.text(`GL Robótica · ${bitacora.fecha ?? '—'}`, margin, y)
+  y += 10
+
+  doc.setTextColor(30)
+  const campos = [
+    ['Fecha',           bitacora.fecha],
+    ['Piloto',          bitacora.piloto],
+    ['Team',            bitacora.team],
+    ['Área',            bitacora.area],
+    ['Estado puerto',   bitacora.estadoPuerto],
+    ['Jornada AM',      bitacora.jornadaAm],
+    ['Jornada PM',      bitacora.jornadaPm],
+    ['Observaciones',   bitacora.observaciones],
+  ].filter(([, v]) => v)
+
+  for (const [label, valor] of campos) {
+    doc.setFontSize(9)
+    doc.setFont('helvetica', 'bold')
+    doc.text(`${label}:`, margin, y)
+    doc.setFont('helvetica', 'normal')
+    const lines = doc.splitTextToSize(String(valor), W - margin * 2 - 35)
+    doc.text(lines, margin + 36, y)
+    y += lines.length * 5 + 2
+  }
+
+  const nombre = `Bitacora-${centro.nombre}-${bitacora.fecha?.replace(/\//g, '-') ?? 'GL'}.pdf`
+  doc.save(nombre)
+}
+
 export async function descargarPDF(entrega) {
   const doc = await generarPDFEntrega(entrega)
   const fecha = entrega.fecha?.replace(/\//g, '-') ?? 'informe'
