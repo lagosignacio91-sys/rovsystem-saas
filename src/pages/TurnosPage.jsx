@@ -60,10 +60,12 @@ function CentroTurnos({ centro, role }) {
             </span>
           )}
         </div>
-        <button onClick={() => setModal(true)}
-          style={{ display: 'flex', alignItems: 'center', gap: 5, background: t.brand, border: 'none', color: '#fff', borderRadius: t.radiusMd, padding: '6px 13px', cursor: 'pointer', fontSize: t.textSm, fontWeight: 600 }}>
-          <Plus size={14} /> Nueva entrega
-        </button>
+        {role === 'operador' && (
+          <button onClick={() => setModal(true)}
+            style={{ display: 'flex', alignItems: 'center', gap: 5, background: t.brand, border: 'none', color: '#fff', borderRadius: t.radiusMd, padding: '6px 13px', cursor: 'pointer', fontSize: t.textSm, fontWeight: 600 }}>
+            <Plus size={14} /> Nueva entrega
+          </button>
+        )}
       </div>
 
       {cargando && <p style={{ color: t.textMuted, fontSize: t.textSm }}>Cargando...</p>}

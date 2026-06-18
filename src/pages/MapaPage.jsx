@@ -15,9 +15,8 @@ export default function MapaPage() {
   const handleGuardar  = async (datos) => { await agregarCentro(datos); setLatlng(null) }
   const handleEliminar = async (id) => { await eliminarCentro(id); setCentroActivo(null) }
 
-  // Solo operador puede abrir panel de su propio centro
   const handleCentroClick = (c) => {
-    if (role === 'admin') { setCentroActivo(c); return }
+    if (role === 'admin' || role === 'supervisor') { setCentroActivo(c); return }
     if (role === 'operador' && c.teamId === teamId) setCentroActivo(c)
   }
 
