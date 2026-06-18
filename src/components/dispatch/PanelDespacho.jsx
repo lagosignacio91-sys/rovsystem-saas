@@ -152,7 +152,7 @@ function DespachoCard({ d, role, onMarcarEnviado, onConfirmarRecepcion, onElimin
             {(d.estado === 'enviado' || d.estado === 'parcial') && (
               <button onClick={() => setModalRec(true)} style={styles.btnRecibido}>✅ Recibido</button>
             )}
-            {role === 'admin' && (
+            {(role === 'admin' || role === 'supervisor') && (
               <button onClick={() => onEliminar(d.id)} style={styles.btnEliminar}>🗑️</button>
             )}
           </div>

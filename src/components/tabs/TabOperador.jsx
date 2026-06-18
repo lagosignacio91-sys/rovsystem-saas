@@ -16,7 +16,6 @@ function FormOperador({ titulo, form, setForm, fotoPreview, fileRef, handleFoto,
           }
         </div>
         <input ref={fileRef} type="file" accept="image/*" onChange={handleFoto} style={{ display: 'none' }} />
-        {/* Nombre: campo fijo (va en la cabecera de la tarjeta) */}
         <div style={{ marginBottom: '10px' }}>
           <label style={styles.label}>Nombre completo</label>
           <input style={styles.input} type="text" value={form.nombre ?? ''} onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))} />
@@ -42,7 +41,6 @@ function TarjetaOperador({ operador, numero, onEditar, onToggleEstado, onVerFoto
 
   return (
     <div style={{ ...styles.card, borderColor: enFaena ? 'var(--gl-ok)' : 'var(--gl-border)' }}>
-      {/* Cabecera acordeón */}
       <div style={styles.acordeonHeader} onClick={() => setAbierto(!abierto)}>
         <div style={styles.acordeonIzq}>
           <div style={{ position: 'relative', flexShrink: 0 }}>
@@ -65,18 +63,17 @@ function TarjetaOperador({ operador, numero, onEditar, onToggleEstado, onVerFoto
         </div>
       </div>
 
-      {/* Contenido expandible */}
       {abierto && (
         <div style={styles.cardBody}>
           <div style={styles.accionesHeader}>
             <button
-              onClick={() => onToggleEstado(numero)}
+              onClick={onToggleEstado}
               style={{ ...styles.btnEstado, background: enFaena ? 'var(--gl-ok-tint)' : 'var(--gl-border)' }}
             >
               {enFaena ? '🎮 En faena' : '😴 En descanso'}
             </button>
             {role === 'admin' && (
-              <button onClick={() => onEditar(numero)} style={styles.btnEditar}>Editar</button>
+              <button onClick={onEditar} style={styles.btnEditar}>Editar</button>
             )}
           </div>
 
@@ -103,13 +100,12 @@ export default function TabOperador({ centro, role }) {
   const campos = camposOperador
     .filter((c) => !c.hidden)
     .map((c) => ({ ...c, type: TIPOS_OPERADOR[c.id] ?? 'text' }))
-  const [op1, setOp1]               = useState({})
-  const [op2, setOp2]               = useState({})
-  const [cargando, setCargando]     = useState(true)
-  const [editando, setEditando]     = useState(null)
-  const [form, setForm]             = useState({})
+  const [lista, setLista]             = useState([])
+  const [cargando, setCargando]       = useState(true)
+  const [editando, setEditando]       = useState(null)
+  const [form, setForm]               = useState({})
   const [fotoPreview, setFotoPreview] = useState(null)
-  const [verFoto, setVerFoto]       = useState(null)
+  const [verFoto, setVerFoto]         = useState(null)
   const fileRef = useRef()
 
   useEffect(() => {
@@ -117,24 +113,23 @@ export default function TabOperador({ centro, role }) {
       const ref  = doc(db, 'centros', centro.id, 'datos', 'operadores')
       const snap = await getDoc(ref)
       if (snap.exists()) {
-        setOp1(snap.data().op1 ?? {})
-        setOp2(snap.data().op2 ?? {})
+        const data = snap.data()
+        setLista(data.lista ?? [data.op1, data.op2].filter(Boolean))
       }
       setCargando(false)
     }
     cargar()
   }, [centro.id])
 
-  const guardar = async (nuevoOp1, nuevoOp2) => {
+  const guardar = async (nuevaLista) => {
     const ref = doc(db, 'centros', centro.id, 'datos', 'operadores')
-    await setDoc(ref, { op1: nuevoOp1, op2: nuevoOp2 })
+    await setDoc(ref, { lista: nuevaLista })
   }
 
-  const handleEditar = (numero) => {
-    const op = numero === 1 ? op1 : op2
-    setForm(op)
-    setFotoPreview(op.foto ?? null)
-    setEditando(numero)
+  const handleEditar = (idx) => {
+    setForm(lista[idx])
+    setFotoPreview(lista[idx].foto ?? null)
+    setEditando(idx)
   }
 
   const handleFoto = (e) => {
@@ -149,27 +144,43 @@ export default function TabOperador({ centro, role }) {
   }
 
   const handleGuardar = async () => {
-    if (editando === 1) { const nuevo = { ...form }; setOp1(nuevo); await guardar(nuevo, op2) }
-    else                { const nuevo = { ...form }; setOp2(nuevo); await guardar(op1, nuevo) }
+    const nueva = lista.map((op, i) => i === editando ? { ...form } : op)
+    setLista(nueva)
+    await guardar(nueva)
     setEditando(null); setForm({}); setFotoPreview(null)
   }
 
-  const handleToggleEstado = async (numero) => {
-    if (numero === 1) {
-      const nuevo = { ...op1, estado: op1.estado === 'faena' ? 'descanso' : 'faena' }
-      setOp1(nuevo); await guardar(nuevo, op2)
-    } else {
-      const nuevo = { ...op2, estado: op2.estado === 'faena' ? 'descanso' : 'faena' }
-      setOp2(nuevo); await guardar(op1, nuevo)
-    }
+  const handleToggleEstado = async (idx) => {
+    const nueva = lista.map((op, i) =>
+      i === idx ? { ...op, estado: op.estado === 'faena' ? 'descanso' : 'faena' } : op
+    )
+    setLista(nueva)
+    await guardar(nueva)
   }
 
   if (cargando) return <p style={{ color: 'var(--gl-text-muted)', fontSize: '13px' }}>Cargando...</p>
 
+  if (!lista.length) return (
+    <p style={{ color: 'var(--gl-text-muted)', fontSize: '13px', lineHeight: 1.5 }}>
+      Sin operadores asignados.<br />
+      <span style={{ fontSize: 11 }}>Ve a Centros y ejecuta «Sincronizar operadores».</span>
+    </p>
+  )
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-      <TarjetaOperador operador={op1} numero={1} onEditar={handleEditar} onToggleEstado={handleToggleEstado} onVerFoto={setVerFoto} role={role} campos={campos} />
-      <TarjetaOperador operador={op2} numero={2} onEditar={handleEditar} onToggleEstado={handleToggleEstado} onVerFoto={setVerFoto} role={role} campos={campos} />
+      {lista.map((op, i) => (
+        <TarjetaOperador
+          key={i}
+          operador={op}
+          numero={i + 1}
+          onEditar={() => handleEditar(i)}
+          onToggleEstado={() => handleToggleEstado(i)}
+          onVerFoto={setVerFoto}
+          role={role}
+          campos={campos}
+        />
+      ))}
 
       {verFoto && (
         <div style={styles.fotoModalOverlay} onClick={() => setVerFoto(null)}>
@@ -177,9 +188,9 @@ export default function TabOperador({ centro, role }) {
         </div>
       )}
 
-      {editando && (
+      {editando !== null && (
         <FormOperador
-          titulo={`Operador ${editando}`}
+          titulo={`Operador ${editando + 1}`}
           form={form} setForm={setForm}
           fotoPreview={fotoPreview} fileRef={fileRef} handleFoto={handleFoto}
           onGuardar={handleGuardar}

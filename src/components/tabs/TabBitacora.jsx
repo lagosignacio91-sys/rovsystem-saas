@@ -69,7 +69,7 @@ export default function TabBitacora({ centro, role }) {
   const [guardando, setGuardando] = useState(false)
   const [mostrarVista, setMostrarVista] = useState(false)
 
-  const puedEditar = role === 'admin' || role === 'operador'
+  const puedEditar = role === 'operador'
 
   useEffect(() => {
     const cargar = async () => {
@@ -83,7 +83,8 @@ export default function TabBitacora({ centro, role }) {
       // Auto-piloto: siempre usa el operador en faena si existe
       if (snapOps.exists()) {
         const ops = snapOps.data()
-        const enFaena = [ops.op1, ops.op2].find(op => op?.estado === 'faena' && op?.nombre)
+        const listaOps = ops.lista ?? [ops.op1, ops.op2].filter(Boolean)
+        const enFaena = listaOps.find(op => op?.estado === 'faena' && op?.nombre)
         if (enFaena) setDatos(d => ({ ...d, piloto: enFaena.nombre }))
       }
       setCargando(false)
@@ -93,7 +94,8 @@ export default function TabBitacora({ centro, role }) {
     const unsub = onSnapshot(doc(db, 'centros', centro.id, 'datos', 'operadores'), (snap) => {
       if (!snap.exists()) return
       const ops = snap.data()
-      const enFaena = [ops.op1, ops.op2].find(op => op?.estado === 'faena' && op?.nombre)
+      const listaOps = ops.lista ?? [ops.op1, ops.op2].filter(Boolean)
+      const enFaena = listaOps.find(op => op?.estado === 'faena' && op?.nombre)
       if (enFaena) setDatos(d => ({ ...d, piloto: enFaena.nombre }))
     })
     return () => unsub()

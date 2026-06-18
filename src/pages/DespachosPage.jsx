@@ -71,7 +71,7 @@ function DespachoCard({ d, role, marcarEnviado, confirmarRecepcion, eliminarDesp
           {(d.estado === 'enviado' || d.estado === 'parcial') && (
             <Button size="sm" variant="secondary" icon={CircleCheck} onClick={() => confirmarRecepcion(d.id)} style={{ borderColor: t.ok, color: t.ok }}>Confirmar recepción</Button>
           )}
-          {role === 'admin' && (
+          {(role === 'admin' || role === 'supervisor') && (
             <Button size="sm" variant="danger" icon={Trash2} onClick={() => onEliminar(d)} style={{ marginLeft: 'auto' }} aria-label="Eliminar" />
           )}
         </div>
