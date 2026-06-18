@@ -2,42 +2,86 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // ---- Helpers de rol ----
+    function signedIn() {
+      return request.auth != null;
+    }
+    function rol() {
+      return get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.rol;
+    }
+    function isAdmin()      { return signedIn() && rol() == 'admin'; }
+    function isSupervisor() { return signedIn() && rol() == 'supervisor'; }  // el "taller"
+    function isOperador()   { return signedIn() && rol() == 'operador'; }
+
+    // ---- Usuarios ----
+    // El roster lo leen varias vistas (mapa, centros, operadores).
+    // Self puede actualizar su perfil (ej: passwordCambiado) PERO no su rol ni teamId
+    // (evita auto-escalar privilegios). Crear/borrar solo admin.
     match /usuarios/{uid} {
-      allow read, write: if request.auth != null && request.auth.uid == uid;
+      allow read:   if signedIn();
+      allow create: if isAdmin();
+      allow delete: if isAdmin();
+      allow update: if isAdmin()
+        || (request.auth.uid == uid
+            && request.resource.data.rol == resource.data.rol
+            && request.resource.data.get('teamId', null) == resource.data.get('teamId', null));
     }
 
-    // Configuración global de la app (layout, marca, etc.).
-    // Cualquier autenticado lee; solo admin escribe.
+    // ---- Catálogos: cualquiera lee, solo admin escribe ----
+    match /empresas/{id} {
+      allow read:  if signedIn();
+      allow write: if isAdmin();
+    }
     match /config/{doc} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null
-        && get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.rol == 'admin';
+      allow read:  if signedIn();
+      allow write: if isAdmin();
     }
 
+    // ---- Centros ----
     match /centros/{centroId} {
-      allow read: if request.auth != null;
-      allow write, delete: if request.auth != null
-        && get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.rol == 'admin';
+      allow read:          if signedIn();
+      allow create, delete: if isAdmin();
+      // El doc del centro solo lo edita el admin, EXCEPTO el campo `estado`,
+      // que se recalcula automáticamente al cambiar stock (cualquier rol operativo).
+      allow update: if isAdmin()
+        || (signedIn()
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['estado']));
 
+      // Entregas de turno: handoff entre operadores; se auto-limpian al crear una nueva.
       match /entregas/{entregaId} {
-        // Cualquier autenticado puede crear/leer/borrar: al crear una nueva entrega
-        // se auto-borran las anteriores para ahorrar espacio.
-        allow read, create, update, delete: if request.auth != null;
+        allow read, create, update, delete: if signedIn();
       }
 
+      // Config por centro (ej: lista de ítems del wizard de turno, editada por el operador).
       match /config/{doc} {
-        allow read: if request.auth != null;
-        allow write: if request.auth != null
-          && get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.rol == 'admin';
+        allow read:  if signedIn();
+        allow write: if signedIn();
       }
 
-      match /{subcol}/{docId} {
-        allow read, write: if request.auth != null;
+      // Equipos ROV: solo admin y operador editan. El taller (supervisor) NO edita; sí lee fallas.
+      match /equipos/{doc} {
+        allow read:  if signedIn();
+        allow write: if isAdmin() || isOperador();
+      }
+
+      // Datos operativos del centro:
+      //  - herramientas/insumos/operadores: admin, taller y operador
+      //  - bitacora: admin y operador (el taller solo lee)
+      match /datos/{doc} {
+        allow read:  if signedIn();
+        allow write: if isAdmin()
+          || (isOperador()   && doc in ['herramientas', 'insumos', 'operadores', 'bitacora'])
+          || (isSupervisor() && doc in ['herramientas', 'insumos', 'operadores']);
       }
     }
 
-    match /{document=**} {
-      allow read, write: if request.auth != null;
+    // ---- Despachos ----
+    // Crear/enviar: admin y taller. Confirmar recepción (update): también el operador. Borrar: admin.
+    match /despachos/{id} {
+      allow read:          if signedIn();
+      allow create:        if isAdmin() || isSupervisor();
+      allow update:        if isAdmin() || isSupervisor() || isOperador();
+      allow delete:        if isAdmin();
     }
   }
 }
