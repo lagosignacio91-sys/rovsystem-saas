@@ -38,7 +38,9 @@ export default function PopupCentroContactos({ centro, onCerrar }) {
       .then(snap => { if (snap.exists()) setOps(snap.data()) })
   }, [centro.id])
 
-  const tieneOps = ops.op1?.nombre || ops.op2?.nombre
+  // Compatibilidad: la sincronización guarda en `lista` (array); formato antiguo usa op1/op2.
+  const lista    = ops.lista ?? [ops.op1, ops.op2].filter(Boolean)
+  const tieneOps = lista.some(op => op?.nombre)
 
   return (
     <div className="gl-glass" style={s.card}>
@@ -58,8 +60,7 @@ export default function PopupCentroContactos({ centro, onCerrar }) {
 
       {tieneOps ? (
         <div style={s.ops}>
-          <OpCard op={ops.op1} />
-          <OpCard op={ops.op2} />
+          {lista.map((op, i) => <OpCard key={i} op={op} />)}
         </div>
       ) : (
         <p style={s.sinOps}>Sin operadores asignados</p>

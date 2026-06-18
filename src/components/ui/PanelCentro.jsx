@@ -79,7 +79,9 @@ export default function PanelCentro({ centro, onCerrar, onEliminar, sincronizarE
     }
   }, [tabsVisibles, tabActiva])
 
-  const opEnFaena = [operadores.op1, operadores.op2].find(op => op?.estado === 'faena' && op?.nombre)
+  // Compatibilidad: la sincronización guarda en `lista` (array); formato antiguo usa op1/op2.
+  const listaOps  = operadores.lista ?? [operadores.op1, operadores.op2].filter(Boolean)
+  const opEnFaena = listaOps.find(op => op?.estado === 'faena' && op?.nombre)
 
   return (
     <div className={`gl-panel-centro${expanded ? ' panel-expanded' : ''}`} style={styles.panel}>

@@ -19,8 +19,10 @@ export function useOperadoresGlobal(centros) {
           const snap = await getDoc(doc(db, 'centros', c.id, 'datos', 'operadores'))
           if (!snap.exists()) return
           const data = snap.data()
-          ;['op1', 'op2'].forEach((k) => {
-            const op = data[k]
+          // La sincronización guarda los operadores en `lista` (array). Se mantiene
+          // compatibilidad con el formato antiguo op1/op2.
+          const lista = data.lista ?? [data.op1, data.op2].filter(Boolean)
+          lista.forEach((op) => {
             if (op && op.nombre) acc.push({ ...op, centroId: c.id, centroNombre: c.nombre, empresaNombre: c.empresaNombre })
           })
         } catch { /* ignore */ }
