@@ -1,7 +1,8 @@
 {
-  "name": "gl-app",
+  "name": "rovsystem",
+  "description": "RovSystem - Deep Operations Platform by HyperionX",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.0.1",
   "type": "module",
   "scripts": {
     "dev": "vite",

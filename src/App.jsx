@@ -13,9 +13,9 @@ import TurnosPage     from './pages/TurnosPage'
 function PantallaCarga() {
   return (
     <div style={carga.wrapper}>
-      <div style={carga.logoWrap}><img src="/logo.png" alt="GL" style={carga.logo} /></div>
-      <div style={carga.titulo}>GL Robótica Submarina</div>
-      <div style={carga.sub}>Cargando…</div>
+      <div style={carga.logoWrap}><img src="/logo.png" alt="RovSystem" style={carga.logo} /></div>
+      <div style={carga.titulo}>RovSystem</div>
+      <div style={carga.sub}>Powered by HyperionX</div>
     </div>
   )
 }
