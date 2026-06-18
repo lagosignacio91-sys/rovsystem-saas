@@ -58,16 +58,28 @@ async function calcularEstadoCentro(centroId) {
 }
 
 export function useCentros() {
-  const [centros, setCentros]   = useState([])
+  const [centrosRaw, setCentrosRaw] = useState([])
+  const [empresasMap, setEmpresasMap] = useState({})
   const [cargando, setCargando] = useState(false)
 
   useEffect(() => {
-    const unsub = onSnapshot(collection(db, 'centros'), (snap) => {
-      const data = snap.docs.map(d => ({ id: d.id, ...d.data() }))
-      setCentros(data)
+    const unsubCentros = onSnapshot(collection(db, 'centros'), (snap) => {
+      setCentrosRaw(snap.docs.map(d => ({ id: d.id, ...d.data() })))
     })
-    return () => unsub()
+    // Mapa empresaId → nombre, para denormalizar empresaNombre al vuelo
+    const unsubEmpresas = onSnapshot(collection(db, 'empresas'), (snap) => {
+      const map = {}
+      snap.docs.forEach(d => { map[d.id] = d.data().nombre })
+      setEmpresasMap(map)
+    })
+    return () => { unsubCentros(); unsubEmpresas() }
   }, [])
+
+  // Enriquecer cada centro con el nombre de su empresa (resuelto desde empresaId)
+  const centros = centrosRaw.map(c => ({
+    ...c,
+    empresaNombre: c.empresaNombre ?? empresasMap[c.empresaId] ?? null,
+  }))
 
   const agregarCentro = async (datos) => {
     setCargando(true)
@@ -136,6 +148,7 @@ export function useCentros() {
           estado:       'OK',
           estadoCiclo:  'cicloProductivo',
           empresaId:    empresaId,
+          empresaNombre: empresasMap[empresaId] ?? null,
           creadoEn:     new Date().toISOString(),
         })
       }
