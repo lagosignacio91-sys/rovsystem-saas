@@ -2,12 +2,30 @@ import { useState, useEffect } from 'react'
 import { db } from '../lib/firebase'
 import {
   collection, addDoc, onSnapshot,
-  updateDoc, deleteDoc, doc, getDoc
+  updateDoc, deleteDoc, doc, getDoc, getDocs, writeBatch, setDoc
 } from 'firebase/firestore'
+
+export const CENTROS_GL = [
+  { nombre: 'auchile',          teamAsignado: 'team01', lat: -45.06569, lng: -73.57994 },
+  { nombre: 'gregoria',         teamAsignado: 'team02', lat: -45.60891, lng: -73.52102 },
+  { nombre: 'ninualac',         teamAsignado: 'team03', lat: -44.99103, lng: -73.72147 },
+  { nombre: 'nevenka',          teamAsignado: 'team04', lat: -45.80200, lng: -73.63740 },
+  { nombre: 'tangbac',          teamAsignado: 'team05', lat: -45.04291, lng: -73.68528 },
+  { nombre: 'aysen 4',          teamAsignado: 'team06', lat: -45.33625, lng: -73.14792 },
+  { nombre: 'teresa 1',         teamAsignado: 'team07', lat: -44.92559, lng: -73.74093 },
+  { nombre: 'pato',             teamAsignado: 'team09', lat: -45.51674, lng: -74.10208 },
+  { nombre: 'jorge canal goñi', teamAsignado: 'team10', lat: -44.84563, lng: -73.95372 },
+  { nombre: 'isla quemada',     teamAsignado: 'team11', lat: -45.43502, lng: -73.85317 },
+]
 
 // Verifica el estado real de un centro leyendo sus subcolecciones
 async function calcularEstadoCentro(centroId) {
   try {
+    // 0. Verificar operadores en faena
+    const opsSnap  = await getDoc(doc(db, 'centros', centroId, 'datos', 'operadores'))
+    const opsLista = opsSnap.exists() ? (opsSnap.data().lista ?? []) : []
+    if (!opsLista.some(op => op?.estado === 'faena')) return 'NO_OPERATOR'
+
     // 1. Verificar fallas ROV
     const rovSnap = await getDoc(doc(db, 'centros', centroId, 'equipos', 'rov'))
     if (rovSnap.exists()) {
@@ -74,18 +92,93 @@ export function useCentros() {
 
   const eliminarCentro = async (id) => {
     try {
-      await deleteDoc(doc(db, 'centros', id))
+      const batch = writeBatch(db)
+      batch.delete(doc(db, 'centros', id, 'equipos', 'rov'))
+      batch.delete(doc(db, 'centros', id, 'datos', 'herramientas'))
+      batch.delete(doc(db, 'centros', id, 'datos', 'insumos'))
+      batch.delete(doc(db, 'centros', id, 'datos', 'operadores'))
+      batch.delete(doc(db, 'centros', id))
+      await batch.commit()
     } catch (e) {
       console.error('Error eliminando centro:', e)
     }
   }
 
-  // Recalcula y guarda el estado real del centro
-  const sincronizarEstado = async (centroId) => {
+  // Recalcula y guarda el estado real del centro. Si estadoActual coincide, omite el write.
+  const sincronizarEstado = async (centroId, estadoActual = null) => {
     const nuevoEstado = await calcularEstadoCentro(centroId)
+    if (nuevoEstado === estadoActual) return nuevoEstado
     await updateDoc(doc(db, 'centros', centroId), { estado: nuevoEstado })
     return nuevoEstado
   }
 
-  return { centros, cargando, agregarCentro, actualizarCentro, eliminarCentro, sincronizarEstado }
+  const inicializarCentrosGL = async (empresaId) => {
+    setCargando(true)
+    try {
+      const snap = await getDocs(collection(db, 'centros'))
+      if (snap.docs.length > 0) {
+        const batch = writeBatch(db)
+        for (const d of snap.docs) {
+          batch.delete(doc(db, 'centros', d.id, 'equipos', 'rov'))
+          batch.delete(doc(db, 'centros', d.id, 'datos', 'herramientas'))
+          batch.delete(doc(db, 'centros', d.id, 'datos', 'insumos'))
+          batch.delete(doc(db, 'centros', d.id, 'datos', 'operadores'))
+          batch.delete(d.ref)
+        }
+        await batch.commit()
+      }
+      for (const c of CENTROS_GL) {
+        await addDoc(collection(db, 'centros'), {
+          nombre:       c.nombre,
+          lat:          c.lat,
+          lng:          c.lng,
+          teamAsignado: c.teamAsignado,
+          estado:       'OK',
+          estadoCiclo:  'cicloProductivo',
+          empresaId:    empresaId,
+          creadoEn:     new Date().toISOString(),
+        })
+      }
+    } catch (e) {
+      console.error('Error inicializando centros:', e)
+      throw e
+    }
+    setCargando(false)
+  }
+
+  // Pobla centros/{id}/datos/operadores.lista desde usuarios (por teamAsignado).
+  // Hace merge preservando campos operativos (faena/descanso, turnos, foto) por rut.
+  const sincronizarOperadoresCentros = async (usuarios) => {
+    let operadoresAsignados = 0
+    let centrosActualizados = 0
+    for (const centro of centros) {
+      if (!centro.teamAsignado) continue
+      const asignados = usuarios.filter(u => u.rol === 'operador' && u.teamId === centro.teamAsignado)
+      const ref       = doc(db, 'centros', centro.id, 'datos', 'operadores')
+      const prevSnap  = await getDoc(ref)
+      const prevLista = prevSnap.exists() ? (prevSnap.data().lista ?? []) : []
+      const lista = asignados.map(u => {
+        const prev = prevLista.find(p => p?.rut && p.rut === u.rut)
+        return {
+          uid:            u.uid ?? u.id ?? null,
+          nombre:         u.nombre ?? '',
+          rut:            u.rut ?? '',
+          telefono:       u.telefono ?? '',
+          correoCorp:     u.correoCorporativo ?? '',
+          correoPersonal: u.correoPersonal ?? '',
+          foto:           u.foto ?? prev?.foto ?? null,
+          esRelevo:       u.esRelevo ?? false,
+          estado:         prev?.estado ?? 'descanso',
+          ingresoTurno:   prev?.ingresoTurno ?? '',
+          salidaTurno:    prev?.salidaTurno ?? '',
+        }
+      })
+      await setDoc(ref, { lista })
+      operadoresAsignados += lista.length
+      centrosActualizados += 1
+    }
+    return { centrosActualizados, operadoresAsignados }
+  }
+
+  return { centros, cargando, agregarCentro, actualizarCentro, eliminarCentro, sincronizarEstado, inicializarCentrosGL, sincronizarOperadoresCentros }
 }
