@@ -14,7 +14,11 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig)
 
-export const auth    = getAuth(app)
+// App secundaria: crea cuentas Auth sin desloguear al admin de la sesión principal
+const secondaryApp = initializeApp(firebaseConfig, 'Secondary')
+
+export const auth          = getAuth(app)
+export const secondaryAuth = getAuth(secondaryApp)
 export const db      = initializeFirestore(app, {
   localCache: persistentLocalCache({ cacheSizeBytes: CACHE_SIZE_UNLIMITED }),
 })

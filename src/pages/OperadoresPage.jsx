@@ -1,8 +1,11 @@
 import { useState } from 'react'
 import { useOutletContext } from 'react-router-dom'
-import { Search, Mail, Phone, Gamepad2, Coffee, Users, AtSign } from 'lucide-react'
+import { Search, Mail, Phone, Gamepad2, Coffee, Users, AtSign, Upload, UserPlus } from 'lucide-react'
 import { t } from '../theme/tokens'
 import { useOperadoresGlobal } from '../hooks/useOperadoresGlobal'
+import { useUsuarios } from '../hooks/useUsuarios'
+import ImportarCSV from '../components/admin/ImportarCSV'
+import FormOperador from '../components/admin/FormOperador'
 
 function ContactoRow({ icon: Icon, valor, href }) {
   const base = { fontSize: 10, display: 'flex', alignItems: 'center', gap: 6, overflow: 'hidden' }
@@ -20,10 +23,23 @@ function ContactoRow({ icon: Icon, valor, href }) {
 }
 
 export default function OperadoresPage() {
-  const { centros, empresaActiva } = useOutletContext()
+  const { centros, empresaActiva, role } = useOutletContext()
   const lista = empresaActiva ? centros.filter(c => c.empresaId === empresaActiva.id) : centros
   const { operadores, cargando } = useOperadoresGlobal(lista)
+  const { usuarios, crearOperador, importarLista } = useUsuarios()
   const [busca, setBusca] = useState('')
+
+  // gestión admin
+  const [showImport, setShowImport] = useState(false)
+  const [showForm, setShowForm]     = useState(false)
+  const [resultado, setResultado]   = useState(null)
+
+  const handleCrear = async (form, password) => {
+    const r = await crearOperador(form, password)
+    if (r.error) { setResultado({ ok: false, msg: `❌ ${r.error}` }); return }
+    setResultado({ ok: true, msg: `✅ Operador "${form.nombre}" creado` })
+    setShowForm(false)
+  }
 
   let ops = operadores
   if (busca.trim()) {
@@ -38,6 +54,32 @@ export default function OperadoresPage() {
   return (
     <div style={{ height: '100%', overflowY: 'auto', padding: t.space5 }}>
       <div style={{ maxWidth: 820, margin: '0 auto' }}>
+
+        {/* Acciones admin */}
+        {role === 'admin' && (
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: t.space4 }}>
+            <button
+              onClick={() => setShowImport(true)}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, background: t.brand, border: 'none', color: '#fff', borderRadius: t.radiusMd, padding: '7px 14px', cursor: 'pointer', fontSize: t.textSm, fontWeight: 600 }}>
+              <Upload size={14} /> Importar CSV
+            </button>
+            <button
+              onClick={() => setShowForm(true)}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'transparent', border: `1px solid ${t.brand}`, color: t.brandSoft, borderRadius: t.radiusMd, padding: '7px 14px', cursor: 'pointer', fontSize: t.textSm, fontWeight: 600 }}>
+              <UserPlus size={14} /> Nuevo operador
+            </button>
+            <span style={{ marginLeft: 'auto', alignSelf: 'center', fontSize: t.textXs, color: t.textMuted }}>
+              {usuarios.length} cuentas en sistema
+            </span>
+          </div>
+        )}
+
+        {resultado && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: t.bgElevated, border: `1px solid ${resultado.ok ? t.ok : t.fault}`, borderRadius: t.radiusMd, padding: '9px 13px', marginBottom: t.space3, fontSize: t.textSm, color: t.textPrimary }}>
+            <span>{resultado.msg}</span>
+            <button onClick={() => setResultado(null)} style={{ background: 'none', border: 'none', color: t.textMuted, cursor: 'pointer', fontSize: 14, padding: '0 4px' }}>✕</button>
+          </div>
+        )}
 
         {/* Stats */}
         {!cargando && operadores.length > 0 && (
@@ -97,6 +139,20 @@ export default function OperadoresPage() {
           })}
         </div>
       </div>
+
+      {showImport && (
+        <ImportarCSV
+          onImportar={importarLista}
+          onCerrar={() => setShowImport(false)}
+        />
+      )}
+
+      {showForm && (
+        <FormOperador
+          onGuardar={handleCrear}
+          onCerrar={() => setShowForm(false)}
+        />
+      )}
     </div>
   )
 }
