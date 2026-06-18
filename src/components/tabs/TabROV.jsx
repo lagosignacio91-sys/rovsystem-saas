@@ -27,7 +27,7 @@ function ModalFalla({ campo, valorActual, onConfirmar, onCerrar }) {
   )
 }
 
-function ModalVerFalla({ campo, razon, onCerrar, onLimpiar }) {
+function ModalVerFalla({ campo, razon, onCerrar, onLimpiar, puedeEditar }) {
   return (
     <div style={styles.modalOverlay}>
       <div style={styles.modal}>
@@ -35,7 +35,7 @@ function ModalVerFalla({ campo, razon, onCerrar, onLimpiar }) {
         <div style={styles.razonBox}><p style={styles.razonTexto}>{razon}</p></div>
         <div style={styles.modalBtns}>
           <button onClick={onCerrar}  style={styles.btnCancelar}>Cerrar</button>
-          <button onClick={onLimpiar} style={styles.btnLimpiar}>✅ Marcar operativo</button>
+          {puedeEditar && <button onClick={onLimpiar} style={styles.btnLimpiar}>✅ Marcar operativo</button>}
         </div>
       </div>
     </div>
@@ -53,6 +53,8 @@ function EquipoCard({ titulo, datos, onGuardar, role }) {
 
   useEffect(() => { setForm(datos); setObsTemp(datos.observacion ?? '') }, [datos])
 
+  // El taller (supervisor) ve fallas pero NO edita equipos ROV. Solo admin/operador editan.
+  const puedeEditar = role === 'admin' || role === 'operador'
   const tieneFalla = Object.values(form.estados ?? {}).some(e => e === 'falla')
 
   const handleGuardar = () => { onGuardar(form); setEditando(false) }
@@ -118,7 +120,7 @@ function EquipoCard({ titulo, datos, onGuardar, role }) {
                     </span>
                   )}
                 </div>
-                {!c.sinFalla && (
+                {!c.sinFalla && (esFalla || puedeEditar) && (
                   <button
                     onClick={() => esFalla ? setVerFalla({ key: c.key, label: c.label }) : marcarFalla(c.key)}
                     style={{ ...styles.btnFalla, ...(esFalla ? styles.btnFallaActivo : {}) }}
@@ -132,7 +134,7 @@ function EquipoCard({ titulo, datos, onGuardar, role }) {
           <div style={styles.obsBox}>
             <div style={styles.obsHeader}>
               <span style={styles.campoLabel}>OBSERVACIÓN</span>
-              {!obsEditando && <button onClick={() => setObsEditando(true)} style={styles.btnObsEditar}>✏️</button>}
+              {!obsEditando && puedeEditar && <button onClick={() => setObsEditando(true)} style={styles.btnObsEditar}>✏️</button>}
             </div>
             {obsEditando ? (
               <div>
@@ -152,7 +154,7 @@ function EquipoCard({ titulo, datos, onGuardar, role }) {
       )}
 
       {modalFalla && <ModalFalla campo={modalFalla.label} valorActual={form.fallas?.[modalFalla.key]} onConfirmar={confirmarFalla} onCerrar={() => setModalFalla(null)} />}
-      {verFalla   && <ModalVerFalla campo={verFalla.label} razon={form.fallas?.[verFalla.key]} onCerrar={() => setVerFalla(null)} onLimpiar={() => limpiarFalla(verFalla.key)} />}
+      {verFalla   && <ModalVerFalla campo={verFalla.label} razon={form.fallas?.[verFalla.key]} onCerrar={() => setVerFalla(null)} onLimpiar={() => limpiarFalla(verFalla.key)} puedeEditar={puedeEditar} />}
     </div>
   )
 }

@@ -35,13 +35,19 @@ export const NAV_DEFAULT = [
   { id: '/centros',    label: 'Centros' },
   { id: '/despachos',  label: 'Despachos' },
   { id: '/operadores', label: 'Operadores' },
+  { id: '/bitacoras',  label: 'Bitácoras' },
+  { id: '/turnos',     label: 'Turnos' },
 ]
 
+// `roles` = qué roles ven el ítem en el menú. Si falta, lo ven todos.
+// Gestión (centros/operadores) solo admin y taller; el operador entra a su centro por el mapa.
 export const NAV_META = {
   '/':           { to: '/',           icon: Map,       end: true },
-  '/centros':    { to: '/centros',    icon: Building2 },
+  '/centros':    { to: '/centros',    icon: Building2,       roles: ['admin', 'supervisor'] },
   '/despachos':  { to: '/despachos',  icon: Package, badgeKey: 'despachos' },
-  '/operadores': { to: '/operadores', icon: Users },
+  '/operadores': { to: '/operadores', icon: Users,           roles: ['admin', 'supervisor'] },
+  '/bitacoras':  { to: '/bitacoras',  icon: BookOpen },
+  '/turnos':     { to: '/turnos',     icon: ClipboardCheck },
 }
 
 // ---- Marca ----

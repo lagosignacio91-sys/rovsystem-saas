@@ -79,7 +79,7 @@ function ItemLista({ item, icono, role, onSolicitar, onQuitarSolicitud, onActual
         <div style={s.itemBody}>
           <div style={s.itemRow}>
             <span style={s.campoLabel}>Cantidad en stock</span>
-            {(role === 'admin' || role === 'operador') ? (
+            {(role === 'admin' || role === 'operador' || role === 'supervisor') ? (
               <input type="number" min={0} value={item.cantidad}
                 onChange={e => onActualizarCantidad(item.id, e.target.value)}
                 style={s.inputCant} onClick={e => e.stopPropagation()} />
@@ -101,7 +101,7 @@ function ItemLista({ item, icono, role, onSolicitar, onQuitarSolicitud, onActual
             {!sinStock && item.solicitado && (
               <button onClick={() => onQuitarSolicitud(item.id)} style={s.btnQuitarSol}>✕ Quitar solicitud</button>
             )}
-            {(role === 'admin' || role === 'operador') && (
+            {(role === 'admin' || role === 'operador' || role === 'supervisor') && (
               <button onClick={() => onEliminar(item.id)} style={s.btnEliminar}>🗑️ Eliminar</button>
             )}
           </div>
@@ -149,7 +149,7 @@ function Seccion({ centroId, coleccion, titulo, icono, tipo, role, sincronizarEs
     <div style={s.seccion}>
       <div style={s.secHeader}>
         <span style={s.secTitulo}>{titulo}</span>
-        {(role === 'admin' || role === 'operador') && (
+        {(role === 'admin' || role === 'operador' || role === 'supervisor') && (
           <button onClick={() => setModalAg(true)} style={s.btnAgregar}>+ Agregar</button>
         )}
       </div>

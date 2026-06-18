@@ -39,8 +39,10 @@ export default function MainLayout() {
   const badges  = { despachos: pendientes.length }
 
   // Solo ítems visibles, ya ordenados; combina datos de config + meta de código.
+  // Filtra además por rol: un ítem con `roles` solo se muestra si el rol actual está incluido.
   const navVisible = nav
     .filter((n) => !n.hidden && NAV_META[n.id])
+    .filter((n) => !NAV_META[n.id].roles || NAV_META[n.id].roles.includes(role))
     .map((n) => ({ ...NAV_META[n.id], id: n.id, label: n.label }))
 
   const navActual = navVisible.find((n) => n.id === location.pathname)

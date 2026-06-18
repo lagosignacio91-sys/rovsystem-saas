@@ -146,7 +146,7 @@ function DespachoCard({ d, role, onMarcarEnviado, onConfirmarRecepcion, onElimin
 
           <div style={styles.dAcciones}>
             <button onClick={() => onCopiarWhatsapp(d)} style={styles.btnWhatsapp}>📋 WhatsApp</button>
-            {role === 'admin' && d.estado === 'pendiente' && (
+            {(role === 'admin' || role === 'supervisor') && d.estado === 'pendiente' && (
               <button onClick={() => onMarcarEnviado(d.id, d.items)} style={styles.btnEnviado}>🚚 Marcar enviado</button>
             )}
             {(d.estado === 'enviado' || d.estado === 'parcial') && (
@@ -230,7 +230,7 @@ export default function PanelDespacho({ centro, role, sincronizarEstado }) {
     <div>
       <div style={styles.topBar}>
         <h3 style={styles.titulo}>Despachos</h3>
-        {role === 'admin' && (
+        {(role === 'admin' || role === 'supervisor') && (
           <button
             onClick={() => {
               if (itemsPendientes.length === 0) { alert('No hay insumos ni herramientas solicitados o en cero.'); return }
