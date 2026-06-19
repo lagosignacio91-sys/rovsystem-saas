@@ -3,8 +3,10 @@ service firebase.storage {
   match /b/{bucket}/o {
 
     // Fotos de inspección de entregas de turno.
-    // Cualquier usuario autenticado puede leer, subir y borrar (las entregas
-    // anteriores se eliminan automáticamente al crear una nueva).
+    // Delete habilitado para auth: la función borrarFotosEntrega() lo necesita para
+    // limpiar fotos de entregas anteriores al crear una nueva (fire-and-forget).
+    // Trade-off aceptado: app invite-only con usuarios de confianza y paths con ID no predecible.
+    // Mejora futura: incluir uid del operador en el path y restringir delete por uid.
     match /entregas/{centroId}/{entregaId}/{archivo} {
       allow read, write, delete: if request.auth != null;
     }

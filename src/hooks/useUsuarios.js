@@ -52,8 +52,16 @@ export function useUsuarios() {
   const actualizarOperador = async (uid, datos) => {
     setError(null)
     try {
+      const CAMPOS_EDITABLES = [
+        'nombre', 'rut', 'telefono', 'correoCorporativo', 'foto',
+        'teamId', 'esRelevo', 'area', 'proveedor', 'estado', 'rol',
+        'passwordCambiado',
+      ]
+      const patch = Object.fromEntries(
+        Object.entries(datos).filter(([k]) => CAMPOS_EDITABLES.includes(k))
+      )
       await updateDoc(doc(db, 'usuarios', uid), {
-        ...datos,
+        ...patch,
         updatedAt: new Date().toISOString(),
         updatedBy: auth.currentUser?.uid ?? '',
       })

@@ -15,11 +15,13 @@ export function useAuth() {
   const [empresaId,  setEmpresaId]  = useState(null)
   const [nombre,     setNombre]     = useState(null)
   const [loading,    setLoading]    = useState(true)
+  const [authError,  setAuthError]  = useState(null)
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         setUser(firebaseUser)
+        setAuthError(null)
         try {
           const docRef  = doc(db, 'usuarios', firebaseUser.uid)
           const docSnap = await getDoc(docRef)
@@ -29,8 +31,10 @@ export function useAuth() {
           setEmpresaId(data.empresaId || null)
           setNombre(data.nombre || null)
         } catch (e) {
-          console.error('Error obteniendo rol:', e)
-          setRole('operador')
+          // No asignar rol por defecto ante error de red — mostrar error y pedir re-login.
+          console.error('Error obteniendo perfil de usuario:', e)
+          setAuthError('No se pudo cargar tu perfil. Verifica tu conexión y vuelve a iniciar sesión.')
+          setRole(null)
           setTeamId(null)
           setEmpresaId(null)
           setNombre(null)
@@ -41,6 +45,7 @@ export function useAuth() {
         setTeamId(null)
         setEmpresaId(null)
         setNombre(null)
+        setAuthError(null)
       }
       setLoading(false)
     })
@@ -61,5 +66,5 @@ export function useAuth() {
     await firebaseSignOut(auth)
   }
 
-  return { user, role, teamId, empresaId, nombre, loading, signIn, signOut }
+  return { user, role, teamId, empresaId, nombre, loading, authError, signIn, signOut }
 }

@@ -39,6 +39,10 @@ export default function ImportarCSV({ onImportar, onCerrar }) {
     const file = e.target.files[0]
     if (!file) return
     setErrorArchivo('')
+    if (file.size > 500 * 1024) {
+      setErrorArchivo('El archivo no debe superar 500 KB.')
+      return
+    }
     const reader = new FileReader()
     reader.onload = (ev) => {
       try {
@@ -47,9 +51,24 @@ export default function ImportarCSV({ onImportar, onCerrar }) {
           setErrorArchivo('No se encontraron operadores en el archivo. Verifica el formato.')
           return
         }
-        // Agregar campos editables con defaults
+        if (parsed.length > 200) {
+          setErrorArchivo('El archivo contiene más de 200 operadores. Divídelo en partes.')
+          return
+        }
+        const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+        const rutRe   = /^\d{1,8}-[\dkK]$/
+        const invalidos = parsed.filter(op =>
+          !emailRe.test(op.correoCorporativo?.trim() ?? '') ||
+          (op.rut && !rutRe.test(op.rut?.trim() ?? ''))
+        )
+        if (invalidos.length > 0) {
+          setErrorArchivo(
+            `${invalidos.length} fila(s) con correo o RUT inválido: ${invalidos.slice(0, 3).map(o => o.nombre || o.correoCorporativo).join(', ')}${invalidos.length > 3 ? '…' : ''}`
+          )
+          return
+        }
         setFilas(parsed.map(op => ({ ...op, esRelevo: false, estado: 'pendiente', password: '', incluir: true })))
-      } catch (err) {
+      } catch {
         setErrorArchivo('Error al leer el archivo. Asegúrate de exportar como CSV.')
       }
     }

@@ -37,12 +37,13 @@ export default function CentrosPage() {
   const [resultado, setResultado]       = useState(null)
 
   useEffect(() => {
+    if (role !== 'admin' && role !== 'supervisor') return
     getDocs(collection(db, 'usuarios')).then(snap => {
       const lista = snap.docs.map(d => ({ uid: d.id, ...d.data() }))
       setTeams(lista.filter(u => u.rol === 'operador'))
       setUsuarios(lista)
     })
-  }, [])
+  }, [role])
 
   const handleSincronizar = async () => {
     setCargandoSync(true)
