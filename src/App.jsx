@@ -60,7 +60,7 @@ function AnimatedRoutes() {
       <Route path="/login" element={<PublicRoute user={user} loading={loading}><Login /></PublicRoute>} />
       <Route path="/" element={<PrivateRoute user={user} role={role} loading={loading} authError={authError} signOut={signOut}><MainLayout /></PrivateRoute>}>
         <Route index element={<MapaPage />} />
-        <Route path="centros"    element={<RoleRoute roles={['admin']} role={role} loading={loading}><CentrosPage /></RoleRoute>} />
+        <Route path="centros"    element={<RoleRoute roles={['admin', 'supervisor']} role={role} loading={loading}><CentrosPage /></RoleRoute>} />
         <Route path="despachos"  element={<DespachosPage />} />
         <Route path="operadores" element={<OperadoresPage />} />
         <Route path="bitacoras"       element={<BitacorasPage />} />

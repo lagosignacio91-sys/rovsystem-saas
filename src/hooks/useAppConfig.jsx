@@ -10,7 +10,7 @@ import { doc, onSnapshot, setDoc } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import {
   TABS_DEFAULT, NAV_DEFAULT, BRANDING_DEFAULT, LISTAS_DEFAULT, CAMPOS_OPERADOR_DEFAULT,
-  resolverLista, nivelPermiso,
+  resolverLista, nivelPermiso, NAV_META,
 } from '../config/appDefaults'
 
 const AppConfigContext = createContext(null)
@@ -67,7 +67,11 @@ export function AppConfigProvider({ children }) {
   useEffect(() => { aplicarBranding(branding) }, [branding])
 
   const tabs = useMemo(() => resolverLista(TABS_DEFAULT, raw?.tabs), [raw])
-  const nav  = useMemo(() => resolverLista(NAV_DEFAULT, raw?.nav), [raw])
+  const nav  = useMemo(() => {
+    const resolved = resolverLista(NAV_DEFAULT, raw?.nav)
+    // Items con restricción de roles nunca se ocultan — el filtro de rol maneja el acceso
+    return resolved.map(item => NAV_META[item.id]?.roles ? { ...item, hidden: false } : item)
+  }, [raw])
 
   // Listas con add/remove (no solo reorden): usar config si existe, si no el default.
   const listas = useMemo(() => ({
