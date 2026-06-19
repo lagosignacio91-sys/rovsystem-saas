@@ -1,6 +1,4 @@
-import { useState, useEffect } from 'react'
-import { db } from '../../lib/firebase'
-import { doc, onSnapshot } from 'firebase/firestore'
+import { useState } from 'react'
 import { useDespachos } from '../../hooks/useDespachos'
 
 function ModalSeleccionItems({ items, onConfirmar, onCerrar }) {
@@ -170,33 +168,8 @@ function DespachoCard({ d, role, onMarcarEnviado, onConfirmarRecepcion, onElimin
 }
 
 export default function PanelDespacho({ centro, role, sincronizarEstado }) {
-  const { despachos, cargando, crearDespacho, marcarEnviado, confirmarRecepcion, eliminarDespacho } = useDespachos(centro.id)
-  const [itemsPendientes, setItemsPendientes] = useState([])
-  const [modalItems, setModalItems]           = useState(false)
-
-  useEffect(() => {
-    let herLista = []
-    let insLista = []
-
-    const actualizar = () => {
-      const items = [
-        ...herLista.filter(h => h.solicitado || h.cantidad === 0).map(h => ({ ...h, tipo: 'Herramienta' })),
-        ...insLista.filter(i => i.solicitado || i.cantidad === 0).map(i => ({ ...i, tipo: 'Insumo' })),
-      ]
-      setItemsPendientes(items)
-    }
-
-    const unsubHer = onSnapshot(doc(db, 'centros', centro.id, 'datos', 'herramientas'), snap => {
-      herLista = snap.exists() ? (snap.data().lista ?? []) : []
-      actualizar()
-    })
-    const unsubIns = onSnapshot(doc(db, 'centros', centro.id, 'datos', 'insumos'), snap => {
-      insLista = snap.exists() ? (snap.data().lista ?? []) : []
-      actualizar()
-    })
-
-    return () => { unsubHer(); unsubIns() }
-  }, [centro.id])
+  const { despachos, itemsPendientes, cargando, crearDespacho, marcarEnviado, confirmarRecepcion, eliminarDespacho } = useDespachos(centro.id)
+  const [modalItems, setModalItems] = useState(false)
 
   const handleGenerarDespacho = async (itemsSeleccionados) => {
     await crearDespacho({ centroId: centro.id, centroNombre: centro.nombre, items: itemsSeleccionados })
