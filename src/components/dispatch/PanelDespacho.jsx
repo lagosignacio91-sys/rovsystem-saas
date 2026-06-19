@@ -172,7 +172,7 @@ export default function PanelDespacho({ centro, role, sincronizarEstado }) {
   const [modalItems, setModalItems] = useState(false)
 
   const handleGenerarDespacho = async (itemsSeleccionados) => {
-    await crearDespacho({ centroId: centro.id, centroNombre: centro.nombre, items: itemsSeleccionados })
+    await crearDespacho({ centroId: centro.id, centroNombre: centro.nombre, items: itemsSeleccionados, teamAsignado: centro.teamAsignado ?? null })
     setModalItems(false)
   }
 

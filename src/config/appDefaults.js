@@ -7,7 +7,7 @@
 // código, indexados por `id`. Si la config no existe o le falta un id,
 // se cae a estos defaults y la app nunca queda rota.
 // ============================================================
-import { UserCog, Ship, Layers, Package, ClipboardCheck, BookOpen, Map, Building2, Users, Warehouse } from 'lucide-react'
+import { UserCog, Ship, Layers, Package, ClipboardCheck, BookOpen, Map, Building2, Users, Warehouse, BarChart2 } from 'lucide-react'
 
 // ---- Pestañas del panel de centro ----
 export const TABS_DEFAULT = [
@@ -39,6 +39,7 @@ export const NAV_DEFAULT = [
   { id: '/turnos',            label: 'Turnos' },
   { id: '/bodega-virtual',    label: 'Bodega' },
   { id: '/bodega-admin',      label: 'Bodega' },
+  { id: '/reportes',          label: 'Reportes' },
 ]
 
 // `roles` = qué roles ven el ítem en el menú. Si falta, lo ven todos.
@@ -52,6 +53,7 @@ export const NAV_META = {
   '/turnos':          { to: '/turnos',          icon: ClipboardCheck },
   '/bodega-virtual':  { to: '/bodega-virtual',  icon: Warehouse,    roles: ['supervisor'] },
   '/bodega-admin':    { to: '/bodega-admin',    icon: Warehouse,    roles: ['admin'] },
+  '/reportes':        { to: '/reportes',        icon: BarChart2,    roles: ['admin', 'supervisor'] },
 }
 
 // ---- Marca ----

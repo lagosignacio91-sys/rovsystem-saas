@@ -50,12 +50,13 @@ export function useDespachos(centroId) {
     return () => { unsubHer(); unsubIns() }
   }, [centroId])
 
-  const crearDespacho = async ({ centroId, centroNombre, items }) => {
+  const crearDespacho = async ({ centroId, centroNombre, items, teamAsignado }) => {
     const uid = auth.currentUser?.uid ?? null
     const ts  = new Date().toISOString()
     await addDoc(collection(db, 'despachos'), {
       centroId,
       centroNombre,
+      teamAsignado: teamAsignado ?? null,
       items,
       estado:    'pendiente',
       creadoEn:  ts,

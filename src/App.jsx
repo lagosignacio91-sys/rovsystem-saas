@@ -12,6 +12,7 @@ import BitacorasPage  from './pages/BitacorasPage'
 import TurnosPage     from './pages/TurnosPage'
 import BodegaVirtualPage from './pages/BodegaVirtualPage'
 import BodegaAdminPage   from './pages/BodegaAdminPage'
+import ReportesPage      from './pages/ReportesPage'
 
 function PantallaCarga({ error, onRelogin }) {
   return (
@@ -68,6 +69,7 @@ function AnimatedRoutes() {
         <Route path="turnos"          element={<TurnosPage />} />
         <Route path="bodega-virtual"  element={<RoleRoute roles={['supervisor']} role={role} loading={loading}><BodegaVirtualPage /></RoleRoute>} />
         <Route path="bodega-admin"    element={<RoleRoute roles={['admin']}      role={role} loading={loading}><BodegaAdminPage   /></RoleRoute>} />
+        <Route path="reportes"        element={<RoleRoute roles={['admin', 'supervisor']} role={role} loading={loading}><ReportesPage /></RoleRoute>} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

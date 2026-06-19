@@ -125,8 +125,8 @@ function GrupoCentro({ nombre, despachos, role, marcarEnviado, onAbrirRecepcion,
 }
 
 export default function DespachosPage() {
-  const { role, centros, empresaActiva } = useOutletContext()
-  const { despachos, cargando, marcarEnviado, confirmarRecepcion, eliminarDespacho } = useDespachosGlobal()
+  const { role, centros, empresaActiva, teamId } = useOutletContext()
+  const { despachos, cargando, marcarEnviado, confirmarRecepcion, eliminarDespacho } = useDespachosGlobal({ role, teamId })
   const [filtro,          setFiltro]          = useState('todos')
   const [aEliminar,       setAEliminar]       = useState(null)
   const [despachoRecibir, setDespachoRecibir] = useState(null)

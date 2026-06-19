@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { ChevronDown, ChevronRight, Plus, AlertCircle, Trash2 } from 'lucide-react'
+import { ChevronDown, ChevronRight, Plus, AlertCircle, Trash2, AlertTriangle } from 'lucide-react'
+import { Button, Modal } from '../components/kit'
 import { t } from '../theme/tokens'
 import { useAuth } from '../hooks/useAuth'
 import { useBodegaCentral } from '../hooks/useBodegaCentral'
@@ -39,7 +40,7 @@ function Card({ children, style }) {
   )
 }
 
-function ModelRow({ modelo, eq, onAgregar, onCambiarEstado, onEliminarUnidad }) {
+function ModelRow({ modelo, eq, onAgregar, onCambiarEstado, onEliminarUnidad, pedirConfirm }) {
   const [expanded, setExpanded] = useState(false)
   const operativos = eq?.totalOperativos ?? 0
   const conFalla   = eq?.totalConFalla ?? 0
@@ -80,7 +81,7 @@ function ModelRow({ modelo, eq, onAgregar, onCambiarEstado, onEliminarUnidad }) 
                     Marcar con falla
                   </button>
                   <button
-                    onClick={() => { if (window.confirm(`¿Eliminar ${modelo} — ${u.serial} de la bodega?`)) onEliminarUnidad(modelo, u.serial) }}
+                    onClick={() => pedirConfirm(`¿Eliminar ${modelo} — ${u.serial} de la bodega?`, () => onEliminarUnidad(modelo, u.serial))}
                     style={{ background: 'none', border: 'none', cursor: 'pointer', color: t.textMuted, display: 'flex', alignItems: 'center', padding: 2 }}
                     title="Eliminar unidad"
                   >
@@ -102,7 +103,7 @@ function ModelRow({ modelo, eq, onAgregar, onCambiarEstado, onEliminarUnidad }) 
   )
 }
 
-function RepuestoModelRow({ modelo, repuestos, onEditarCantidad, onEliminarRepuesto }) {
+function RepuestoModelRow({ modelo, repuestos, onEditarCantidad, onEliminarRepuesto, pedirConfirm }) {
   const [expanded, setExpanded] = useState(false)
   const reps = repuestos.filter(r => r.modeloEquipo === modelo)
 
@@ -132,7 +133,7 @@ function RepuestoModelRow({ modelo, repuestos, onEditarCantidad, onEliminarRepue
                   <span style={{ fontSize: t.textSm, fontWeight: 700, color: t.textPrimary, minWidth: 24, textAlign: 'center' }}>{r.cantidad}</span>
                   <button onClick={() => onEditarCantidad(r.id, +1)} style={{ width: 24, height: 24, border: `1px solid ${t.border}`, borderRadius: t.radiusSm, background: t.bgElevated, cursor: 'pointer', color: 'var(--gl-ok)', fontWeight: 700, fontSize: 14 }}>+</button>
                   <button
-                    onClick={() => { if (window.confirm(`¿Eliminar repuesto "${r.nombre}"?`)) onEliminarRepuesto(r.id) }}
+                    onClick={() => pedirConfirm(`¿Eliminar repuesto "${r.nombre}"?`, () => onEliminarRepuesto(r.id))}
                     style={{ background: 'none', border: 'none', cursor: 'pointer', color: t.textMuted, display: 'flex', alignItems: 'center', padding: 2 }}
                     title="Eliminar repuesto"
                   >
@@ -169,6 +170,10 @@ export default function BodegaVirtualPage() {
   const [modalDespacho,         setModalDespacho]         = useState(false)
   const [equipoSel,             setEquipoSel]             = useState(null)
   const [solicitudSel,          setSolicitudSel]          = useState(null)
+  const [confirm,               setConfirm]               = useState(null)  // { msg, onOk }
+  const [stockWarning,          setStockWarning]          = useState(null)  // { solicitud, items con ✗ }
+
+  const pedirConfirm = (msg, onOk) => setConfirm({ msg, onOk })
 
   if (authLoading) return null
 
@@ -206,8 +211,17 @@ export default function BodegaVirtualPage() {
       centroNombre: d.centroNombre,
       fechaSolicitud: d.creadoEn,
     }
-    setSolicitudSel(solicitudMapeada)
-    setModalDespacho(true)
+    // C3: advertir si algún ítem no tiene stock suficiente
+    const sinStock = solicitudMapeada.itemsSolicitados.filter(item => {
+      const flag = getFlag(item.nombre, item.cantidad)
+      return flag && flag.label === '✗'
+    })
+    if (sinStock.length > 0) {
+      setStockWarning({ solicitud: solicitudMapeada, sinStock })
+    } else {
+      setSolicitudSel(solicitudMapeada)
+      setModalDespacho(true)
+    }
   }
 
   const handleDespachar = async (despachoId, itemsDespachados, comentario, fotos, transportista) => {
@@ -243,6 +257,7 @@ export default function BodegaVirtualPage() {
               onAgregar={handleAbrirAgregarEquipo}
               onCambiarEstado={(eq) => { setEquipoSel(eq); setModalCambiarEstado(true) }}
               onEliminarUnidad={eliminarUnidadEquipo}
+              pedirConfirm={pedirConfirm}
             />
           ))}
         </Card>
@@ -274,7 +289,7 @@ export default function BodegaVirtualPage() {
                     Marcar Operativo
                   </button>
                   <button
-                    onClick={() => { if (window.confirm(`¿Eliminar ${eq.modelo} — ${eq.serial} de la bodega?`)) eliminarUnidadEquipo(eq.modelo, eq.serial) }}
+                    onClick={() => pedirConfirm(`¿Eliminar ${eq.modelo} — ${eq.serial} de la bodega?`, () => eliminarUnidadEquipo(eq.modelo, eq.serial))}
                     style={{ background: 'none', border: `1px solid var(--gl-fault)`, borderRadius: t.radiusSm, cursor: 'pointer', color: 'var(--gl-fault)', padding: '5px 7px', display: 'flex', alignItems: 'center' }}
                     title="Eliminar equipo"
                   >
@@ -296,6 +311,7 @@ export default function BodegaVirtualPage() {
               repuestos={repuestos}
               onEditarCantidad={editarRepuestoCantidad}
               onEliminarRepuesto={eliminarRepuesto}
+              pedirConfirm={pedirConfirm}
             />
           ))}
         </Card>
@@ -338,7 +354,7 @@ export default function BodegaVirtualPage() {
                         </td>
                         <td style={{ padding: '10px 8px', textAlign: 'center' }}>
                           <button
-                            onClick={() => { if (window.confirm(`¿Eliminar "${item.nombre}"?`)) eliminarHerramientaInsumo(item.id) }}
+                            onClick={() => pedirConfirm(`¿Eliminar "${item.nombre}"?`, () => eliminarHerramientaInsumo(item.id))}
                             style={{ background: 'none', border: 'none', cursor: 'pointer', color: t.textMuted, display: 'flex', alignItems: 'center', margin: '0 auto' }}
                             title="Eliminar item"
                           >
@@ -431,6 +447,47 @@ export default function BodegaVirtualPage() {
         solicitud={solicitudSel}
         onDespachar={handleDespachar}
       />
+
+      {/* Modal confirmación (reemplaza window.confirm) */}
+      {confirm && (
+        <Modal open title="Confirmar" onClose={() => setConfirm(null)} maxWidth={320}
+          footer={<>
+            <Button variant="secondary" size="lg" onClick={() => setConfirm(null)}>Cancelar</Button>
+            <Button variant="primary" size="lg" style={{ background: 'var(--gl-fault)' }}
+              onClick={() => { confirm.onOk(); setConfirm(null) }}>Eliminar</Button>
+          </>}>
+          <p style={{ color: t.textSecondary, fontSize: t.textSm, margin: 0 }}>{confirm.msg}</p>
+        </Modal>
+      )}
+
+      {/* Modal advertencia de stock insuficiente (C3) */}
+      {stockWarning && (
+        <Modal open title="Stock insuficiente" onClose={() => setStockWarning(null)} maxWidth={360}
+          footer={<>
+            <Button variant="secondary" size="lg" onClick={() => setStockWarning(null)}>Cancelar</Button>
+            <Button size="lg" style={{ background: 'var(--gl-low)', color: '#000' }}
+              onClick={() => { setSolicitudSel(stockWarning.solicitud); setModalDespacho(true); setStockWarning(null) }}>
+              Despachar de todas formas
+            </Button>
+          </>}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--gl-low)' }}>
+              <AlertTriangle size={18} />
+              <span style={{ fontWeight: 600, fontSize: t.textSm }}>Los siguientes ítems están agotados:</span>
+            </div>
+            <ul style={{ margin: 0, paddingLeft: 20 }}>
+              {stockWarning.sinStock.map((item, i) => (
+                <li key={i} style={{ fontSize: t.textSm, color: t.textPrimary, marginBottom: 4 }}>
+                  {item.nombre} × {item.cantidad}
+                </li>
+              ))}
+            </ul>
+            <p style={{ fontSize: t.textXs, color: t.textMuted, margin: 0 }}>
+              Puedes despachar de todas formas si el stock se repondrá antes del envío, o cancelar para reponer primero.
+            </p>
+          </div>
+        </Modal>
+      )}
     </div>
   )
 }

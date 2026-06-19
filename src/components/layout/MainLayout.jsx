@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { LogOut, Menu, X, Clock, SlidersHorizontal } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
@@ -12,13 +12,24 @@ import { useReloj } from '../../hooks/useReloj'
 import ThemeToggle from '../kit/ThemeToggle'
 import SelectorEmpresa from '../ui/SelectorEmpresa'
 import ModalPersonalizar from '../admin/ModalPersonalizar'
+import { ToastProvider, toast } from '../ui/Toast'
 import './layout.css'
 
 export default function MainLayout() {
   const { user, role, teamId, empresaId, nombre, signOut } = useAuth()
   const { nav, branding }       = useAppConfig()
   const centrosState            = useCentros()
-  const { pendientes }          = useDespachosGlobal()
+
+  const onNuevaSolicitud = useCallback((d) => {
+    toast.solicitud(`Nueva solicitud de ${d.centroNombre ?? 'un centro'}`)
+  }, [])
+  const onDespachoCambia = useCallback((d) => {
+    if (role === 'operador' && (d.estado === 'enviado' || d.estado === 'parcial')) {
+      toast.despacho(`Despacho en camino a ${d.centroNombre ?? 'tu centro'}`)
+    }
+  }, [role])
+
+  const { pendientes } = useDespachosGlobal({ role, teamId, onNuevaSolicitud, onDespachoCambia })
   const { empresas }            = useEmpresas()
   const [empresaActiva, setEmpresaActiva] = useState(null)
   const [drawerOpen, setDrawerOpen]       = useState(false)
@@ -145,6 +156,7 @@ export default function MainLayout() {
       </div>
 
       {personalizar && <ModalPersonalizar onCerrar={() => setPersonalizar(false)} />}
+      <ToastProvider />
     </div>
   )
 }

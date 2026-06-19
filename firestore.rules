@@ -89,10 +89,13 @@ service cloud.firestore {
     match /despachos/{id} {
       allow read:          if signedIn();
       allow create:        if isAdmin() || isSupervisor();
-      // El operador solo confirma recepción (campos acotados); admin/taller, todo.
+      // El operador solo confirma recepción (campos acotados) y SOLO de su propio team.
       allow update:        if isAdmin() || isSupervisor()
-        || (isOperador() && request.resource.data.diff(resource.data).affectedKeys()
-              .hasOnly(['estado', 'observacion', 'recibidoEn', 'recibidoPor', 'historial', 'stockAplicado']));
+        || (isOperador()
+            && request.resource.data.diff(resource.data).affectedKeys()
+                 .hasOnly(['estado', 'observacion', 'recibidoEn', 'recibidoPor', 'historial', 'stockAplicado'])
+            && resource.data.teamAsignado
+               == get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.teamId);
       allow delete:        if isAdmin() || isSupervisor();
     }
 
