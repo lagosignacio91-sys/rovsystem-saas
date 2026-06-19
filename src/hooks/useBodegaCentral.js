@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { db } from '../lib/firebase'
 import { collection, onSnapshot, updateDoc, deleteDoc, doc, getDoc, setDoc, increment } from 'firebase/firestore'
 
@@ -61,27 +61,21 @@ export function useBodegaCentral() {
       const equipoSnap = await getDoc(equipoRef)
       if (!equipoSnap.exists()) throw new Error(`Equipo ${modelo} no encontrado`)
 
-      const data      = equipoSnap.data()
-      let unidades    = [...(data.unidades || [])]
-      let totalOperativos = data.totalOperativos || 0
-      let totalConFalla   = data.totalConFalla   || 0
+      const data     = equipoSnap.data()
+      const unidades = [...(data.unidades || [])]
 
       const idx = unidades.findIndex(u => u.serial === serial)
       if (idx === -1) throw new Error(`Unidad ${serial} no encontrada`)
 
-      const oldUnit = unidades[idx]
-      if (oldUnit.estado === 'operativo') totalOperativos--
-      else if (oldUnit.estado === 'conFalla') totalConFalla--
-
       unidades[idx] = {
-        ...oldUnit,
+        ...unidades[idx],
         estado:        nuevoEstado,
         detallesFalla: nuevoEstado === 'conFalla' ? (detallesFalla || null) : null,
         desde:         new Date().toISOString(),
       }
 
-      if (nuevoEstado === 'operativo') totalOperativos++
-      else if (nuevoEstado === 'conFalla') totalConFalla++
+      const totalOperativos = unidades.filter(u => u.estado === 'operativo').length
+      const totalConFalla   = unidades.filter(u => u.estado === 'conFalla').length
 
       await setDoc(equipoRef, { ...data, unidades, totalOperativos, totalConFalla, updatedAt: new Date().toISOString() })
     } catch (e) {
@@ -149,19 +143,10 @@ export function useBodegaCentral() {
       const equipoSnap = await getDoc(equipoRef)
       if (!equipoSnap.exists()) throw new Error(`Equipo ${modelo} no encontrado`)
 
-      const data = equipoSnap.data()
-      let unidades        = data.unidades || []
-      let totalOperativos = data.totalOperativos || 0
-      let totalConFalla   = data.totalConFalla   || 0
-
-      const idx = unidades.findIndex(u => u.serial === serial)
-      if (idx === -1) throw new Error(`Unidad ${serial} no encontrada`)
-
-      const old = unidades[idx]
-      if (old.estado === 'operativo') totalOperativos--
-      else if (old.estado === 'conFalla') totalConFalla--
-
-      const nuevasUnidades = unidades.filter((_, i) => i !== idx)
+      const data           = equipoSnap.data()
+      const nuevasUnidades = (data.unidades || []).filter(u => u.serial !== serial)
+      const totalOperativos = nuevasUnidades.filter(u => u.estado === 'operativo').length
+      const totalConFalla   = nuevasUnidades.filter(u => u.estado === 'conFalla').length
 
       if (nuevasUnidades.length === 0) {
         await deleteDoc(equipoRef)
@@ -195,7 +180,7 @@ export function useBodegaCentral() {
   }
 
   // ── DESPACHO: descontar stock por nombre (match contra repuestos y herramientas/insumos) ──
-  const descontarStockDespacho = async (items) => {
+  const descontarStockDespacho = useCallback(async (items) => {
     for (const item of items) {
       const nombre = item.nombre?.toLowerCase()
       if (!nombre) continue
@@ -216,7 +201,7 @@ export function useBodegaCentral() {
         })
       }
     }
-  }
+  }, [repuestos, herramientasInsumos])
 
   return {
     equipos, repuestos, herramientasInsumos, cargando,

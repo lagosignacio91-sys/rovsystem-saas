@@ -26,7 +26,7 @@ export function useAuth() {
           const docRef  = doc(db, 'usuarios', firebaseUser.uid)
           const docSnap = await getDoc(docRef)
           const data    = docSnap.exists() ? docSnap.data() : {}
-          setRole(data.rol || 'operador')
+          setRole((data.rol || 'operador').toLowerCase())
           setTeamId(data.teamId || null)
           setEmpresaId(data.empresaId || null)
           setNombre(data.nombre || null)
