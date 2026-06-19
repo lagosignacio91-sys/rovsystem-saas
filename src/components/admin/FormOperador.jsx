@@ -147,6 +147,24 @@ export default function FormOperador({ inicial, esEdicion, onGuardar, onCerrar }
           </div>
         </div>
 
+        {/* Acceso móvil (licencia por usuario) */}
+        <div style={styles.movilBox}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={form.movilHabilitado ?? false}
+              onChange={e => set('movilHabilitado', e.target.checked)}
+              style={{ accentColor: '#22c55e', width: '18px', height: '18px' }}
+            />
+            <span>
+              <span style={{ display: 'block', color: '#f1f5f9', fontSize: '13px', fontWeight: 600 }}>📱 Acceso móvil habilitado</span>
+              <span style={{ display: 'block', color: '#64748b', fontSize: '11px', marginTop: '2px' }}>
+                Permite usar la app en teléfono. Si está apagado, en el celular verá la pantalla para contratar.
+              </span>
+            </span>
+          </label>
+        </div>
+
         {errorLocal && <p style={styles.error}>{errorLocal}</p>}
 
         <div style={styles.btns}>
@@ -176,6 +194,7 @@ const styles = {
   input:        { width: '100%', background: '#0f172a', border: '1px solid #334155', borderRadius: '8px', color: '#f1f5f9', fontSize: '13px', padding: '8px 10px', outline: 'none', boxSizing: 'border-box' },
   select:       { width: '100%', background: '#0f172a', border: '1px solid #334155', borderRadius: '8px', color: '#f1f5f9', fontSize: '13px', padding: '8px 10px', outline: 'none', boxSizing: 'border-box' },
   fila:         { display: 'flex', gap: '12px', marginBottom: '12px' },
+  movilBox:     { marginBottom: '12px', background: '#0f172a', border: '1px solid #334155', borderRadius: '8px', padding: '12px' },
   error:        { color: '#ef4444', fontSize: '12px', marginBottom: '12px', background: '#1f0a0a', border: '1px solid #7f1d1d', borderRadius: '6px', padding: '8px 10px' },
   btns:         { display: 'flex', gap: '12px', marginTop: '16px' },
   btnCancelar:  { flex: 1, background: 'transparent', border: '1px solid #334155', color: '#94a3b8', borderRadius: '8px', padding: '9px', cursor: 'pointer', fontSize: '13px' },

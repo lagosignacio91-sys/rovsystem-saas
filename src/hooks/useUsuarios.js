@@ -30,6 +30,7 @@ export function useUsuarios() {
           foto:               datos.foto               ?? null,
           teamId:             datos.teamId             ?? null,
           empresaId:          datos.empresaId          ?? null,
+          movilHabilitado:    datos.movilHabilitado    ?? false,
           esRelevo:           datos.esRelevo           ?? false,
           area:               datos.area               ?? '',
           proveedor:          datos.proveedor          ?? '',
@@ -63,7 +64,7 @@ export function useUsuarios() {
       const CAMPOS_EDITABLES = [
         'nombre', 'rut', 'telefono', 'correoCorporativo', 'foto',
         'teamId', 'empresaId', 'esRelevo', 'area', 'proveedor', 'estado', 'rol',
-        'passwordCambiado',
+        'passwordCambiado', 'movilHabilitado',
       ]
       const patch = Object.fromEntries(
         Object.entries(datos).filter(([k]) => CAMPOS_EDITABLES.includes(k))

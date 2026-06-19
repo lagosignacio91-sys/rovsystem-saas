@@ -173,6 +173,9 @@ export default function OperadoresPage() {
                       <div style={{ fontSize: t.textSm, fontWeight: 600, color: t.textPrimary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.nombre || '(sin nombre)'}</div>
                       <div style={{ fontSize: 10, color: t.textMuted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.correoCorporativo}</div>
                     </div>
+                    {u.movilHabilitado && (
+                      <span title="Acceso móvil activo" style={{ fontSize: 12, flexShrink: 0 }}>📱</span>
+                    )}
                     <span style={{ fontSize: 10, fontWeight: 700, color: t.brandSoft, background: t.brandTint, borderRadius: t.radiusFull, padding: '2px 8px', flexShrink: 0 }}>{ROL_LABEL[u.rol] ?? u.rol}</span>
                     <button onClick={() => setEditUser(u)} title="Editar" style={{ background: 'none', border: `1px solid ${t.border}`, borderRadius: t.radiusSm, color: t.textSecondary, cursor: 'pointer', padding: 5, display: 'flex' }}>
                       <Pencil size={13} />

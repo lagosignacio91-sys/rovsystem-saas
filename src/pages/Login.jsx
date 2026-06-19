@@ -2,11 +2,14 @@ import { useState } from 'react'
 import { Mail, Lock, Eye, EyeOff, ArrowRight, AlertCircle, Download, Share, CheckCircle2, X } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { useInstallPrompt } from '../hooks/useInstallPrompt'
+import { useAppConfig } from '../hooks/useAppConfig'
 import { t } from '../theme/tokens'
 import ThemeToggle from '../components/kit/ThemeToggle'
 
 export default function Login() {
   const { signIn } = useAuth()
+  const { branding } = useAppConfig()
+  const cliente = branding.appName && branding.appName !== 'GL App' ? branding.appName : 'GL Robótica'
   const { instalable, instalada, esIOS, instalar } = useInstallPrompt()
   const [email, setEmail]       = useState('')
   const [password, setPassword] = useState('')
@@ -36,9 +39,12 @@ export default function Login() {
 
       <div className="gl-glass" style={s.card}>
         <div style={s.head}>
-          <div style={s.logoWrap}><img src="/logo.png" alt="GL Robótica Submarina" style={s.logo} /></div>
-          <h1 className="gl-display" style={s.title}>GL App</h1>
-          <p className="gl-label" style={s.sub}>Robótica Submarina · Aysén</p>
+          <div style={s.logoWrap}>
+            <img src="/hyperionx-symbol.png" alt="HyperionX" style={s.logo}
+              onError={(e) => { e.currentTarget.src = '/logo.png' }} />
+          </div>
+          <h1 className="gl-display" style={s.title}>RovSystem</h1>
+          <p className="gl-label" style={s.sub}>Licenciado para {cliente}</p>
         </div>
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -120,12 +126,20 @@ const s = {
   wrapper: {
     minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
     position: 'relative', overflow: 'hidden', padding: 20,
-    background: `linear-gradient(rgba(6,13,26,0.55), rgba(6,13,26,0.78)), url('/login-bg.jpg') center/cover no-repeat, ${t.bgBase}`,
+    background: `linear-gradient(rgba(3,7,15,0.45), rgba(3,7,15,0.68)), url('/fifish-ego.jpg') center/cover no-repeat, ${t.bgBase}`,
   },
-  card:    { position: 'relative', zIndex: 1, borderRadius: t.radiusXl, padding: 32, width: '100%', maxWidth: 380, boxShadow: t.shadowLg },
+  card:    {
+    position: 'relative', zIndex: 1, borderRadius: t.radiusXl, padding: 32, width: '100%', maxWidth: 380,
+    boxShadow: t.shadowLg,
+    // Login translúcido: se ve el E-Go de fondo a través del vidrio esmerilado.
+    background: 'rgba(6,13,26,0.40)',
+    backdropFilter: 'blur(20px) saturate(1.4)',
+    WebkitBackdropFilter: 'blur(20px) saturate(1.4)',
+    border: '1px solid rgba(255,255,255,0.12)',
+  },
   head:    { textAlign: 'center', marginBottom: 24 },
-  logoWrap:{ width: 84, height: 84, borderRadius: '50%', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px', padding: 8, boxShadow: t.shadowMd },
-  logo:    { width: '100%', height: '100%', objectFit: 'contain' },
+  logoWrap:{ width: 128, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' },
+  logo:    { width: '100%', height: 'auto', objectFit: 'contain', display: 'block', filter: 'drop-shadow(0 4px 14px rgba(0,0,0,0.55))' },
   title:   { color: t.textPrimary, fontSize: 30, fontWeight: 700, margin: '0 0 6px' },
   sub:     { color: t.accentSoft, margin: 0 },
   label:   { color: t.textSecondary, fontSize: t.textXs, fontWeight: 500, display: 'block', marginBottom: 5 },

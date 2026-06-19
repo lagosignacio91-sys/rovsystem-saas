@@ -309,7 +309,7 @@ export async function generarPDFEntrega(entrega) {
     doc.setFontSize(7)
     doc.setTextColor(150, 170, 190)
     doc.text(
-      `GL Robótica Submarina · Generado ${new Date().toLocaleString('es-CL')}`,
+      `Generado con RovSystem · HyperionX · ${new Date().toLocaleString('es-CL')}`,
       margin, H - 4
     )
     doc.text(`Página ${p} de ${totalPages}`, W - margin, H - 4, { align: 'right' })
@@ -357,6 +357,14 @@ export async function descargarPDFBitacora(bitacora, centro) {
     doc.text(lines, margin + 36, y)
     y += lines.length * 5 + 2
   }
+
+  // Pie de marca de la plataforma
+  const H = doc.internal.pageSize.getHeight()
+  doc.setDrawColor(200, 215, 230)
+  doc.line(margin, H - 8, W - margin, H - 8)
+  doc.setFontSize(7)
+  doc.setTextColor(150, 170, 190)
+  doc.text(`Generado con RovSystem · HyperionX · ${new Date().toLocaleString('es-CL')}`, margin, H - 4)
 
   const nombre = `Bitacora-${centro.nombre}-${bitacora.fecha?.replace(/\//g, '-') ?? 'GL'}.pdf`
   doc.save(nombre)

@@ -289,6 +289,24 @@ body {
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* ============================================================
+   Ajustes táctiles para móvil (< 900px)
+   - Inputs a 16px: evita el zoom-in automático de Safari iOS al
+     enfocar campos (cualquier font-size < 16px lo dispara). El
+     !important cubre también inputs con font-size inline.
+   - Botones de ícono a 44px: blanco de toque cómodo para el dedo.
+   ============================================================ */
+@media (max-width: 899px) {
+  input, textarea, select,
+  .gl-input, .gl-input--sm {
+    font-size: 16px !important;
+  }
+  .gl-icon-btn {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
+
+/* ============================================================
    Lenguaje táctico — Mission Control
    Detalles de glow, retícula HUD y acentos. Ligado a tokens,
    así que responde a ambos temas (dark/light).

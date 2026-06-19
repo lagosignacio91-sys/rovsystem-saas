@@ -107,6 +107,13 @@ export default function ModalPersonalizar({ onCerrar }) {
                 </button>
               )}
             </div>
+
+            <label style={{ ...s.lbl, marginTop: 12 }}>WhatsApp de contacto (versión móvil)</label>
+            <input value={marca.whatsappContacto ?? ''} onChange={(e) => setMarca((m) => ({ ...m, whatsappContacto: e.target.value }))}
+              style={s.textInput} placeholder="56912345678" inputMode="tel" />
+            <span style={{ fontSize: 11, color: t.textMuted, marginTop: 4, display: 'block' }}>
+              Número (con código país, sin +) que verá el cliente al contratar la versión móvil. Ej: 56912345678
+            </span>
           </Seccion>
 
           {/* ---- Menú principal ---- */}

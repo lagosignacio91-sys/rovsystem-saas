@@ -13,11 +13,14 @@ import ThemeToggle from '../kit/ThemeToggle'
 import SelectorEmpresa from '../ui/SelectorEmpresa'
 import ModalPersonalizar from '../admin/ModalPersonalizar'
 import { ToastProvider, toast } from '../ui/Toast'
+import MobileUpsell from './MobileUpsell'
+import { useIsMobile } from '../../hooks/useIsMobile'
 import './layout.css'
 
 export default function MainLayout() {
-  const { user, role, teamId, empresaId, nombre, signOut } = useAuth()
+  const { user, role, teamId, empresaId, nombre, movilHabilitado, signOut } = useAuth()
   const { nav, branding }       = useAppConfig()
+  const esMovil                 = useIsMobile(899)
   const centrosState            = useCentros()
 
   const onNuevaSolicitud = useCallback((d) => {
@@ -48,6 +51,17 @@ export default function MainLayout() {
   const usuarioLabel = nombre || user?.email?.split('@')[0] || ''
   const inicial = (usuarioLabel[0] ?? '?').toUpperCase()
   const badges  = { despachos: pendientes.length }
+
+  // Gate de licencia móvil: en teléfono, si el usuario no tiene acceso móvil,
+  // mostrar la pantalla de invitación a contratar (en computador entra normal).
+  if (esMovil && !movilHabilitado) {
+    return (
+      <>
+        <MobileUpsell branding={branding} nombre={nombre} correo={user?.email} onSignOut={signOut} />
+        <ToastProvider />
+      </>
+    )
+  }
 
   // Solo ítems visibles, ya ordenados; combina datos de config + meta de código.
   // Filtra además por rol: un ítem con `roles` solo se muestra si el rol actual está incluido.

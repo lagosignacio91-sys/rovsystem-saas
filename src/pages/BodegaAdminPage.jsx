@@ -3,6 +3,7 @@ import { ChevronDown, ChevronRight, AlertCircle } from 'lucide-react'
 import { t } from '../theme/tokens'
 import { useAuth } from '../hooks/useAuth'
 import { useBodegaCentral } from '../hooks/useBodegaCentral'
+import { useIsMobile } from '../hooks/useIsMobile'
 
 const MODELOS_EQUIPOS = ['DTG3', 'DTG2', 'Pivot', 'V6Plus', 'V6Expert', 'E-Go']
 
@@ -104,6 +105,7 @@ function RepuestoModelRowReadOnly({ modelo, repuestos }) {
 export default function BodegaAdminPage() {
   const { role, loading: authLoading } = useAuth()
   const { equipos, repuestos, herramientasInsumos } = useBodegaCentral()
+  const isMobile = useIsMobile()
 
   if (authLoading) return null
 
@@ -185,6 +187,26 @@ export default function BodegaAdminPage() {
           <SectionTitle title="🛠️ Herramientas / Insumos" />
           {herramientasInsumos.length === 0 ? (
             <p style={{ fontSize: t.textSm, color: t.textMuted, padding: '16px' }}>No hay items registrados</p>
+          ) : isMobile ? (
+            <div>
+              {herramientasInsumos.map(item => {
+                const est = ESTADO_COLOR[item.estado] || ESTADO_COLOR.disponible
+                return (
+                  <div key={item.id} style={{ borderBottom: `1px solid ${t.border}`, padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontWeight: 600, color: t.textPrimary, fontSize: t.textSm }}>{item.nombre}</div>
+                      <div style={{ color: t.textSecondary, fontSize: t.textXs, marginTop: 2 }}>{item.categoria}</div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+                      <span style={{ fontWeight: 700, color: t.textPrimary, fontSize: t.textBase }}>{item.cantidad}</span>
+                      <span style={{ padding: '2px 8px', borderRadius: t.radiusFull, fontSize: t.textXs, fontWeight: 700, background: est.bg, color: est.text }}>
+                        {est.label}
+                      </span>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: t.textSm }}>

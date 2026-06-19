@@ -17,7 +17,7 @@ import ReportesPage      from './pages/ReportesPage'
 function PantallaCarga({ error, onRelogin }) {
   return (
     <div style={carga.wrapper}>
-      <div style={carga.logoWrap}><img src="/logo.png" alt="RovSystem" style={carga.logo} /></div>
+      <div style={carga.logoWrap}><img src="/hyperionx-symbol.png" alt="RovSystem by HyperionX" style={carga.logo} onError={(e) => { e.currentTarget.src = '/logo.png' }} /></div>
       <div style={carga.titulo}>RovSystem</div>
       {error
         ? <div style={carga.error}>{error}<br /><button style={carga.btnRelogin} onClick={onRelogin}>Cerrar sesión</button></div>
@@ -29,8 +29,8 @@ function PantallaCarga({ error, onRelogin }) {
 
 const carga = {
   wrapper:    { minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 14, background: t.bgBase },
-  logoWrap:   { width: 110, height: 110, borderRadius: '50%', background: '#fff', padding: 8, boxShadow: t.shadowLg, animation: 'pulse 1.6s ease-in-out infinite' },
-  logo:       { width: '100%', height: '100%', objectFit: 'contain' },
+  logoWrap:   { width: 150, display: 'flex', alignItems: 'center', justifyContent: 'center', animation: 'pulse 1.6s ease-in-out infinite' },
+  logo:       { width: '100%', height: 'auto', objectFit: 'contain', filter: 'drop-shadow(0 4px 16px rgba(0,0,0,0.5))' },
   titulo:     { color: t.textPrimary, fontSize: t.textLg, fontWeight: 700, letterSpacing: '0.03em' },
   sub:        { color: t.brandSoft, fontSize: t.textSm },
   error:      { color: '#ef4444', fontSize: 13, textAlign: 'center', maxWidth: 320, lineHeight: 1.6 },

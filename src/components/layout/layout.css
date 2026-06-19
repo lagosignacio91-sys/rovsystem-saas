@@ -108,7 +108,7 @@
 
   .gl-bottomnav {
     display: flex;
-    height: 60px;
+    height: var(--gl-bottomnav-h);
     flex-shrink: 0;
     background: var(--gl-bg-surface);
     border-top: 1px solid var(--gl-border);
@@ -120,7 +120,7 @@
   .gl-bottomnav-item {
     flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
     gap: 3px; color: var(--gl-text-muted); background: transparent; border: none; cursor: pointer;
-    font-size: 9px; position: relative;
+    font-size: 11px; position: relative;
   }
   .gl-bottomnav-item.active { color: var(--gl-brand-soft); }
   .gl-bottomnav-item .gl-dot {
@@ -242,7 +242,7 @@
   .gl-panel-wrapper {
     position: fixed !important;
     top: auto !important;
-    bottom: calc(64px + var(--gl-safe-bottom)) !important;
+    bottom: calc(var(--gl-bottomnav-h) + var(--gl-safe-bottom)) !important;
     left: 0 !important;
     right: 0 !important;
     height: auto !important;
@@ -278,19 +278,19 @@
     padding: 11px 4px !important;
   }
   .gl-panel-tabs-bar .gl-tab-label {
-    font-size: 10px !important;
+    font-size: 11px !important;
   }
 
   /* Bottom nav: el área segura se SUMA a la altura, no resta a los botones */
   .gl-bottomnav {
-    height: calc(64px + var(--gl-safe-bottom));
+    height: calc(var(--gl-bottomnav-h) + var(--gl-safe-bottom));
     padding-bottom: var(--gl-safe-bottom);
     padding-left: var(--gl-safe-left);
     padding-right: var(--gl-safe-right);
   }
   .gl-bottomnav-item {
     min-height: 44px;
-    font-size: 10px;
+    font-size: 11px;
   }
 
   /* Topbar: ocultar reloj en pantallas muy pequeñas */
@@ -317,7 +317,7 @@
   .gl-panel-wrapper--page {
     position: fixed !important;
     top: calc(56px + var(--gl-safe-top)) !important;
-    bottom: calc(64px + var(--gl-safe-bottom)) !important;
+    bottom: calc(var(--gl-bottomnav-h) + var(--gl-safe-bottom)) !important;
     left: 0 !important; right: 0 !important;
     height: auto !important;
   }

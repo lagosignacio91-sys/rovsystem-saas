@@ -14,6 +14,7 @@ export function useAuth() {
   const [teamId,     setTeamId]     = useState(null)
   const [empresaId,  setEmpresaId]  = useState(null)
   const [nombre,     setNombre]     = useState(null)
+  const [movilHabilitado, setMovilHabilitado] = useState(false)
   const [loading,    setLoading]    = useState(true)
   const [authError,  setAuthError]  = useState(null)
 
@@ -28,7 +29,7 @@ export function useAuth() {
           if (!docSnap.exists()) {
             // Cuenta de Auth sin perfil (huérfana): NO asignar rol por defecto.
             setAuthError('Tu cuenta no tiene un perfil asignado. Contacta al administrador.')
-            setRole(null); setTeamId(null); setEmpresaId(null); setNombre(null)
+            setRole(null); setTeamId(null); setEmpresaId(null); setNombre(null); setMovilHabilitado(false)
             setLoading(false)
             return
           }
@@ -37,6 +38,7 @@ export function useAuth() {
           setTeamId(data.teamId || null)
           setEmpresaId(data.empresaId || null)
           setNombre(data.nombre || null)
+          setMovilHabilitado(data.movilHabilitado === true)
         } catch (e) {
           // No asignar rol por defecto ante error de red — mostrar error y pedir re-login.
           console.error('Error obteniendo perfil de usuario:', e)
@@ -52,6 +54,7 @@ export function useAuth() {
         setTeamId(null)
         setEmpresaId(null)
         setNombre(null)
+        setMovilHabilitado(false)
         setAuthError(null)
       }
       setLoading(false)
@@ -73,5 +76,5 @@ export function useAuth() {
     await firebaseSignOut(auth)
   }
 
-  return { user, role, teamId, empresaId, nombre, loading, authError, signIn, signOut }
+  return { user, role, teamId, empresaId, nombre, movilHabilitado, loading, authError, signIn, signOut }
 }

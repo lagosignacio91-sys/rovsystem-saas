@@ -3,7 +3,22 @@ import { useOutletContext } from 'react-router-dom'
 import { collection, getDocs, query, where } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { t } from '../theme/tokens'
+import { useIsMobile } from '../hooks/useIsMobile'
 import { BarChart2, Package, Wrench, Download } from 'lucide-react'
+
+// Tarjeta para móvil: muestra pares etiqueta/valor apilados (reemplaza filas de tabla).
+function DataCard({ rows }) {
+  return (
+    <div style={{ borderTop: `1px solid ${t.border}`, padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+      {rows.map(([label, value], i) => (
+        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'baseline' }}>
+          <span style={{ fontSize: t.textXs, color: t.textMuted, flexShrink: 0 }}>{label}</span>
+          <span style={{ fontSize: t.textSm, color: t.textPrimary, textAlign: 'right', wordBreak: 'break-word' }}>{value}</span>
+        </div>
+      ))}
+    </div>
+  )
+}
 
 const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
 
@@ -43,6 +58,7 @@ function BarRow({ label, value, max, color }) {
 
 export default function ReportesPage() {
   const { centros, empresaActiva } = useOutletContext()
+  const isMobile = useIsMobile()
   const mesOpts = useMemo(getMesOptions, [])
   const [mesSel, setMesSel] = useState(mesOpts[0].value)
   const [despachos, setDespachos] = useState([])
@@ -196,31 +212,44 @@ export default function ReportesPage() {
                 <div style={{ padding: '14px 20px', borderBottom: `1px solid ${t.border}`, fontWeight: 700, fontSize: t.textSm, color: t.textPrimary }}>
                   Detalle de fallas — {mesLabel}
                 </div>
-                <div style={{ overflowX: 'auto' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: t.textSm }}>
-                    <thead>
-                      <tr style={{ background: t.bgElevated }}>
-                        {['Centro', 'Equipo', 'Modelo', 'Serial', 'Detalle', 'Fecha'].map(h => (
-                          <th key={h} style={{ padding: '9px 14px', textAlign: 'left', color: t.textSecondary, fontWeight: 600, whiteSpace: 'nowrap' }}>{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {fallasFiltradas.map((f, i) => (
-                        <tr key={i} style={{ borderTop: `1px solid ${t.border}` }}>
-                          <td style={{ padding: '9px 14px', color: t.textPrimary }}>{f.centroNombre}</td>
-                          <td style={{ padding: '9px 14px', color: t.textSecondary }}>{f.teamAsignado ?? '—'}</td>
-                          <td style={{ padding: '9px 14px', color: t.textPrimary, fontWeight: 600 }}>{f.modelo}</td>
-                          <td style={{ padding: '9px 14px', color: t.textSecondary }}>{f.serial}</td>
-                          <td style={{ padding: '9px 14px', color: t.textMuted, maxWidth: 200 }}>{f.detallesFalla || '—'}</td>
-                          <td style={{ padding: '9px 14px', color: t.textMuted, whiteSpace: 'nowrap' }}>
-                            {f.desde ? new Date(f.desde).toLocaleDateString('es-CL') : '—'}
-                          </td>
+                {isMobile ? (
+                  fallasFiltradas.map((f, i) => (
+                    <DataCard key={i} rows={[
+                      ['Centro', f.centroNombre],
+                      ['Equipo', f.teamAsignado ?? '—'],
+                      ['Modelo', f.modelo],
+                      ['Serial', f.serial],
+                      ['Detalle', f.detallesFalla || '—'],
+                      ['Fecha', f.desde ? new Date(f.desde).toLocaleDateString('es-CL') : '—'],
+                    ]} />
+                  ))
+                ) : (
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: t.textSm }}>
+                      <thead>
+                        <tr style={{ background: t.bgElevated }}>
+                          {['Centro', 'Equipo', 'Modelo', 'Serial', 'Detalle', 'Fecha'].map(h => (
+                            <th key={h} style={{ padding: '9px 14px', textAlign: 'left', color: t.textSecondary, fontWeight: 600, whiteSpace: 'nowrap' }}>{h}</th>
+                          ))}
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      </thead>
+                      <tbody>
+                        {fallasFiltradas.map((f, i) => (
+                          <tr key={i} style={{ borderTop: `1px solid ${t.border}` }}>
+                            <td style={{ padding: '9px 14px', color: t.textPrimary }}>{f.centroNombre}</td>
+                            <td style={{ padding: '9px 14px', color: t.textSecondary }}>{f.teamAsignado ?? '—'}</td>
+                            <td style={{ padding: '9px 14px', color: t.textPrimary, fontWeight: 600 }}>{f.modelo}</td>
+                            <td style={{ padding: '9px 14px', color: t.textSecondary }}>{f.serial}</td>
+                            <td style={{ padding: '9px 14px', color: t.textMuted, maxWidth: 200 }}>{f.detallesFalla || '—'}</td>
+                            <td style={{ padding: '9px 14px', color: t.textMuted, whiteSpace: 'nowrap' }}>
+                              {f.desde ? new Date(f.desde).toLocaleDateString('es-CL') : '—'}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
             )}
 
@@ -230,40 +259,55 @@ export default function ReportesPage() {
                 <div style={{ padding: '14px 20px', borderBottom: `1px solid ${t.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <span style={{ fontWeight: 700, fontSize: t.textSm, color: t.textPrimary }}>Detalle de solicitudes — {mesLabel}</span>
                 </div>
-                <div style={{ overflowX: 'auto' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: t.textSm }}>
-                    <thead>
-                      <tr style={{ background: t.bgElevated }}>
-                        {['Fecha', 'Centro', 'Equipo', 'Ítems', 'Estado'].map(h => (
-                          <th key={h} style={{ padding: '9px 14px', textAlign: 'left', color: t.textSecondary, fontWeight: 600, whiteSpace: 'nowrap' }}>{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {despFiltrados.sort((a, b) => (b.creadoEn ?? '').localeCompare(a.creadoEn ?? '')).map(d => (
-                        <tr key={d.id} style={{ borderTop: `1px solid ${t.border}` }}>
-                          <td style={{ padding: '9px 14px', color: t.textMuted, whiteSpace: 'nowrap' }}>
-                            {d.creadoEn ? new Date(d.creadoEn).toLocaleDateString('es-CL') : '—'}
-                          </td>
-                          <td style={{ padding: '9px 14px', color: t.textPrimary, fontWeight: 600 }}>{d.centroNombre ?? '—'}</td>
-                          <td style={{ padding: '9px 14px', color: t.textSecondary }}>{d.teamAsignado ?? '—'}</td>
-                          <td style={{ padding: '9px 14px', color: t.textSecondary, maxWidth: 220 }}>
-                            {(d.items ?? []).map(i => `${i.nombre}×${i.cantidadSolicitada ?? i.cantidad ?? 1}`).join(', ')}
-                          </td>
-                          <td style={{ padding: '9px 14px' }}>
-                            <span style={{
-                              fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 99,
-                              background: d.estado === 'recibido' ? 'var(--gl-ok-tint)' : d.estado === 'enviado' ? 'var(--gl-dispatch-tint)' : 'var(--gl-low-tint)',
-                              color:      d.estado === 'recibido' ? 'var(--gl-ok)'       : d.estado === 'enviado' ? 'var(--gl-dispatch)'      : 'var(--gl-low)',
-                            }}>
-                              {d.estado === 'recibido' ? 'Recibido' : d.estado === 'enviado' ? 'En camino' : 'Pendiente'}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                {(() => {
+                  const ordenados = [...despFiltrados].sort((a, b) => (b.creadoEn ?? '').localeCompare(a.creadoEn ?? ''))
+                  const estadoBadge = (estado) => (
+                    <span style={{
+                      fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 99,
+                      background: estado === 'recibido' ? 'var(--gl-ok-tint)' : estado === 'enviado' ? 'var(--gl-dispatch-tint)' : 'var(--gl-low-tint)',
+                      color:      estado === 'recibido' ? 'var(--gl-ok)'       : estado === 'enviado' ? 'var(--gl-dispatch)'      : 'var(--gl-low)',
+                    }}>
+                      {estado === 'recibido' ? 'Recibido' : estado === 'enviado' ? 'En camino' : 'Pendiente'}
+                    </span>
+                  )
+                  const itemsTxt = (d) => (d.items ?? []).map(i => `${i.nombre}×${i.cantidadSolicitada ?? i.cantidad ?? 1}`).join(', ')
+                  return isMobile ? (
+                    ordenados.map(d => (
+                      <DataCard key={d.id} rows={[
+                        ['Fecha', d.creadoEn ? new Date(d.creadoEn).toLocaleDateString('es-CL') : '—'],
+                        ['Centro', d.centroNombre ?? '—'],
+                        ['Equipo', d.teamAsignado ?? '—'],
+                        ['Ítems', itemsTxt(d) || '—'],
+                        ['Estado', estadoBadge(d.estado)],
+                      ]} />
+                    ))
+                  ) : (
+                    <div style={{ overflowX: 'auto' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: t.textSm }}>
+                        <thead>
+                          <tr style={{ background: t.bgElevated }}>
+                            {['Fecha', 'Centro', 'Equipo', 'Ítems', 'Estado'].map(h => (
+                              <th key={h} style={{ padding: '9px 14px', textAlign: 'left', color: t.textSecondary, fontWeight: 600, whiteSpace: 'nowrap' }}>{h}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {ordenados.map(d => (
+                            <tr key={d.id} style={{ borderTop: `1px solid ${t.border}` }}>
+                              <td style={{ padding: '9px 14px', color: t.textMuted, whiteSpace: 'nowrap' }}>
+                                {d.creadoEn ? new Date(d.creadoEn).toLocaleDateString('es-CL') : '—'}
+                              </td>
+                              <td style={{ padding: '9px 14px', color: t.textPrimary, fontWeight: 600 }}>{d.centroNombre ?? '—'}</td>
+                              <td style={{ padding: '9px 14px', color: t.textSecondary }}>{d.teamAsignado ?? '—'}</td>
+                              <td style={{ padding: '9px 14px', color: t.textSecondary, maxWidth: 220 }}>{itemsTxt(d)}</td>
+                              <td style={{ padding: '9px 14px' }}>{estadoBadge(d.estado)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )
+                })()}
               </div>
             )}
           </>

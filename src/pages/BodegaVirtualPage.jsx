@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { ChevronDown, ChevronRight, Plus, AlertCircle, Trash2, AlertTriangle } from 'lucide-react'
 import { Button, Modal } from '../components/kit'
+import { useIsMobile } from '../hooks/useIsMobile'
 import { t } from '../theme/tokens'
 import { useAuth } from '../hooks/useAuth'
 import { useBodegaCentral } from '../hooks/useBodegaCentral'
@@ -151,6 +152,7 @@ function RepuestoModelRow({ modelo, repuestos, onEditarCantidad, onEliminarRepue
 
 export default function BodegaVirtualPage() {
   const { role, loading: authLoading } = useAuth()
+  const isMobile = useIsMobile()
   const {
     equipos, repuestos, herramientasInsumos,
     agregarEquipo, cambiarEstadoEquipo, eliminarUnidadEquipo,
@@ -321,6 +323,40 @@ export default function BodegaVirtualPage() {
           <SectionHeader title="🛠️ Herramientas / Insumos" onAdd={() => setModalAgregarHI(true)} addLabel="Agregar Item" />
           {herramientasInsumos.length === 0 ? (
             <p style={{ fontSize: t.textSm, color: t.textMuted, padding: '16px' }}>No hay items registrados</p>
+          ) : isMobile ? (
+            // Móvil: tarjetas apiladas, sin scroll horizontal
+            <div>
+              {herramientasInsumos.map(item => {
+                const est = ESTADO_COLOR[item.estado] || ESTADO_COLOR.disponible
+                return (
+                  <div key={item.id} style={{ borderBottom: `1px solid ${t.border}`, padding: '12px 16px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontWeight: 600, color: t.textPrimary, fontSize: t.textSm }}>{item.nombre}</div>
+                        <div style={{ color: t.textSecondary, fontSize: t.textXs, marginTop: 2 }}>{item.categoria}</div>
+                      </div>
+                      <button
+                        onClick={() => pedirConfirm(`¿Eliminar "${item.nombre}"?`, () => eliminarHerramientaInsumo(item.id))}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: t.textMuted, display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 40, minHeight: 40, flexShrink: 0 }}
+                        title="Eliminar item"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 10 }}>
+                      <span style={{ padding: '2px 8px', borderRadius: t.radiusFull, fontSize: t.textXs, fontWeight: 700, background: est.bg, color: est.text }}>
+                        {est.label}
+                      </span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <button onClick={() => editarHerramientaInsumo(item.id, -1)} style={{ width: 40, height: 40, border: `1px solid ${t.border}`, borderRadius: t.radiusSm, background: t.bgElevated, cursor: 'pointer', color: 'var(--gl-fault)', fontWeight: 700, fontSize: 18 }}>−</button>
+                        <span style={{ fontWeight: 700, color: t.textPrimary, minWidth: 28, textAlign: 'center', fontSize: t.textBase }}>{item.cantidad}</span>
+                        <button onClick={() => editarHerramientaInsumo(item.id, +1)} style={{ width: 40, height: 40, border: `1px solid ${t.border}`, borderRadius: t.radiusSm, background: t.bgElevated, cursor: 'pointer', color: 'var(--gl-ok)', fontWeight: 700, fontSize: 18 }}>+</button>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: t.textSm }}>

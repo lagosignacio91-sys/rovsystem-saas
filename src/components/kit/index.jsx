@@ -128,20 +128,20 @@ export function Modal({ open = true, onClose, title, children, footer, maxWidth 
             transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
             role="dialog" aria-modal="true" aria-label={title}
             className="gl-card gl-glass"
-            style={{ width: '100%', maxWidth, boxShadow: t.shadowLg, overflow: 'hidden', borderRadius: t.radiusLg }}
+            style={{ width: '100%', maxWidth, maxHeight: '90dvh', display: 'flex', flexDirection: 'column', boxShadow: t.shadowLg, overflow: 'hidden', borderRadius: t.radiusLg }}
           >
             {title && (
               <div style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0,
                 padding: `${t.space4} ${t.space5}`, borderBottom: `1px solid ${t.border}`,
               }}>
                 <h3 style={{ margin: 0, fontSize: t.textLg, fontWeight: 700, color: t.textPrimary }}>{title}</h3>
                 <IconButton icon={X} label="Cerrar" onClick={onClose} />
               </div>
             )}
-            <div style={{ padding: t.space5 }}>{children}</div>
+            <div style={{ padding: t.space5, overflowY: 'auto', flex: 1 }}>{children}</div>
             {footer && (
-              <div style={{ display: 'flex', gap: t.space3, padding: `0 ${t.space5} ${t.space5}` }}>{footer}</div>
+              <div style={{ display: 'flex', gap: t.space3, padding: `0 ${t.space5} ${t.space5}`, flexShrink: 0, paddingTop: t.space4 }}>{footer}</div>
             )}
           </motion.div>
         </motion.div>
