@@ -65,7 +65,7 @@ function DespachoCard({ d, role, marcarEnviado, confirmarRecepcion, eliminarDesp
           {(role === 'admin' || role === 'supervisor') && d.estado === 'pendiente' && (
             <>
               <Button size="sm" icon={Send} onClick={enviarWhatsApp} style={{ background: '#22c55e', color: '#06240f' }}>WhatsApp</Button>
-              <Button size="sm" variant="secondary" icon={Truck} onClick={() => marcarEnviado(d.id)}>Marcar enviado</Button>
+              <Button size="sm" variant="secondary" icon={Truck} onClick={() => marcarEnviado(d.id, (d.items ?? []).map(i => ({ ...i, cantidadDespachada: i.cantidadEnviada ?? i.cantidadSolicitada ?? i.cantidad ?? 1 })))}>Marcar enviado</Button>
             </>
           )}
           {(d.estado === 'enviado' || d.estado === 'parcial') && (

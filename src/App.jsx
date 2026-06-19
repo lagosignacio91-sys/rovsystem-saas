@@ -10,6 +10,7 @@ import DespachosPage from './pages/DespachosPage'
 import OperadoresPage from './pages/OperadoresPage'
 import BitacorasPage  from './pages/BitacorasPage'
 import TurnosPage     from './pages/TurnosPage'
+import BodegaVirtualPage from './pages/BodegaVirtualPage'
 
 function PantallaCarga({ error, onRelogin }) {
   return (
@@ -34,8 +35,7 @@ const carga = {
   btnRelogin: { marginTop: 10, padding: '8px 20px', background: t.brand, color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600 },
 }
 
-function PrivateRoute({ children }) {
-  const { user, role, loading, authError, signOut } = useAuth()
+function PrivateRoute({ children, user, role, loading, authError, signOut }) {
   if (loading) return <PantallaCarga />
   if (authError) return <PantallaCarga error={authError} onRelogin={signOut} />
   if (!user) return <Navigate to="/login" replace />
@@ -43,23 +43,29 @@ function PrivateRoute({ children }) {
   return children
 }
 
-function PublicRoute({ children }) {
-  const { user, loading } = useAuth()
+function PublicRoute({ children, user, loading }) {
   if (loading) return <PantallaCarga />
   return user ? <Navigate to="/" replace /> : children
 }
 
+function RoleRoute({ roles, role, loading, children }) {
+  if (loading) return <PantallaCarga />
+  return roles.includes(role) ? children : <Navigate to="/" replace />
+}
+
 function AnimatedRoutes() {
+  const { user, role, loading, authError, signOut } = useAuth()
   return (
     <Routes>
-      <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
-      <Route path="/" element={<PrivateRoute><MainLayout /></PrivateRoute>}>
+      <Route path="/login" element={<PublicRoute user={user} loading={loading}><Login /></PublicRoute>} />
+      <Route path="/" element={<PrivateRoute user={user} role={role} loading={loading} authError={authError} signOut={signOut}><MainLayout /></PrivateRoute>}>
         <Route index element={<MapaPage />} />
-        <Route path="centros"    element={<CentrosPage />} />
+        <Route path="centros"    element={<RoleRoute roles={['admin']} role={role} loading={loading}><CentrosPage /></RoleRoute>} />
         <Route path="despachos"  element={<DespachosPage />} />
         <Route path="operadores" element={<OperadoresPage />} />
-        <Route path="bitacoras"  element={<BitacorasPage />} />
-        <Route path="turnos"     element={<TurnosPage />} />
+        <Route path="bitacoras"       element={<BitacorasPage />} />
+        <Route path="turnos"          element={<TurnosPage />} />
+        <Route path="bodega-virtual"  element={<RoleRoute roles={['supervisor']} role={role} loading={loading}><BodegaVirtualPage /></RoleRoute>} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

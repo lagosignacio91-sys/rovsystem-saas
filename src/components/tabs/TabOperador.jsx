@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { db } from '../../lib/firebase'
-import { doc, setDoc, getDoc } from 'firebase/firestore'
+import { doc, setDoc, onSnapshot, deleteField } from 'firebase/firestore'
 import { useAppConfig } from '../../hooks/useAppConfig'
 import { TIPOS_OPERADOR } from '../../config/appDefaults'
 
@@ -109,21 +109,22 @@ export default function TabOperador({ centro, role }) {
   const fileRef = useRef()
 
   useEffect(() => {
-    const cargar = async () => {
-      const ref  = doc(db, 'centros', centro.id, 'datos', 'operadores')
-      const snap = await getDoc(ref)
+    const ref = doc(db, 'centros', centro.id, 'datos', 'operadores')
+    const unsub = onSnapshot(ref, snap => {
       if (snap.exists()) {
         const data = snap.data()
         setLista(data.lista ?? [data.op1, data.op2].filter(Boolean))
+      } else {
+        setLista([])
       }
       setCargando(false)
-    }
-    cargar()
+    })
+    return () => unsub()
   }, [centro.id])
 
   const guardar = async (nuevaLista) => {
     const ref = doc(db, 'centros', centro.id, 'datos', 'operadores')
-    await setDoc(ref, { lista: nuevaLista })
+    await setDoc(ref, { lista: nuevaLista, op1: deleteField(), op2: deleteField() }, { merge: true })
   }
 
   const handleEditar = (idx) => {

@@ -83,5 +83,12 @@ service cloud.firestore {
       allow update:        if isAdmin() || isSupervisor() || isOperador();
       allow delete:        if isAdmin() || isSupervisor();
     }
+
+    // ---- Bodega Central (taller del supervisor) ----
+    // Leer: admin y supervisor. Escribir: solo supervisor.
+    match /bodegaCentral/{document=**} {
+      allow read:  if isAdmin() || isSupervisor();
+      allow write: if isSupervisor();
+    }
   }
 }

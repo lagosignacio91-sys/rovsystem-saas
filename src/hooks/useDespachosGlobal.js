@@ -17,9 +17,10 @@ export function useDespachosGlobal() {
     return () => unsub()
   }, [])
 
-  const marcarEnviado = async (id, itemsEnviados) => {
+  const marcarEnviado = async (id, itemsEnviados, extras = {}) => {
     await updateDoc(doc(db, 'despachos', id), {
       estado: 'enviado', enviadoEn: new Date().toISOString(), itemsEnviados: itemsEnviados ?? [],
+      ...extras,
     })
   }
   const confirmarRecepcion = async (id, observacion = '', completo = true) => {

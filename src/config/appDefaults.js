@@ -7,7 +7,7 @@
 // código, indexados por `id`. Si la config no existe o le falta un id,
 // se cae a estos defaults y la app nunca queda rota.
 // ============================================================
-import { UserCog, Ship, Layers, Package, ClipboardCheck, BookOpen, Map, Building2, Users } from 'lucide-react'
+import { UserCog, Ship, Layers, Package, ClipboardCheck, BookOpen, Map, Building2, Users, Warehouse } from 'lucide-react'
 
 // ---- Pestañas del panel de centro ----
 export const TABS_DEFAULT = [
@@ -31,23 +31,25 @@ export const ICONOS_TAB = {
 // ---- Menú principal (sidebar + bottom-nav) ----
 // `id` = ruta. `to`, `end`, `badgeKey` son propiedades de código (no editables).
 export const NAV_DEFAULT = [
-  { id: '/',           label: 'Mapa' },
-  { id: '/centros',    label: 'Centros' },
-  { id: '/despachos',  label: 'Despachos' },
-  { id: '/operadores', label: 'Operadores' },
-  { id: '/bitacoras',  label: 'Bitácoras' },
-  { id: '/turnos',     label: 'Turnos' },
+  { id: '/',                  label: 'Mapa' },
+  { id: '/centros',           label: 'Centros' },
+  { id: '/despachos',         label: 'Despachos' },
+  { id: '/operadores',        label: 'Operadores' },
+  { id: '/bitacoras',         label: 'Bitácoras' },
+  { id: '/turnos',            label: 'Turnos' },
+  { id: '/bodega-virtual',    label: 'Bodega' },
 ]
 
 // `roles` = qué roles ven el ítem en el menú. Si falta, lo ven todos.
 // Gestión (centros/operadores) solo admin y taller; el operador entra a su centro por el mapa.
 export const NAV_META = {
   '/':           { to: '/',           icon: Map,       end: true },
-  '/centros':    { to: '/centros',    icon: Building2,       roles: ['admin', 'supervisor'] },
-  '/despachos':  { to: '/despachos',  icon: Package, badgeKey: 'despachos' },
-  '/operadores': { to: '/operadores', icon: Users,           roles: ['admin', 'supervisor'] },
-  '/bitacoras':  { to: '/bitacoras',  icon: BookOpen },
-  '/turnos':     { to: '/turnos',     icon: ClipboardCheck },
+  '/centros':         { to: '/centros',         icon: Building2,    roles: ['admin', 'supervisor'] },
+  '/despachos':       { to: '/despachos',       icon: Package,      badgeKey: 'despachos' },
+  '/operadores':      { to: '/operadores',      icon: Users,        roles: ['admin', 'supervisor'] },
+  '/bitacoras':       { to: '/bitacoras',       icon: BookOpen },
+  '/turnos':          { to: '/turnos',          icon: ClipboardCheck },
+  '/bodega-virtual':  { to: '/bodega-virtual',  icon: Warehouse,    roles: ['supervisor'] },
 }
 
 // ---- Marca ----
