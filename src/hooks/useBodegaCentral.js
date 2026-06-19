@@ -184,22 +184,27 @@ export function useBodegaCentral() {
     for (const item of items) {
       const nombre = item.nombre?.toLowerCase()
       if (!nombre) continue
-      const qty = item.cantidadEnviada ?? item.cantidadDespachada ?? item.cantidad ?? 1
+      const qty = Number(item.cantidadEnviada ?? item.cantidadDespachada ?? item.cantidad ?? 1) || 0
 
       const repuesto = repuestos.find(r => r.nombre?.toLowerCase() === nombre)
       if (repuesto) {
+        const nuevo = Math.max(0, (Number(repuesto.cantidad) || 0) - qty)
         await updateDoc(doc(db, 'bodegaCentral', 'almacen', 'repuestos', repuesto.id), {
-          cantidad: increment(-qty), updatedAt: new Date().toISOString(),
+          cantidad: nuevo, updatedAt: new Date().toISOString(),
         })
         continue
       }
 
       const hi = herramientasInsumos.find(h => h.nombre?.toLowerCase() === nombre)
       if (hi) {
+        const nuevo = Math.max(0, (Number(hi.cantidad) || 0) - qty)
         await updateDoc(doc(db, 'bodegaCentral', 'almacen', 'herramientasInsumos', hi.id), {
-          cantidad: increment(-qty), updatedAt: new Date().toISOString(),
+          cantidad: nuevo, updatedAt: new Date().toISOString(),
         })
+        continue
       }
+
+      console.warn(`Bodega: ítem despachado "${item.nombre}" no existe en bodega — no se descontó stock.`)
     }
   }, [repuestos, herramientasInsumos])
 

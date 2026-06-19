@@ -19,7 +19,7 @@ export const CENTROS_GL = [
 ]
 
 // Verifica el estado real de un centro leyendo sus subcolecciones
-async function calcularEstadoCentro(centroId) {
+export async function calcularEstadoCentro(centroId) {
   try {
     // 0. Verificar operadores en faena
     const opsSnap  = await getDoc(doc(db, 'centros', centroId, 'datos', 'operadores'))

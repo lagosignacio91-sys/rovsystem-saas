@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
-import { db } from '../lib/firebase'
+import { db, auth } from '../lib/firebase'
 import {
   collection, addDoc, onSnapshot,
-  updateDoc, deleteDoc, doc, query, where, getDoc
+  updateDoc, doc, query, where, arrayUnion
 } from 'firebase/firestore'
+import { aplicarRecepcionStock } from '../lib/recepcion'
 
 export function useDespachos(centroId) {
   const [despachos, setDespachos]       = useState([])
@@ -15,7 +16,7 @@ export function useDespachos(centroId) {
     if (!centroId) return
     const q     = query(collection(db, 'despachos'), where('centroId', '==', centroId))
     const unsub = onSnapshot(q, (snap) => {
-      const data = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+      const data = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(d => !d.eliminado)
       setDespachos(data.sort((a, b) => b.creadoEn?.localeCompare(a.creadoEn)))
       setCargando(false)
     })
@@ -50,34 +51,54 @@ export function useDespachos(centroId) {
   }, [centroId])
 
   const crearDespacho = async ({ centroId, centroNombre, items }) => {
+    const uid = auth.currentUser?.uid ?? null
+    const ts  = new Date().toISOString()
     await addDoc(collection(db, 'despachos'), {
       centroId,
       centroNombre,
       items,
       estado:    'pendiente',
-      creadoEn:  new Date().toISOString(),
-      historial: [],
+      creadoEn:  ts,
+      creadoPor: uid,
+      historial: [{ tipo: 'creado', uid, ts }],
     })
   }
 
   const marcarEnviado = async (id, itemsEnviados) => {
+    const uid = auth.currentUser?.uid ?? null
+    const ts  = new Date().toISOString()
     await updateDoc(doc(db, 'despachos', id), {
-      estado:       'enviado',
-      enviadoEn:    new Date().toISOString(),
+      estado:        'enviado',
+      enviadoEn:     ts,
+      despachadoPor: uid,
       itemsEnviados,
+      historial:     arrayUnion({ tipo: 'enviado', uid, ts }),
     })
   }
 
   const confirmarRecepcion = async (id, observacion, completo) => {
+    const uid  = auth.currentUser?.uid ?? null
+    const ts   = new Date().toISOString()
+    const desp = despachos.find(d => d.id === id)
+    const aplicar = desp && !desp.stockAplicado
     await updateDoc(doc(db, 'despachos', id), {
       estado:      completo ? 'recibido' : 'parcial',
-      recibidoEn:  new Date().toISOString(),
+      recibidoEn:  ts,
+      recibidoPor: uid,
       observacion,
+      historial:   arrayUnion({ tipo: completo ? 'recibido' : 'parcial', uid, ts }),
+      ...(aplicar ? { stockAplicado: true } : {}),
     })
+    if (aplicar) {
+      await aplicarRecepcionStock(desp.centroId, desp.itemsEnviados ?? desp.items ?? [])
+    }
   }
 
+  // Soft-delete: conserva la evidencia para auditoría.
   const eliminarDespacho = async (id) => {
-    await deleteDoc(doc(db, 'despachos', id))
+    await updateDoc(doc(db, 'despachos', id), {
+      eliminado: true, eliminadoPor: auth.currentUser?.uid ?? null, eliminadoEn: new Date().toISOString(),
+    })
   }
 
   const despachoPendiente = despachos.find(d =>

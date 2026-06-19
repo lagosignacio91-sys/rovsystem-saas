@@ -92,7 +92,7 @@ service cloud.firestore {
       // El operador solo confirma recepción (campos acotados); admin/taller, todo.
       allow update:        if isAdmin() || isSupervisor()
         || (isOperador() && request.resource.data.diff(resource.data).affectedKeys()
-              .hasOnly(['estado', 'observacion', 'recibidoEn', 'recibidoPor', 'historial']));
+              .hasOnly(['estado', 'observacion', 'recibidoEn', 'recibidoPor', 'historial', 'stockAplicado']));
       allow delete:        if isAdmin() || isSupervisor();
     }
 
