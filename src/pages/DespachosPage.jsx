@@ -35,7 +35,7 @@ function itemsTexto(d) {
   return items.map(i => i.nombre + (i.cantidadSolicitada ? ` ×${i.cantidadSolicitada}` : '')).join(', ')
 }
 
-function DespachoCard({ d, role, marcarEnviado, confirmarRecepcion, eliminarDespacho, onEliminar }) {
+function DespachoCard({ d, role, marcarEnviado, onAbrirRecepcion, onEliminar }) {
   const info = ESTADO_INFO[d.estado] ?? ESTADO_INFO.pendiente
   const Icon = info.icon
   const recibido = d.estado === 'recibido'
@@ -69,7 +69,7 @@ function DespachoCard({ d, role, marcarEnviado, confirmarRecepcion, eliminarDesp
             </>
           )}
           {(d.estado === 'enviado' || d.estado === 'parcial') && (
-            <Button size="sm" variant="secondary" icon={CircleCheck} onClick={() => confirmarRecepcion(d.id)} style={{ borderColor: t.ok, color: t.ok }}>Confirmar recepción</Button>
+            <Button size="sm" variant="secondary" icon={CircleCheck} onClick={() => onAbrirRecepcion(d)} style={{ borderColor: t.ok, color: t.ok }}>Confirmar recepción</Button>
           )}
           {(role === 'admin' || role === 'supervisor') && (
             <Button size="sm" variant="danger" icon={Trash2} onClick={() => onEliminar(d)} style={{ marginLeft: 'auto' }} aria-label="Eliminar" />
@@ -80,7 +80,7 @@ function DespachoCard({ d, role, marcarEnviado, confirmarRecepcion, eliminarDesp
   )
 }
 
-function GrupoCentro({ nombre, despachos, role, marcarEnviado, confirmarRecepcion, onEliminar }) {
+function GrupoCentro({ nombre, despachos, role, marcarEnviado, onAbrirRecepcion, onEliminar }) {
   const [abierto, setAbierto] = useState(true)
   const pendientes = despachos.filter(d => d.estado === 'pendiente' || d.estado === 'parcial').length
   return (
@@ -98,7 +98,7 @@ function GrupoCentro({ nombre, despachos, role, marcarEnviado, confirmarRecepcio
         <div style={{ display: 'flex', flexDirection: 'column', gap: 7, marginTop: 7, paddingLeft: 8 }}>
           {despachos.map(d => (
             <DespachoCard key={d.id} d={d} role={role}
-              marcarEnviado={marcarEnviado} confirmarRecepcion={confirmarRecepcion}
+              marcarEnviado={marcarEnviado} onAbrirRecepcion={onAbrirRecepcion}
               onEliminar={onEliminar} />
           ))}
         </div>
@@ -110,8 +110,29 @@ function GrupoCentro({ nombre, despachos, role, marcarEnviado, confirmarRecepcio
 export default function DespachosPage() {
   const { role, centros, empresaActiva } = useOutletContext()
   const { despachos, cargando, marcarEnviado, confirmarRecepcion, eliminarDespacho } = useDespachosGlobal()
-  const [filtro, setFiltro]       = useState('todos')
-  const [aEliminar, setAEliminar] = useState(null)
+  const [filtro,          setFiltro]          = useState('todos')
+  const [aEliminar,       setAEliminar]       = useState(null)
+  const [despachoRecibir, setDespachoRecibir] = useState(null)
+  const [obsRecepcion,    setObsRecepcion]    = useState('')
+  const [recibirCompleto, setRecibirCompleto] = useState(true)
+  const [guardandoRec,    setGuardandoRec]    = useState(false)
+
+  const abrirRecepcion = (d) => {
+    setDespachoRecibir(d)
+    setObsRecepcion('')
+    setRecibirCompleto(true)
+  }
+
+  const handleConfirmarRecepcion = async () => {
+    if (!despachoRecibir) return
+    setGuardandoRec(true)
+    try {
+      await confirmarRecepcion(despachoRecibir.id, obsRecepcion, recibirCompleto)
+      setDespachoRecibir(null)
+    } finally {
+      setGuardandoRec(false)
+    }
+  }
 
   // Filtrar por empresa activa igual que en Centros
   const centrosBase = empresaActiva ? centros.filter(c => c.empresaId === empresaActiva.id) : centros
@@ -130,7 +151,6 @@ export default function DespachosPage() {
     : filtro === 'enviado' ? despachosFiltrados.filter(d => d.estado === 'enviado' || d.estado === 'parcial')
     : despachosFiltrados.filter(d => d.estado === filtro)
 
-  // Agrupar por centro
   const porCentro = lista.reduce((acc, d) => {
     const nombre = d.centroNombre ?? 'Sin centro'
     ;(acc[nombre] = acc[nombre] ?? []).push(d)
@@ -168,11 +188,44 @@ export default function DespachosPage() {
 
         {centrosOrdenados.map(nombre => (
           <GrupoCentro key={nombre} nombre={nombre} despachos={porCentro[nombre]}
-            role={role} marcarEnviado={marcarEnviado} confirmarRecepcion={confirmarRecepcion}
+            role={role} marcarEnviado={marcarEnviado} onAbrirRecepcion={abrirRecepcion}
             onEliminar={setAEliminar} />
         ))}
       </div>
 
+      {/* Modal confirmar recepción */}
+      {despachoRecibir && (
+        <Modal open title="Confirmar Recepción" onClose={() => setDespachoRecibir(null)} maxWidth={360}
+          footer={<>
+            <Button variant="secondary" size="lg" onClick={() => setDespachoRecibir(null)} disabled={guardandoRec}>Cancelar</Button>
+            <Button size="lg" style={{ background: t.ok, color: '#fff' }} onClick={handleConfirmarRecepcion} disabled={guardandoRec}>
+              {guardandoRec ? 'Guardando...' : 'Confirmar'}
+            </Button>
+          </>}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div>
+              <label style={{ display: 'block', fontSize: t.textSm, fontWeight: 600, color: t.textSecondary, marginBottom: 4 }}>Observación</label>
+              <textarea
+                value={obsRecepcion}
+                onChange={e => setObsRecepcion(e.target.value)}
+                placeholder="Ej: Se recibió todo OK, faltó un ítem..."
+                rows={3}
+                autoFocus
+                style={{ width: '100%', padding: '8px 10px', background: t.bgInput, border: `1px solid ${t.border}`, borderRadius: t.radiusMd, color: t.textPrimary, fontSize: t.textSm, resize: 'vertical', boxSizing: 'border-box' }}
+              />
+            </div>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: t.textSm, color: t.textPrimary }}>
+              <input type="checkbox" checked={recibirCompleto} onChange={e => setRecibirCompleto(e.target.checked)} />
+              Recepción completa
+            </label>
+            <p style={{ fontSize: t.textXs, color: t.textMuted, margin: 0 }}>
+              {recibirCompleto ? '🟢 El despacho quedará como Recibido' : '🟡 Quedará como Recepción Parcial'}
+            </p>
+          </div>
+        </Modal>
+      )}
+
+      {/* Modal eliminar */}
       {aEliminar && (
         <Modal open title="Eliminar despacho" onClose={() => setAEliminar(null)} maxWidth={340}
           footer={<>

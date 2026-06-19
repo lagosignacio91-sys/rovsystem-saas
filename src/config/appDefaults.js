@@ -38,6 +38,7 @@ export const NAV_DEFAULT = [
   { id: '/bitacoras',         label: 'Bitácoras' },
   { id: '/turnos',            label: 'Turnos' },
   { id: '/bodega-virtual',    label: 'Bodega' },
+  { id: '/bodega-admin',      label: 'Bodega' },
 ]
 
 // `roles` = qué roles ven el ítem en el menú. Si falta, lo ven todos.
@@ -50,6 +51,7 @@ export const NAV_META = {
   '/bitacoras':       { to: '/bitacoras',       icon: BookOpen },
   '/turnos':          { to: '/turnos',          icon: ClipboardCheck },
   '/bodega-virtual':  { to: '/bodega-virtual',  icon: Warehouse,    roles: ['supervisor'] },
+  '/bodega-admin':    { to: '/bodega-admin',    icon: Warehouse,    roles: ['admin'] },
 }
 
 // ---- Marca ----
