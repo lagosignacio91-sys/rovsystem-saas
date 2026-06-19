@@ -17,7 +17,7 @@ export default function MapaPage() {
 
   const handleCentroClick = (c) => {
     if (role === 'admin' || role === 'supervisor') { setCentroActivo(c); return }
-    if (role === 'operador' && c.teamId === teamId) setCentroActivo(c)
+    if (role === 'operador' && c.teamAsignado === teamId) setCentroActivo(c)
   }
 
   const centroVivo = centroActivo ? centros.find(c => c.id === centroActivo.id) ?? centroActivo : null

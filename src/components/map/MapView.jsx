@@ -197,7 +197,7 @@ function BuscadorUnificado({ centros, mapRef, onSelect, onCoordsPin, role, mouse
     ? centros.filter(c =>
         c.nombre?.toLowerCase().includes(q) ||
         c.empresaNombre?.toLowerCase().includes(q) ||
-        (c.teamId ?? '').replace(/-/g, ' ').toLowerCase().includes(q)
+        (c.teamAsignado ?? '').toLowerCase().includes(q)
       ).slice(0, 7)
     : []
 
@@ -282,8 +282,8 @@ function BuscadorUnificado({ centros, mapRef, onSelect, onCoordsPin, role, mouse
           {/* Resultados de centros */}
           {resultadosCentros.map(c => {
             const meta = ESTADO_META[c.estado] ?? ESTADO_META.NO_OPERATOR
-            const teamLabel = c.teamId
-              ? c.teamId.replace('team-', 'Team ').replace(/^Team (\d)$/, 'Team 0$1')
+            const teamLabel = c.teamAsignado
+              ? 'Team ' + c.teamAsignado.replace(/\D/g, '')
               : null
             return (
               <button key={c.id} className="gl-search-item" onMouseDown={() => elegir(c)} style={buscador.item}>
@@ -356,7 +356,7 @@ function MapInner({ centros, onMapClick, onCentroClick, role, userTeamId }) {
   const size = tamPorZoom(zoom)
 
   const esAjeno = (centro) =>
-    role === 'operador' && centro.teamId !== userTeamId
+    role === 'operador' && centro.teamAsignado !== userTeamId
 
   const handleMarkerClick = (e, centro) => {
     L.DomEvent.stopPropagation(e)

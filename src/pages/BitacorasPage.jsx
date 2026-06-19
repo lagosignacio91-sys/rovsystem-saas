@@ -96,12 +96,14 @@ export default function BitacorasPage() {
                   <div style={{ fontSize: 10, color: t.textMuted }}>{centro.empresaNombre ?? ''}</div>
                 </div>
                 <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-                  <button
-                    onClick={() => setCentroActivo(centro)}
-                    title="Abrir panel del centro"
-                    style={{ display: 'flex', alignItems: 'center', gap: 4, background: t.brandTint, color: t.brandSoft, border: `1px solid ${t.border}`, borderRadius: t.radiusMd, padding: '5px 9px', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
-                    <ExternalLink size={13} /> Panel
-                  </button>
+                  {(role === 'admin' || role === 'supervisor') && (
+                    <button
+                      onClick={() => setCentroActivo(centro)}
+                      title="Abrir panel del centro"
+                      style={{ display: 'flex', alignItems: 'center', gap: 4, background: t.brandTint, color: t.brandSoft, border: `1px solid ${t.border}`, borderRadius: t.radiusMd, padding: '5px 9px', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
+                      <ExternalLink size={13} /> Panel
+                    </button>
+                  )}
                   {bitacora && (
                     <button
                       onClick={() => handleDescargar(bitacora, centro)}

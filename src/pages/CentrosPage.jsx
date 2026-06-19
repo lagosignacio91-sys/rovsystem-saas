@@ -75,7 +75,7 @@ export default function CentrosPage() {
   const opFaenaPorCentro = (centroId) =>
     operadores.find(o => o.centroId === centroId && o.estado === 'faena') ?? null
 
-  const teamNombre = (teamId) => teams.find(t => t.uid === teamId)?.nombre ?? null
+  const teamNombre = (team) => team ? 'Team ' + team.replace(/\D/g, '') : null
 
   const conteos = ESTADOS_FILTRO.slice(1).reduce((acc, f) => {
     acc[f.key] = base.filter(c => c.estado === f.key).length
@@ -178,7 +178,7 @@ export default function CentrosPage() {
                 {centrosGrupo.map(c => {
                   const meta    = ESTADO_META[c.estado] ?? ESTADO_META.NO_OPERATOR
                   const opFaena = opFaenaPorCentro(c.id)
-                  const tnombre = teamNombre(c.teamId)
+                  const tnombre = teamNombre(c.teamAsignado)
                   return (
                     <button key={c.id} className="gl-list-row" onClick={() => setCentroActivo(c)}
                       style={{ borderLeft: `3px solid ${meta.dot}`, flexDirection: 'column', alignItems: 'stretch', gap: 0 }}>

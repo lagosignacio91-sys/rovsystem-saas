@@ -42,17 +42,17 @@ export default function PanelCentro({ centro, onCerrar, onEliminar, sincronizarE
 
   const toggleExpanded = useCallback(() => setExpanded(v => !v), [])
 
-  // Teams fijos Team 01–10
+  // Teams fijos Team 01–11
   useEffect(() => {
     if (role !== 'admin') return
-    setTeams(Array.from({ length: 10 }, (_, i) => ({
-      uid:    `team-${String(i + 1).padStart(2, '0')}`,
+    setTeams(Array.from({ length: 11 }, (_, i) => ({
+      uid:    `team${String(i + 1).padStart(2, '0')}`,
       nombre: `Team ${String(i + 1).padStart(2, '0')}`,
     })))
   }, [role])
 
-  const handleAsignarTeam = async (teamId) => {
-    if (actualizarCentro) await actualizarCentro(centro.id, { teamId: teamId || null })
+  const handleAsignarTeam = async (team) => {
+    if (actualizarCentro) await actualizarCentro(centro.id, { teamAsignado: team || null })
     setAsignandoTeam(false)
   }
 
@@ -98,7 +98,7 @@ export default function PanelCentro({ centro, onCerrar, onEliminar, sincronizarE
             <>
               {asignandoTeam ? (
                 <select
-                  defaultValue={centro.teamId ?? ''}
+                  defaultValue={centro.teamAsignado ?? ''}
                   onChange={e => handleAsignarTeam(e.target.value)}
                   onBlur={() => setAsignandoTeam(false)}
                   autoFocus
@@ -110,7 +110,7 @@ export default function PanelCentro({ centro, onCerrar, onEliminar, sincronizarE
                   ))}
                 </select>
               ) : (
-                <button className="gl-icon-btn" onClick={() => setAsignandoTeam(true)} aria-label="Asignar team" title={`Team: ${teams.find(t => t.uid === centro.teamId)?.nombre ?? 'Sin asignar'}`}>
+                <button className="gl-icon-btn" onClick={() => setAsignandoTeam(true)} aria-label="Asignar team" title={`Team: ${teams.find(t => t.uid === centro.teamAsignado)?.nombre ?? 'Sin asignar'}`}>
                   <Users size={16} />
                 </button>
               )}

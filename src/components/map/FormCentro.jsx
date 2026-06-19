@@ -11,15 +11,15 @@ const ESTADOS = [
   { value: 'NO_OPERATOR',     label: 'Sin operador' },
 ]
 
-const TEAMS = Array.from({ length: 10 }, (_, i) => ({
-  id:    `team-${String(i + 1).padStart(2, '0')}`,
+const TEAMS = Array.from({ length: 11 }, (_, i) => ({
+  id:    `team${String(i + 1).padStart(2, '0')}`,
   label: `Team ${String(i + 1).padStart(2, '0')}`,
 }))
 
 export default function FormCentro({ latlng, onGuardar, onCancelar, cargando, empresaActiva }) {
   const [nombre, setNombre] = useState('')
   const [estado, setEstado] = useState('OK')
-  const [teamId, setTeamId] = useState('')
+  const [team, setTeam]     = useState('')
 
   const submit = (e) => {
     e.preventDefault()
@@ -29,7 +29,7 @@ export default function FormCentro({ latlng, onGuardar, onCancelar, cargando, em
       lat: latlng.lat, lng: latlng.lng,
       empresaId:     empresaActiva?.id ?? null,
       empresaNombre: empresaActiva?.nombre ?? 'Sin empresa',
-      teamId:        teamId || null,
+      teamAsignado:  team || null,
     })
   }
 
@@ -60,7 +60,7 @@ export default function FormCentro({ latlng, onGuardar, onCancelar, cargando, em
           </Select>
         </Field>
         <Field label="Team asignado">
-          <Select value={teamId} onChange={e => setTeamId(e.target.value)}>
+          <Select value={team} onChange={e => setTeam(e.target.value)}>
             <option value="">— Sin team —</option>
             {TEAMS.map(tm => (
               <option key={tm.id} value={tm.id}>{tm.label}</option>
