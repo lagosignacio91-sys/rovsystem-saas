@@ -5,48 +5,39 @@ import { storage } from '../../lib/firebase'
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 
 async function subirFotos(despachoId, archivos) {
-  return Promise.all(
-    archivos.map(async ({ file }) => {
+  const urls = []
+  for (const { file } of archivos) {
+    try {
       const path    = `despachos/${despachoId}/${Date.now()}_${file.name}`
       const storRef = ref(storage, path)
       const snap    = await uploadBytes(storRef, file)
-      return getDownloadURL(snap.ref)
-    })
-  )
+      urls.push(await getDownloadURL(snap.ref))
+    } catch {
+      // Storage no inicializado — se omite la foto sin abortar el despacho
+    }
+  }
+  return urls
 }
 
 export default function ModalDespacho({ isOpen, onClose, solicitud, onDespachar }) {
   const [comentario,    setComentario]    = useState('')
   const [transportista, setTransportista] = useState('')
-  const [fotos,         setFotos]         = useState([]) // [{ file: File, preview: string }]
   const [cargando,      setCargando]      = useState(false)
   const [progreso,      setProgreso]      = useState('')
 
   useEffect(() => {
-    if (isOpen) { setComentario(''); setTransportista(''); setFotos([]); setProgreso('') }
+    if (isOpen) { setComentario(''); setTransportista(''); setProgreso('') }
   }, [isOpen, solicitud?.id])
 
   if (!isOpen || !solicitud) return null
 
-  const handleAgregarFoto = (e) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    const reader = new FileReader()
-    reader.onload = (evt) => setFotos(prev => [...prev, { file, preview: evt.target?.result || '' }])
-    reader.readAsDataURL(file)
-    e.target.value = ''
-  }
-
   const handleDespachar = async () => {
-    if (fotos.length === 0) { alert('Debes agregar al menos una foto del paquete'); return }
     if (!transportista.trim()) { alert('Debes seleccionar un transportista'); return }
 
     setCargando(true)
     try {
-      setProgreso('Subiendo fotos...')
-      const urls = await subirFotos(solicitud.id, fotos)
-
       setProgreso('Registrando despacho...')
+      const urls = await subirFotos(solicitud.id, [])
       const itemsDespachados = (solicitud.itemsSolicitados || []).map(item => ({
         ...item,
         cantidadDespachada: item.cantidad,
@@ -79,7 +70,7 @@ export default function ModalDespacho({ isOpen, onClose, solicitud, onDespachar 
     asterisk:  { color: 'var(--gl-fault)' },
   }
 
-  const disabled = cargando || fotos.length === 0 || !transportista.trim()
+  const disabled = cargando || !transportista.trim()
 
   return (
     <div style={s.overlay}>
@@ -109,41 +100,12 @@ export default function ModalDespacho({ isOpen, onClose, solicitud, onDespachar 
             )}
           </div>
 
-          {/* Foto obligatoria */}
-          <div>
-            <label style={s.label}>
-              📸 Foto del paquete <span style={s.asterisk}>*</span>
-            </label>
-            <label htmlFor="foto-despacho-input" style={s.uploadBox}>
-              <input
-                type="file"
-                accept="image/*"
-                id="foto-despacho-input"
-                onChange={handleAgregarFoto}
-                disabled={cargando}
-                style={{ display: 'none' }}
-              />
-              <Upload size={20} color={t.textMuted} style={{ margin: '0 auto 6px' }} />
-              <div style={{ fontSize: t.textSm, color: t.textMuted }}>
-                {fotos.length === 0 ? 'Toca para agregar foto' : `${fotos.length} foto(s) — toca para agregar más`}
-              </div>
-            </label>
-            {fotos.length > 0 && (
-              <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
-                {fotos.map((foto, idx) => (
-                  <div key={idx} style={{ position: 'relative', width: 64, height: 64, borderRadius: t.radiusSm, overflow: 'hidden', border: `1px solid ${t.border}` }}>
-                    <img src={foto.preview} alt="preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    <button
-                      onClick={() => setFotos(prev => prev.filter((_, i) => i !== idx))}
-                      disabled={cargando}
-                      style={{ position: 'absolute', top: 0, right: 0, width: 20, height: 20, background: 'var(--gl-fault)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
+          {/* Foto — temporalmente deshabilitada hasta activar Firebase Storage */}
+          <div style={{ padding: '10px 12px', background: 'rgba(234,179,8,0.08)', border: '1px solid rgba(234,179,8,0.3)', borderRadius: t.radiusMd, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Upload size={16} color="#ca8a04" style={{ flexShrink: 0 }} />
+            <span style={{ fontSize: t.textXs, color: '#ca8a04', lineHeight: 1.4 }}>
+              Adjunto de fotos temporalmente no disponible. El despacho se registrará sin foto.
+            </span>
           </div>
 
           {/* Transportista */}
