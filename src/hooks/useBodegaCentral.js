@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { db } from '../lib/firebase'
-import { collection, onSnapshot, updateDoc, deleteDoc, doc, getDoc, setDoc, increment } from 'firebase/firestore'
+import { collection, onSnapshot, updateDoc, deleteDoc, doc, addDoc, runTransaction, increment } from 'firebase/firestore'
 
 export function useBodegaCentral() {
   const [equipos,            setEquipos]            = useState([])
@@ -28,24 +28,23 @@ export function useBodegaCentral() {
   const agregarEquipo = async (modelo, serial, estado, detallesFalla = null) => {
     setCargando(true)
     try {
-      const equipoRef  = doc(db, 'bodegaCentral', 'almacen', 'equipos', modelo)
-      const equipoSnap = await getDoc(equipoRef)
-
-      const nuevaUnidad = { serial, estado, detallesFalla: detallesFalla || null, desde: new Date().toISOString() }
-
-      let unidades = [], totalOperativos = 0, totalConFalla = 0
-      if (equipoSnap.exists()) {
-        const data = equipoSnap.data()
-        unidades        = data.unidades        || []
-        totalOperativos = data.totalOperativos || 0
-        totalConFalla   = data.totalConFalla   || 0
-      }
-
-      unidades = [...unidades, nuevaUnidad]
-      if (estado === 'operativo') totalOperativos++
-      else totalConFalla++
-
-      await setDoc(equipoRef, { modelo, unidades, totalOperativos, totalConFalla, updatedAt: new Date().toISOString() })
+      const equipoRef = doc(db, 'bodegaCentral', 'almacen', 'equipos', modelo)
+      await runTransaction(db, async (tx) => {
+        const snap     = await tx.get(equipoRef)
+        const data     = snap.exists() ? snap.data() : {}
+        const unidades = data.unidades || []
+        if (unidades.some(u => u.serial === serial)) {
+          throw new Error(`Ya existe una unidad con serial "${serial}" en ${modelo}`)
+        }
+        const nuevas = [...unidades, { serial, estado, detallesFalla: detallesFalla || null, desde: new Date().toISOString() }]
+        tx.set(equipoRef, {
+          modelo,
+          unidades:        nuevas,
+          totalOperativos: nuevas.filter(u => u.estado === 'operativo').length,
+          totalConFalla:   nuevas.filter(u => u.estado === 'conFalla').length,
+          updatedAt:       new Date().toISOString(),
+        })
+      })
     } catch (e) {
       console.error('Error agregando equipo:', e)
       throw e
@@ -57,27 +56,28 @@ export function useBodegaCentral() {
   const cambiarEstadoEquipo = async (modelo, serial, nuevoEstado, detallesFalla = null) => {
     setCargando(true)
     try {
-      const equipoRef  = doc(db, 'bodegaCentral', 'almacen', 'equipos', modelo)
-      const equipoSnap = await getDoc(equipoRef)
-      if (!equipoSnap.exists()) throw new Error(`Equipo ${modelo} no encontrado`)
-
-      const data     = equipoSnap.data()
-      const unidades = [...(data.unidades || [])]
-
-      const idx = unidades.findIndex(u => u.serial === serial)
-      if (idx === -1) throw new Error(`Unidad ${serial} no encontrada`)
-
-      unidades[idx] = {
-        ...unidades[idx],
-        estado:        nuevoEstado,
-        detallesFalla: nuevoEstado === 'conFalla' ? (detallesFalla || null) : null,
-        desde:         new Date().toISOString(),
-      }
-
-      const totalOperativos = unidades.filter(u => u.estado === 'operativo').length
-      const totalConFalla   = unidades.filter(u => u.estado === 'conFalla').length
-
-      await setDoc(equipoRef, { ...data, unidades, totalOperativos, totalConFalla, updatedAt: new Date().toISOString() })
+      const equipoRef = doc(db, 'bodegaCentral', 'almacen', 'equipos', modelo)
+      await runTransaction(db, async (tx) => {
+        const snap = await tx.get(equipoRef)
+        if (!snap.exists()) throw new Error(`Equipo ${modelo} no encontrado`)
+        const data     = snap.data()
+        const unidades = [...(data.unidades || [])]
+        const idx      = unidades.findIndex(u => u.serial === serial)
+        if (idx === -1) throw new Error(`Unidad ${serial} no encontrada`)
+        unidades[idx] = {
+          ...unidades[idx],
+          estado:        nuevoEstado,
+          detallesFalla: nuevoEstado === 'conFalla' ? (detallesFalla || null) : null,
+          desde:         new Date().toISOString(),
+        }
+        tx.set(equipoRef, {
+          ...data,
+          unidades,
+          totalOperativos: unidades.filter(u => u.estado === 'operativo').length,
+          totalConFalla:   unidades.filter(u => u.estado === 'conFalla').length,
+          updatedAt:       new Date().toISOString(),
+        })
+      })
     } catch (e) {
       console.error('Error cambiando estado:', e)
       throw e
@@ -90,8 +90,8 @@ export function useBodegaCentral() {
   const agregarRepuesto = async (nombre, modeloEquipo, cantidad) => {
     setCargando(true)
     try {
-      const ref = doc(db, 'bodegaCentral', 'almacen', 'repuestos', Date.now().toString())
-      await setDoc(ref, { nombre, modeloEquipo, cantidad, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() })
+      await addDoc(collection(db, 'bodegaCentral', 'almacen', 'repuestos'),
+        { nombre, modeloEquipo, cantidad, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() })
     } catch (e) {
       console.error('Error agregando repuesto:', e)
       throw e
@@ -115,8 +115,8 @@ export function useBodegaCentral() {
   const agregarHerramientaInsumo = async (nombre, cantidad, categoria, estado = 'disponible') => {
     setCargando(true)
     try {
-      const ref = doc(db, 'bodegaCentral', 'almacen', 'herramientasInsumos', Date.now().toString())
-      await setDoc(ref, { nombre, cantidad, categoria, estado, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() })
+      await addDoc(collection(db, 'bodegaCentral', 'almacen', 'herramientasInsumos'),
+        { nombre, cantidad, categoria, estado, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() })
     } catch (e) {
       console.error('Error agregando herramienta/insumo:', e)
       throw e
@@ -139,20 +139,24 @@ export function useBodegaCentral() {
   const eliminarUnidadEquipo = async (modelo, serial) => {
     setCargando(true)
     try {
-      const equipoRef  = doc(db, 'bodegaCentral', 'almacen', 'equipos', modelo)
-      const equipoSnap = await getDoc(equipoRef)
-      if (!equipoSnap.exists()) throw new Error(`Equipo ${modelo} no encontrado`)
-
-      const data           = equipoSnap.data()
-      const nuevasUnidades = (data.unidades || []).filter(u => u.serial !== serial)
-      const totalOperativos = nuevasUnidades.filter(u => u.estado === 'operativo').length
-      const totalConFalla   = nuevasUnidades.filter(u => u.estado === 'conFalla').length
-
-      if (nuevasUnidades.length === 0) {
-        await deleteDoc(equipoRef)
-      } else {
-        await setDoc(equipoRef, { ...data, unidades: nuevasUnidades, totalOperativos, totalConFalla, updatedAt: new Date().toISOString() })
-      }
+      const equipoRef = doc(db, 'bodegaCentral', 'almacen', 'equipos', modelo)
+      await runTransaction(db, async (tx) => {
+        const snap = await tx.get(equipoRef)
+        if (!snap.exists()) throw new Error(`Equipo ${modelo} no encontrado`)
+        const data    = snap.data()
+        const nuevas  = (data.unidades || []).filter(u => u.serial !== serial)
+        if (nuevas.length === 0) {
+          tx.delete(equipoRef)
+        } else {
+          tx.set(equipoRef, {
+            ...data,
+            unidades:        nuevas,
+            totalOperativos: nuevas.filter(u => u.estado === 'operativo').length,
+            totalConFalla:   nuevas.filter(u => u.estado === 'conFalla').length,
+            updatedAt:       new Date().toISOString(),
+          })
+        }
+      })
     } catch (e) {
       console.error('Error eliminando unidad:', e)
       throw e
