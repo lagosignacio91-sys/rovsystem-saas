@@ -17,14 +17,18 @@ service cloud.firestore {
     // El roster lo leen varias vistas (mapa, centros, operadores).
     // Self puede actualizar su perfil (ej: passwordCambiado) PERO no su rol ni teamId
     // (evita auto-escalar privilegios). Crear/borrar solo admin.
+    function rolValido(r) { return r in ['operador', 'supervisor', 'admin']; }
     match /usuarios/{uid} {
-      allow read:   if signedIn();
-      allow create: if isAdmin();
+      // PII (RUT, teléfono, correos): solo admin, taller y el propio usuario.
+      allow read:   if isAdmin() || isSupervisor() || request.auth.uid == uid;
+      allow create: if isAdmin() && rolValido(request.resource.data.rol);
       allow delete: if isAdmin();
-      allow update: if isAdmin()
+      // Admin edita todo (con rol válido). El propio usuario solo campos seguros:
+      // nunca rol, teamId ni empresaId (evita auto-escalar o cambiarse de empresa).
+      allow update: if (isAdmin() && rolValido(request.resource.data.rol))
         || (request.auth.uid == uid
-            && request.resource.data.rol == resource.data.rol
-            && request.resource.data.get('teamId', null) == resource.data.get('teamId', null));
+            && request.resource.data.diff(resource.data).affectedKeys()
+                 .hasOnly(['nombre', 'telefono', 'foto', 'passwordCambiado', 'estado', 'updatedAt', 'updatedBy']));
     }
 
     // ---- Catálogos: cualquiera lee, solo admin escribe ----
@@ -42,10 +46,12 @@ service cloud.firestore {
       allow read:          if signedIn();
       allow create, delete: if isAdmin();
       // El doc del centro solo lo edita el admin, EXCEPTO el campo `estado`,
-      // que se recalcula automáticamente al cambiar stock (cualquier rol operativo).
+      // que se recalcula al cambiar stock: el taller, o el operador de ESE team.
       allow update: if isAdmin()
-        || (signedIn()
-            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['estado']));
+        || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['estado'])
+            && (isSupervisor()
+                || (isOperador()
+                    && resource.data.teamAsignado == get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.teamId)));
 
       // Entregas de turno: handoff entre operadores; se auto-limpian al crear una nueva.
       match /entregas/{entregaId} {
@@ -69,9 +75,12 @@ service cloud.firestore {
       //  - bitacora: SOLO operador escribe (admin y taller solo leen)
       match /datos/{doc} {
         allow read:  if signedIn();
-        allow write: if isAdmin()      && doc in ['herramientas', 'insumos', 'operadores']
-          || (isOperador()   && doc in ['herramientas', 'insumos', 'operadores', 'bitacora'])
-          || (isSupervisor() && doc in ['herramientas', 'insumos', 'operadores']);
+        // El operador solo escribe en centros de SU team (anti cross-tenant).
+        allow write: if (isAdmin()      && doc in ['herramientas', 'insumos', 'operadores'])
+          || (isSupervisor() && doc in ['herramientas', 'insumos', 'operadores'])
+          || (isOperador()   && doc in ['herramientas', 'insumos', 'operadores', 'bitacora']
+              && get(/databases/$(database)/documents/centros/$(centroId)).data.teamAsignado
+                 == get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.teamId);
       }
     }
 
@@ -80,7 +89,10 @@ service cloud.firestore {
     match /despachos/{id} {
       allow read:          if signedIn();
       allow create:        if isAdmin() || isSupervisor();
-      allow update:        if isAdmin() || isSupervisor() || isOperador();
+      // El operador solo confirma recepción (campos acotados); admin/taller, todo.
+      allow update:        if isAdmin() || isSupervisor()
+        || (isOperador() && request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(['estado', 'observacion', 'recibidoEn', 'recibidoPor', 'historial']));
       allow delete:        if isAdmin() || isSupervisor();
     }
 

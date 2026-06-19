@@ -11,6 +11,16 @@ service firebase.storage {
       allow read, write, delete: if request.auth != null;
     }
 
+    // Fotos del paquete al despachar (ModalDespacho sube a despachos/{id}/...).
+    match /despachos/{despachoId}/{archivo} {
+      allow read, write, delete: if request.auth != null;
+    }
+
+    // Fotos de operador (TabOperador sube a operadores/{centroId}/...).
+    match /operadores/{centroId}/{archivo} {
+      allow read, write, delete: if request.auth != null;
+    }
+
     // Resto: denegado por defecto.
     match /{allPaths=**} {
       allow read, write: if false;
