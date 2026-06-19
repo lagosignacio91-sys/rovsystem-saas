@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react'
 import { comprimirFoto } from '../../lib/compressorFotos'
+import { useEmpresas } from '../../hooks/useEmpresas'
 
 const CAMPOS = [
   { key: 'nombre',            label: 'Nombre completo *',       type: 'text',  requerido: true },
@@ -11,6 +12,7 @@ const CAMPOS = [
 ]
 
 export default function FormOperador({ inicial, esEdicion, onGuardar, onCerrar }) {
+  const { empresas }                  = useEmpresas()
   const [form, setForm]               = useState(inicial ?? { rol: 'operador', esRelevo: false, estado: 'pendiente' })
   const [password, setPassword]       = useState('')
   const [fotoPreview, setFotoPreview] = useState(inicial?.foto ?? null)
@@ -88,6 +90,17 @@ export default function FormOperador({ inicial, esEdicion, onGuardar, onCerrar }
             />
           </div>
         )}
+
+        {/* Empresa */}
+        <div style={styles.campoWrap}>
+          <label style={styles.label}>Empresa</label>
+          <select style={styles.select} value={form.empresaId ?? ''} onChange={e => set('empresaId', e.target.value || null)}>
+            <option value="">— Sin empresa —</option>
+            {empresas.map(emp => (
+              <option key={emp.id} value={emp.id}>{emp.nombre}</option>
+            ))}
+          </select>
+        </div>
 
         {/* Team y rol */}
         <div style={styles.fila}>

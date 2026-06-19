@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { db, secondaryAuth, auth } from '../lib/firebase'
 import { collection, onSnapshot, setDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore'
-import { createUserWithEmailAndPassword, signOut } from 'firebase/auth'
+import { createUserWithEmailAndPassword, signOut, deleteUser } from 'firebase/auth'
 
 export function useUsuarios() {
   const [usuarios, setUsuarios] = useState([])
@@ -20,25 +20,33 @@ export function useUsuarios() {
     try {
       const cred = await createUserWithEmailAndPassword(secondaryAuth, datos.correoCorporativo, password)
       const uid  = cred.user.uid
-      await signOut(secondaryAuth)
-      await setDoc(doc(db, 'usuarios', uid), {
-        rol:                datos.rol                ?? 'operador',
-        nombre:             datos.nombre             ?? '',
-        rut:                datos.rut                ?? '',
-        telefono:           datos.telefono           ?? '',
-        correoCorporativo:  datos.correoCorporativo,
-        foto:               datos.foto               ?? null,
-        teamId:             datos.teamId             ?? null,
-        esRelevo:           datos.esRelevo           ?? false,
-        area:               datos.area               ?? '',
-        proveedor:          datos.proveedor          ?? '',
-        estado:             datos.estado             ?? 'pendiente',
-        passwordCambiado:   false,
-        createdAt:          new Date().toISOString(),
-        createdBy:          auth.currentUser?.uid    ?? '',
-        updatedAt:          new Date().toISOString(),
-        updatedBy:          auth.currentUser?.uid    ?? '',
-      })
+      try {
+        await setDoc(doc(db, 'usuarios', uid), {
+          rol:                datos.rol                ?? 'operador',
+          nombre:             datos.nombre             ?? '',
+          rut:                datos.rut                ?? '',
+          telefono:           datos.telefono           ?? '',
+          correoCorporativo:  datos.correoCorporativo,
+          foto:               datos.foto               ?? null,
+          teamId:             datos.teamId             ?? null,
+          empresaId:          datos.empresaId          ?? null,
+          esRelevo:           datos.esRelevo           ?? false,
+          area:               datos.area               ?? '',
+          proveedor:          datos.proveedor          ?? '',
+          estado:             datos.estado             ?? 'pendiente',
+          passwordCambiado:   false,
+          createdAt:          new Date().toISOString(),
+          createdBy:          auth.currentUser?.uid    ?? '',
+          updatedAt:          new Date().toISOString(),
+          updatedBy:          auth.currentUser?.uid    ?? '',
+        })
+      } catch (e) {
+        // Rollback: borrar la cuenta de Auth recién creada para no dejar huérfana.
+        try { await deleteUser(secondaryAuth.currentUser) } catch (_) { /* noop */ }
+        throw e
+      } finally {
+        await signOut(secondaryAuth)
+      }
       return { uid, error: null }
     } catch (e) {
       const msg = e.code === 'auth/email-already-in-use'
@@ -54,7 +62,7 @@ export function useUsuarios() {
     try {
       const CAMPOS_EDITABLES = [
         'nombre', 'rut', 'telefono', 'correoCorporativo', 'foto',
-        'teamId', 'esRelevo', 'area', 'proveedor', 'estado', 'rol',
+        'teamId', 'empresaId', 'esRelevo', 'area', 'proveedor', 'estado', 'rol',
         'passwordCambiado',
       ]
       const patch = Object.fromEntries(

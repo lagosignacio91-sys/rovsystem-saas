@@ -60,6 +60,23 @@ function DespachoCard({ d, role, marcarEnviado, onAbrirRecepcion, onEliminar }) 
         <span style={{ fontSize: 10, color: info.color, background: info.tint, padding: '3px 9px', borderRadius: t.radiusFull, fontWeight: 500, whiteSpace: 'nowrap', flexShrink: 0 }}>{info.label}</span>
       </div>
 
+      {/* Evidencia del despacho: transportista, comentario y fotos */}
+      {(d.transportista || d.comentarioDespacho || (d.fotosDespacho?.length > 0)) && (
+        <div style={{ marginTop: 8, paddingTop: 8, borderTop: `1px solid ${t.border}`, display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {d.transportista && <div style={{ fontSize: t.textXs, color: t.textSecondary }}>🚚 {d.transportista}</div>}
+          {d.comentarioDespacho && <div style={{ fontSize: t.textXs, color: t.textMuted }}>📝 {d.comentarioDespacho}</div>}
+          {d.fotosDespacho?.length > 0 && (
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {d.fotosDespacho.map((url, i) => (
+                <a key={i} href={url} target="_blank" rel="noopener noreferrer">
+                  <img src={url} alt="foto despacho" style={{ width: 48, height: 48, objectFit: 'cover', borderRadius: t.radiusSm, border: `1px solid ${t.border}` }} />
+                </a>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {!recibido && (
         <div style={{ display: 'flex', gap: 7, marginTop: 10, paddingTop: 9, borderTop: `1px solid ${t.border}`, flexWrap: 'wrap' }}>
           {(role === 'admin' || role === 'supervisor') && d.estado === 'pendiente' && (

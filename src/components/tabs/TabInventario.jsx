@@ -135,7 +135,7 @@ function Seccion({ centroId, coleccion, titulo, icono, tipo, role, sincronizarEs
   }, [centroId, coleccion])
 
   const guardar = async (nueva) => {
-    await setDoc(doc(db, 'centros', centroId, 'datos', coleccion), { lista: nueva })
+    await setDoc(doc(db, 'centros', centroId, 'datos', coleccion), { lista: nueva }, { merge: true })
   }
 
   const agregar           = (item) => { guardar([...lista, { ...item, id: Date.now() }]); setModalAg(false) }

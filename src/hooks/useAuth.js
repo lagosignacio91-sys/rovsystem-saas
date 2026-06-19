@@ -25,7 +25,14 @@ export function useAuth() {
         try {
           const docRef  = doc(db, 'usuarios', firebaseUser.uid)
           const docSnap = await getDoc(docRef)
-          const data    = docSnap.exists() ? docSnap.data() : {}
+          if (!docSnap.exists()) {
+            // Cuenta de Auth sin perfil (huérfana): NO asignar rol por defecto.
+            setAuthError('Tu cuenta no tiene un perfil asignado. Contacta al administrador.')
+            setRole(null); setTeamId(null); setEmpresaId(null); setNombre(null)
+            setLoading(false)
+            return
+          }
+          const data = docSnap.data()
           setRole((data.rol || 'operador').toLowerCase())
           setTeamId(data.teamId || null)
           setEmpresaId(data.empresaId || null)

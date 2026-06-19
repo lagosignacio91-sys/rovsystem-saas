@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useOutletContext } from 'react-router-dom'
-import { Search, Mail, Phone, Gamepad2, Coffee, Users, AtSign, Upload, UserPlus } from 'lucide-react'
+import { Search, Mail, Phone, Gamepad2, Coffee, Users, AtSign, Upload, UserPlus, Pencil, Trash2 } from 'lucide-react'
 import { t } from '../theme/tokens'
 import { useOperadoresGlobal } from '../hooks/useOperadoresGlobal'
 import { useUsuarios } from '../hooks/useUsuarios'
@@ -26,12 +26,15 @@ export default function OperadoresPage() {
   const { centros, empresaActiva, role } = useOutletContext()
   const lista = empresaActiva ? centros.filter(c => c.empresaId === empresaActiva.id) : centros
   const { operadores, cargando } = useOperadoresGlobal(lista)
-  const { usuarios, crearOperador, importarLista } = useUsuarios()
+  const { usuarios, crearOperador, actualizarOperador, eliminarOperador, importarLista } = useUsuarios()
   const [busca, setBusca] = useState('')
 
   // gestión admin
   const [showImport, setShowImport] = useState(false)
   const [showForm, setShowForm]     = useState(false)
+  const [editUser, setEditUser]     = useState(null)   // doc de usuarios en edición
+  const [aBorrar, setABorrar]       = useState(null)   // doc de usuarios a borrar
+  const [showCuentas, setShowCuentas] = useState(false)
   const [resultado, setResultado]   = useState(null)
 
   const handleCrear = async (form, password) => {
@@ -40,6 +43,20 @@ export default function OperadoresPage() {
     setResultado({ ok: true, msg: `✅ Operador "${form.nombre}" creado` })
     setShowForm(false)
   }
+
+  const handleEditar = async (form) => {
+    await actualizarOperador(editUser.id, form)
+    setResultado({ ok: true, msg: `✅ Cuenta "${form.nombre}" actualizada` })
+    setEditUser(null)
+  }
+
+  const handleBorrar = async () => {
+    await eliminarOperador(aBorrar.id)
+    setResultado({ ok: true, msg: `🗑️ Cuenta "${aBorrar.nombre}" eliminada` })
+    setABorrar(null)
+  }
+
+  const ROL_LABEL = { admin: 'Admin', supervisor: 'Taller', operador: 'Operador' }
 
   let ops = operadores
   if (busca.trim()) {
@@ -138,6 +155,37 @@ export default function OperadoresPage() {
             )
           })}
         </div>
+
+        {/* Cuentas del sistema — editar/borrar (solo admin) */}
+        {role === 'admin' && (
+          <div style={{ marginTop: t.space5 }}>
+            <button onClick={() => setShowCuentas(v => !v)}
+              style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, background: t.bgInput, border: `1px solid ${t.border}`, borderRadius: t.radiusMd, padding: '10px 13px', cursor: 'pointer', textAlign: 'left' }}>
+              <Users size={15} color={t.textMuted} />
+              <span style={{ fontSize: t.textSm, fontWeight: 600, color: t.textPrimary, flex: 1 }}>Cuentas del sistema</span>
+              <span style={{ fontSize: t.textXs, color: t.textMuted }}>{usuarios.length} · {showCuentas ? '▲' : '▼'}</span>
+            </button>
+            {showCuentas && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
+                {[...usuarios].sort((a, b) => (a.nombre ?? '').localeCompare(b.nombre ?? '')).map(u => (
+                  <div key={u.id} style={{ display: 'flex', alignItems: 'center', gap: 10, background: t.bgElevated, border: `1px solid ${t.border}`, borderRadius: t.radiusMd, padding: '8px 12px' }}>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div style={{ fontSize: t.textSm, fontWeight: 600, color: t.textPrimary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.nombre || '(sin nombre)'}</div>
+                      <div style={{ fontSize: 10, color: t.textMuted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.correoCorporativo}</div>
+                    </div>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: t.brandSoft, background: t.brandTint, borderRadius: t.radiusFull, padding: '2px 8px', flexShrink: 0 }}>{ROL_LABEL[u.rol] ?? u.rol}</span>
+                    <button onClick={() => setEditUser(u)} title="Editar" style={{ background: 'none', border: `1px solid ${t.border}`, borderRadius: t.radiusSm, color: t.textSecondary, cursor: 'pointer', padding: 5, display: 'flex' }}>
+                      <Pencil size={13} />
+                    </button>
+                    <button onClick={() => setABorrar(u)} title="Eliminar" style={{ background: 'none', border: `1px solid ${t.fault}40`, borderRadius: t.radiusSm, color: t.fault, cursor: 'pointer', padding: 5, display: 'flex' }}>
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {showImport && (
@@ -152,6 +200,30 @@ export default function OperadoresPage() {
           onGuardar={handleCrear}
           onCerrar={() => setShowForm(false)}
         />
+      )}
+
+      {editUser && (
+        <FormOperador
+          inicial={editUser}
+          esEdicion
+          onGuardar={handleEditar}
+          onCerrar={() => setEditUser(null)}
+        />
+      )}
+
+      {aBorrar && (
+        <div style={{ position: 'fixed', inset: 0, background: t.scrim, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16 }}>
+          <div style={{ background: t.bgSurface, border: `1px solid ${t.border}`, borderRadius: t.radiusLg, width: '100%', maxWidth: 360, padding: 20 }}>
+            <div style={{ fontWeight: 700, fontSize: t.textBase, color: t.textPrimary, marginBottom: 8 }}>Eliminar cuenta</div>
+            <p style={{ color: t.textSecondary, fontSize: t.textSm, margin: '0 0 16px' }}>
+              ¿Eliminar la cuenta de <b style={{ color: t.textPrimary }}>{aBorrar.nombre}</b> ({aBorrar.correoCorporativo})? Se borra su perfil y su acceso. Esta acción no se puede deshacer.
+            </p>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={() => setABorrar(null)} style={{ flex: 1, padding: '8px 0', background: t.bgElevated, border: `1px solid ${t.border}`, borderRadius: t.radiusMd, color: t.textSecondary, cursor: 'pointer', fontWeight: 600, fontSize: t.textSm }}>Cancelar</button>
+              <button onClick={handleBorrar} style={{ flex: 1, padding: '8px 0', background: t.fault, border: 'none', borderRadius: t.radiusMd, color: '#fff', cursor: 'pointer', fontWeight: 700, fontSize: t.textSm }}>Eliminar</button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
