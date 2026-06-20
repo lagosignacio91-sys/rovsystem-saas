@@ -14,11 +14,12 @@ export function useHxData() {
   const [productos, setProductos] = useState([])
   const [pagos,     setPagos]     = useState([])
   const [gastos,    setGastos]    = useState([])
-  const [config,    setConfig]    = useState(null)
-  const [cargando,  setCargando]  = useState(true)
+  const [config,     setConfig]     = useState(null)
+  const [prospectos, setProspectos] = useState([])
+  const [cargando,   setCargando]   = useState(true)
 
   useEffect(() => {
-    let loaded = { clientes: false, productos: false, pagos: false, gastos: false, config: false }
+    let loaded = { clientes: false, productos: false, pagos: false, gastos: false, config: false, prospectos: false }
     const check = () => { if (Object.values(loaded).every(Boolean)) setCargando(false) }
 
     const err = (key) => () => { loaded[key] = true; check() }
@@ -57,6 +58,16 @@ export function useHxData() {
       onSnapshot(doc(db, 'hxOlimpo', 'config'),
         snap => { setConfig(snap.exists() ? snap.data() : {}); loaded.config = true; check() },
         err('config')),
+
+      onSnapshot(collection(db, 'hxProspectos'),
+        snap => {
+          setProspectos(
+            snap.docs.map(d => ({ id: d.id, ...d.data() }))
+              .sort((a, b) => (b.creadoEn?.seconds ?? 0) - (a.creadoEn?.seconds ?? 0))
+          )
+          loaded.prospectos = true; check()
+        },
+        err('prospectos')),
     ]
 
     return () => unsubs.forEach(u => u())
@@ -102,12 +113,26 @@ export function useHxData() {
     await setDoc(doc(db, 'hxOlimpo', 'config'), cambios, { merge: true })
   }
 
+  // ─── Prospectos ───────────────────────────────────────────────────────────
+  async function crearProspecto(data) {
+    await addDoc(collection(db, 'hxProspectos'), { ...data, creadoEn: serverTimestamp() })
+  }
+
+  async function eliminarProspecto(id) {
+    await deleteDoc(doc(db, 'hxProspectos', id))
+  }
+
+  async function actualizarProspecto(id, cambios) {
+    await updateDoc(doc(db, 'hxProspectos', id), cambios)
+  }
+
   return {
-    clientes, productos, pagos, gastos, config, cargando,
+    clientes, productos, pagos, gastos, config, prospectos, cargando,
     registrarPago, eliminarPago,
     registrarGasto, eliminarGasto,
     actualizarCliente, registrarMejora,
     actualizarConfig,
+    crearProspecto, eliminarProspecto, actualizarProspecto,
     mesActual: mesStr,
   }
 }

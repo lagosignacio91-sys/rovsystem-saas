@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { LogOut, Target, Globe, TrendingUp, Package, Cpu, ChevronRight } from 'lucide-react'
+import { LogOut, Target, Globe, TrendingUp, Package, Cpu, Monitor, ChevronRight } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { useHxData } from '../hooks/useHxData'
 import { useClienteMetrics } from '../hooks/useClienteMetrics'
@@ -11,6 +11,7 @@ const SECCIONES = [
   { id: 'finanzas',    label: 'FINANZAS',       Icon: TrendingUp },
   { id: 'logistica',   label: 'LOGÍSTICA',      Icon: Package    },
   { id: 'sistemas',    label: 'SISTEMAS',        Icon: Cpu        },
+  { id: 'demos',      label: 'DEMOS',           Icon: Monitor    },
 ]
 
 const clp = (n) =>
@@ -95,6 +96,7 @@ export default function OlimpoPage() {
           {seccion === 'finanzas'    && <Finanzas  hxData={hxData} />}
           {seccion === 'logistica'   && <Logistica hxData={hxData} />}
           {seccion === 'sistemas'    && <Sistemas hxData={hxData} user={user} />}
+          {seccion === 'demos'      && <Demos    hxData={hxData} />}
         </main>
       </div>
     </div>
@@ -1116,6 +1118,211 @@ function Placeholder({ label }) {
         <div className="hx-placeholder-title">[ {label} ]</div>
         <div className="hx-placeholder-sub">MÓDULO EN INICIALIZACIÓN...</div>
       </div>
+    </div>
+  )
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   DEMOS — biblioteca de prospectos con links personalizados
+═══════════════════════════════════════════════════════════════ */
+function Demos({ hxData }) {
+  const { prospectos, crearProspecto, eliminarProspecto } = hxData
+  const [modal, setModal]         = useState(false)
+  const [form, setForm]           = useState({ empresa: '', nombre: '', notas: '' })
+  const [guardando, setGuardando] = useState(false)
+  const [copiado, setCopiado]     = useState(null)
+  const [confirmDel, setConfirmDel] = useState(null)
+
+  const DEMO_URL = 'https://demo.hyperionx.tech'
+
+  const toSlug = (t) =>
+    t.toLowerCase()
+     .normalize('NFD').replace(/[̀-ͯ]/g, '')
+     .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+
+  const makeLink = (p) =>
+    `${DEMO_URL}/?cliente=${encodeURIComponent(p.empresa)}&ref=${p.slug}`
+
+  const linkPreview = form.empresa
+    ? `${DEMO_URL}/?cliente=${encodeURIComponent(form.empresa)}&ref=${toSlug(form.empresa)}`
+    : ''
+
+  async function handleCrear(e) {
+    e.preventDefault()
+    if (!form.empresa.trim()) return
+    setGuardando(true)
+    try {
+      await crearProspecto({
+        empresa: form.empresa.trim(),
+        nombre: form.nombre.trim(),
+        notas: form.notas.trim(),
+        slug: toSlug(form.empresa.trim()),
+        visitas: 0,
+        ultimaVisita: null,
+      })
+      setModal(false)
+      setForm({ empresa: '', nombre: '', notas: '' })
+    } finally { setGuardando(false) }
+  }
+
+  function copiar(p) {
+    navigator.clipboard.writeText(makeLink(p)).then(() => {
+      setCopiado(p.id)
+      setTimeout(() => setCopiado(null), 2000)
+    })
+  }
+
+  const fechaFmt = (ts) => {
+    if (!ts) return 'Nunca'
+    const d = ts.toDate ? ts.toDate() : new Date(ts)
+    return d.toLocaleDateString('es-CL', { day: '2-digit', month: 'short', year: 'numeric' })
+  }
+
+  return (
+    <div className="hx-stack">
+      <div className="hx-panel">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, paddingBottom: 10, borderBottom: '1px solid var(--hx-border)' }}>
+          <span style={{ fontFamily: 'var(--hx-mono)', fontSize: 9, fontWeight: 700, letterSpacing: '0.2em', color: 'var(--hx-muted)' }}>
+            BIBLIOTECA DE DEMOS — {prospectos.length} PROSPECTOS
+          </span>
+          <button className="hx-btn hx-btn-primary" style={{ padding: '6px 12px', fontSize: 9 }} onClick={() => setModal(true)}>
+            + NUEVO PROSPECTO
+          </button>
+        </div>
+
+        {prospectos.length === 0 ? (
+          <div className="hx-empty">SIN PROSPECTOS — CREA UNO PARA GENERAR UN LINK DEMO PERSONALIZADO</div>
+        ) : (
+          <div className="hx-prospects-list">
+            {prospectos.map(p => (
+              <div key={p.id} className="hx-prospect-card">
+                <div className="hx-prospect-header">
+                  <div>
+                    <div className="hx-prospect-empresa">{p.empresa}</div>
+                    {p.nombre && <div className="hx-label-sm" style={{ marginTop: 2 }}>{p.nombre}</div>}
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+                    <span className="hx-visits-badge">{p.visitas ?? 0} VISITAS</span>
+                    <span className="hx-label-sm">Última: {fechaFmt(p.ultimaVisita)}</span>
+                  </div>
+                </div>
+
+                <div className="hx-prospect-link">
+                  {makeLink(p).replace('https://', '')}
+                </div>
+
+                <div className="hx-prospect-actions">
+                  <button
+                    className="hx-btn hx-btn-primary"
+                    style={{ padding: '4px 10px', fontSize: 9 }}
+                    onClick={() => copiar(p)}
+                  >
+                    {copiado === p.id ? '✓ COPIADO' : 'COPIAR LINK'}
+                  </button>
+                  <button
+                    className="hx-btn hx-btn-ghost"
+                    style={{ padding: '4px 10px', fontSize: 9 }}
+                    onClick={() => window.open(makeLink(p), '_blank')}
+                  >
+                    ABRIR DEMO
+                  </button>
+                  {confirmDel === p.id ? (
+                    <>
+                      <button
+                        className="hx-btn hx-btn-danger"
+                        onClick={() => { eliminarProspecto(p.id); setConfirmDel(null) }}
+                      >
+                        CONFIRMAR ✕
+                      </button>
+                      <button
+                        className="hx-btn hx-btn-ghost"
+                        style={{ padding: '4px 10px', fontSize: 9 }}
+                        onClick={() => setConfirmDel(null)}
+                      >
+                        CANCELAR
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      className="hx-btn hx-btn-ghost"
+                      style={{ padding: '4px 10px', fontSize: 9 }}
+                      onClick={() => setConfirmDel(p.id)}
+                    >
+                      ELIMINAR
+                    </button>
+                  )}
+                </div>
+
+                {p.notas && (
+                  <div className="hx-label-sm" style={{ marginTop: 6, fontStyle: 'italic', opacity: 0.7 }}>
+                    {p.notas}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {modal && (
+        <div className="hx-overlay" onClick={() => setModal(false)}>
+          <div className="hx-modal" onClick={e => e.stopPropagation()}>
+            <div className="hx-modal-header">
+              <div className="hx-modal-title">NUEVO PROSPECTO</div>
+              <button className="hx-modal-close" onClick={() => setModal(false)}>✕</button>
+            </div>
+            <form onSubmit={handleCrear}>
+              <div className="hx-form-grid">
+                <div>
+                  <label className="hx-label">EMPRESA *</label>
+                  <input
+                    className="hx-input"
+                    value={form.empresa}
+                    onChange={e => setForm(p => ({ ...p, empresa: e.target.value }))}
+                    placeholder="Ej: Cermaq S.A."
+                    required
+                    autoFocus
+                  />
+                </div>
+                <div>
+                  <label className="hx-label">CONTACTO</label>
+                  <input
+                    className="hx-input"
+                    value={form.nombre}
+                    onChange={e => setForm(p => ({ ...p, nombre: e.target.value }))}
+                    placeholder="Nombre del contacto comercial"
+                  />
+                </div>
+              </div>
+              <div style={{ marginBottom: 14 }}>
+                <label className="hx-label">NOTAS INTERNAS</label>
+                <textarea
+                  className="hx-input"
+                  value={form.notas}
+                  onChange={e => setForm(p => ({ ...p, notas: e.target.value }))}
+                  placeholder="Intereses, contexto, etapa..."
+                  rows={2}
+                  style={{ resize: 'vertical', minHeight: 54 }}
+                />
+              </div>
+              {linkPreview && (
+                <div className="hx-link-preview">
+                  <div className="hx-label" style={{ marginBottom: 5 }}>LINK QUE SE GENERARÁ</div>
+                  <div className="hx-link-preview-url">{linkPreview}</div>
+                </div>
+              )}
+              <div className="hx-modal-actions">
+                <button type="button" className="hx-btn hx-btn-ghost" onClick={() => setModal(false)}>
+                  CANCELAR
+                </button>
+                <button type="submit" className="hx-btn hx-btn-primary" disabled={guardando}>
+                  {guardando ? 'CREANDO...' : 'CREAR PROSPECTO'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

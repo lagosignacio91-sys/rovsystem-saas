@@ -870,3 +870,84 @@
   padding: 8px 12px;
   margin-bottom: 14px;
 }
+
+/* ─── DEMOS — Prospectos ──────────────────────────────────── */
+.hx-prospects-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.hx-prospect-card {
+  background: var(--hx-panel-hi);
+  border: 1px solid var(--hx-border);
+  border-radius: 4px;
+  padding: 14px 16px;
+  transition: border-color 0.15s;
+}
+.hx-prospect-card:hover {
+  border-color: rgba(220,38,38,0.35);
+}
+
+.hx-prospect-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.hx-prospect-empresa {
+  font-family: var(--hx-mono);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--hx-text);
+}
+
+.hx-visits-badge {
+  font-family: var(--hx-mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--hx-green);
+  background: rgba(34,197,94,0.1);
+  border: 1px solid rgba(34,197,94,0.25);
+  border-radius: 3px;
+  padding: 2px 7px;
+}
+
+.hx-prospect-link {
+  font-family: var(--hx-mono);
+  font-size: 9.5px;
+  color: var(--hx-muted);
+  background: rgba(0,0,0,0.3);
+  border: 1px solid var(--hx-border);
+  border-radius: 3px;
+  padding: 6px 10px;
+  margin-bottom: 10px;
+  word-break: break-all;
+  letter-spacing: 0.03em;
+}
+
+.hx-prospect-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.hx-link-preview {
+  background: rgba(0,0,0,0.4);
+  border: 1px solid rgba(220,38,38,0.2);
+  border-radius: 3px;
+  padding: 10px 12px;
+  margin-bottom: 16px;
+}
+
+.hx-link-preview-url {
+  font-family: var(--hx-mono);
+  font-size: 9.5px;
+  color: var(--hx-red-soft);
+  word-break: break-all;
+  letter-spacing: 0.02em;
+}

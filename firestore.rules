@@ -116,6 +116,12 @@ service cloud.firestore {
     match /hxClientes/{doc=**} {
       allow read, write: if isOwner();
     }
+    match /hxProspectos/{doc} {
+      allow read, write: if isOwner();
+      // Tracking anónimo: solo permite actualizar visitas y ultimaVisita
+      allow update: if request.resource.data.diff(resource.data).affectedKeys()
+                       .hasOnly(['visitas', 'ultimaVisita']);
+    }
 
     // ---- Centros: owner puede leer para métricas ----
     // (la regla principal de centros ya cubre read: if signedIn(); isOwner implica signedIn)
