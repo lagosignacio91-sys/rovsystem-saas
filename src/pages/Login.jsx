@@ -101,6 +101,12 @@ export default function Login() {
             <CheckCircle2 size={15} color={t.ok} /> App instalada en este equipo
           </div>
         )}
+
+        <p style={s.legalLinks}>
+          <a href="/privacidad" target="_blank" rel="noopener noreferrer" style={s.legalLink}>Política de Privacidad</a>
+          {' · '}
+          <a href="/terminos" target="_blank" rel="noopener noreferrer" style={s.legalLink}>Términos de Uso</a>
+        </p>
       </div>
 
       {verAyudaIOS && (
@@ -153,5 +159,7 @@ const s = {
   iosOverlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 9200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 },
   iosCard: { background: t.bgElevated, border: `1px solid ${t.border}`, borderRadius: t.radiusLg, width: '100%', maxWidth: 340, padding: 18 },
   iosHead: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
-  iosList: { margin: 0, paddingLeft: 20, color: t.textSecondary, fontSize: t.textSm, lineHeight: 1.7 },
+  iosList:    { margin: 0, paddingLeft: 20, color: t.textSecondary, fontSize: t.textSm, lineHeight: 1.7 },
+  legalLinks: { marginTop: 16, textAlign: 'center', fontSize: 11, color: t.textMuted },
+  legalLink:  { color: t.textMuted, textDecoration: 'underline', textUnderlineOffset: 2 },
 }

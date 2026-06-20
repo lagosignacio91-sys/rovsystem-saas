@@ -29,7 +29,7 @@ service cloud.firestore {
       allow update: if (isAdmin() && rolValido(request.resource.data.rol))
         || (request.auth.uid == uid
             && request.resource.data.diff(resource.data).affectedKeys()
-                 .hasOnly(['nombre', 'telefono', 'foto', 'passwordCambiado', 'estado', 'updatedAt', 'updatedBy']));
+                 .hasOnly(['nombre', 'telefono', 'foto', 'passwordCambiado', 'estado', 'updatedAt', 'updatedBy', 'aceptoTerminos']));
     }
 
     // ---- Catálogos: cualquiera lee, solo admin escribe ----

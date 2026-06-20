@@ -5,7 +5,7 @@ import {
   signOut as firebaseSignOut,
   onAuthStateChanged
 } from 'firebase/auth'
-import { doc, getDoc } from 'firebase/firestore'
+import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 
 export function useAuth() {
@@ -15,6 +15,7 @@ export function useAuth() {
   const [empresaId,  setEmpresaId]  = useState(null)
   const [nombre,     setNombre]     = useState(null)
   const [movilHabilitado, setMovilHabilitado] = useState(false)
+  const [aceptoTerminos,  setAceptoTerminos]  = useState(false)
   const [loading,    setLoading]    = useState(true)
   const [authError,  setAuthError]  = useState(null)
 
@@ -39,6 +40,7 @@ export function useAuth() {
           setEmpresaId(data.empresaId || null)
           setNombre(data.nombre || null)
           setMovilHabilitado(data.movilHabilitado === true)
+          setAceptoTerminos(!!data.aceptoTerminos?.fecha)
         } catch (e) {
           // No asignar rol por defecto ante error de red — mostrar error y pedir re-login.
           console.error('Error obteniendo perfil de usuario:', e)
@@ -55,6 +57,7 @@ export function useAuth() {
         setEmpresaId(null)
         setNombre(null)
         setMovilHabilitado(false)
+        setAceptoTerminos(false)
         setAuthError(null)
       }
       setLoading(false)
@@ -76,5 +79,13 @@ export function useAuth() {
     await firebaseSignOut(auth)
   }
 
-  return { user, role, teamId, empresaId, nombre, movilHabilitado, isOwner: role === 'owner', loading, authError, signIn, signOut }
+  const aceptarTerminos = async (version = '1.0') => {
+    if (!auth.currentUser) return
+    await updateDoc(doc(db, 'usuarios', auth.currentUser.uid), {
+      aceptoTerminos: { fecha: serverTimestamp(), version },
+    })
+    setAceptoTerminos(true)
+  }
+
+  return { user, role, teamId, empresaId, nombre, movilHabilitado, aceptoTerminos, isOwner: role === 'owner', loading, authError, signIn, signOut, aceptarTerminos }
 }
