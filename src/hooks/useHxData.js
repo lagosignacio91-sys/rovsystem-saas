@@ -126,6 +126,45 @@ export function useHxData() {
     await updateDoc(doc(db, 'hxProspectos', id), cambios)
   }
 
+  async function actualizarEtapaProspecto(id, etapa) {
+    await updateDoc(doc(db, 'hxProspectos', id), { etapa })
+  }
+
+  async function convertirACliente(prospectoId, datos) {
+    const clienteSlug = datos.slug
+    await setDoc(doc(db, 'hxClientes', clienteSlug), {
+      nombre: datos.empresa,
+      productoId: datos.productoId,
+      estado: 'activa',
+      plan: {
+        tarifaBase: datos.precioMensual,
+        moneda: 'CLP',
+        descripcion: 'Plan Estándar',
+        diaVencimiento: datos.diaVencimiento,
+      },
+      licencia: {
+        fechaInicio: datos.fechaInicio,
+        tipo: 'mensual',
+        mejorasDisponibles: 2,
+        mejorasUsadas: 0,
+      },
+      soporte: { mensualidad: 0, activo: true },
+      moviles: {
+        plan: 'tarifa-plana',
+        incluidos: datos.movilesIncluidos,
+        tarifaExtra: 0,
+      },
+      contacto: { nombre: datos.contactoNombre, email: datos.contactoEmail, tel: datos.contactoTel },
+      queryMetricas: { campo: 'empresaId', valor: clienteSlug },
+      creadoEn: serverTimestamp(),
+    })
+    await updateDoc(doc(db, 'hxProspectos', prospectoId), {
+      etapa: 'cerrado',
+      conversionEn: serverTimestamp(),
+      clienteId: clienteSlug,
+    })
+  }
+
   return {
     clientes, productos, pagos, gastos, config, prospectos, cargando,
     registrarPago, eliminarPago,
@@ -133,6 +172,7 @@ export function useHxData() {
     actualizarCliente, registrarMejora,
     actualizarConfig,
     crearProspecto, eliminarProspecto, actualizarProspecto,
+    actualizarEtapaProspecto, convertirACliente,
     mesActual: mesStr,
   }
 }

@@ -77,7 +77,7 @@ export default function ModalPersonalizar({ onCerrar }) {
           <Seccion titulo="Marca">
             <label style={s.lbl}>Nombre de la app</label>
             <input value={marca.appName} onChange={(e) => setMarca((m) => ({ ...m, appName: e.target.value }))}
-              style={s.textInput} placeholder="GL App" />
+              style={s.textInput} placeholder="RovSystem" />
 
             <label style={{ ...s.lbl, marginTop: 12 }}>Color de marca</label>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>

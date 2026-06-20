@@ -9,8 +9,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['logo.png', 'favicon.svg', 'login-bg.jpg', 'pwa-192.png', 'pwa-512.png', 'pwa-maskable-512.png'],
       manifest: {
-        name: 'GL Robótica Submarina',
-        short_name: 'GL App',
+        name: 'RovSystem — GL Robótica',
+        short_name: 'RovSystem',
         description: 'Gestión operacional de robótica submarina en Aysén',
         theme_color: '#0a2540',
         background_color: '#ffffff',

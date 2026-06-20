@@ -11,7 +11,7 @@ const SECCIONES = [
   { id: 'finanzas',    label: 'FINANZAS',       Icon: TrendingUp },
   { id: 'logistica',   label: 'LOGÍSTICA',      Icon: Package    },
   { id: 'sistemas',    label: 'SISTEMAS',        Icon: Cpu        },
-  { id: 'demos',      label: 'DEMOS',           Icon: Monitor    },
+  { id: 'cartera',    label: 'CARTERA',         Icon: Monitor    },
 ]
 
 const clp = (n) =>
@@ -96,7 +96,7 @@ export default function OlimpoPage() {
           {seccion === 'finanzas'    && <Finanzas  hxData={hxData} />}
           {seccion === 'logistica'   && <Logistica hxData={hxData} />}
           {seccion === 'sistemas'    && <Sistemas hxData={hxData} user={user} />}
-          {seccion === 'demos'      && <Demos    hxData={hxData} />}
+          {seccion === 'cartera'    && <Cartera  hxData={hxData} />}
         </main>
       </div>
     </div>
@@ -1123,54 +1123,55 @@ function Placeholder({ label }) {
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   DEMOS — biblioteca de prospectos con links personalizados
+   CARTERA — pipeline de prospectos y conversión a clientes
 ═══════════════════════════════════════════════════════════════ */
-function Demos({ hxData }) {
-  const { prospectos, crearProspecto, eliminarProspecto } = hxData
-  const [modal, setModal]         = useState(false)
-  const [form, setForm]           = useState({ empresa: '', nombre: '', notas: '' })
-  const [guardando, setGuardando] = useState(false)
-  const [copiado, setCopiado]     = useState(null)
-  const [confirmDel, setConfirmDel] = useState(null)
+function Cartera({ hxData }) {
+  const { prospectos, crearProspecto, eliminarProspecto, actualizarEtapaProspecto, convertirACliente } = hxData
+
+  const [filtro, setFiltro]           = useState('todos')
+  const [modalNuevo, setModalNuevo]   = useState(false)
+  const [formNuevo, setFormNuevo]     = useState({ empresa: '', nombre: '', email: '', tel: '', notas: '' })
+  const [guardandoNuevo, setGuardandoNuevo] = useState(false)
+  const [modalConvertir, setModalConvertir] = useState(null)
+  const [formConvertir, setFormConvertir]   = useState({})
+  const [guardandoConvertir, setGuardandoConvertir] = useState(false)
+  const [copiado, setCopiado]         = useState(null)
+  const [confirmDel, setConfirmDel]   = useState(null)
 
   const DEMO_URL = 'https://demo.hyperionx.tech'
 
+  const ETAPAS = [
+    { id: 'nuevo',        label: 'NUEVO',        color: 'var(--hx-muted)' },
+    { id: 'demo_enviada', label: 'DEMO ENVIADA', color: '#3b82f6' },
+    { id: 'negociando',   label: 'NEGOCIANDO',   color: 'var(--hx-amber)' },
+    { id: 'cerrado',      label: 'CERRADO',      color: 'var(--hx-green)' },
+    { id: 'descartado',   label: 'DESCARTADO',   color: 'var(--hx-red)' },
+  ]
+
+  const etapaLabel = (id) => ETAPAS.find(e => e.id === id)?.label ?? 'NUEVO'
+  const etapaColor = (id) => ETAPAS.find(e => e.id === id)?.color ?? 'var(--hx-muted)'
+
+  const FLUJO = ['nuevo', 'demo_enviada', 'negociando']
+  const nextEtapa = (current) => {
+    const idx = FLUJO.indexOf(current ?? 'nuevo')
+    return idx >= 0 && idx < FLUJO.length - 1 ? FLUJO[idx + 1] : null
+  }
+
   const toSlug = (t) =>
-    t.toLowerCase()
-     .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    t.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
      .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 
   const makeLink = (p) =>
-    `${DEMO_URL}/?cliente=${encodeURIComponent(p.empresa)}&ref=${p.slug}`
+    `${DEMO_URL}/?cliente=${encodeURIComponent(p.empresa)}&ref=${p.slug ?? toSlug(p.empresa)}`
 
-  const linkPreview = form.empresa
-    ? `${DEMO_URL}/?cliente=${encodeURIComponent(form.empresa)}&ref=${toSlug(form.empresa)}`
-    : ''
+  const counts = ETAPAS.reduce((acc, e) => {
+    acc[e.id] = prospectos.filter(p => (p.etapa ?? 'nuevo') === e.id).length
+    return acc
+  }, {})
 
-  async function handleCrear(e) {
-    e.preventDefault()
-    if (!form.empresa.trim()) return
-    setGuardando(true)
-    try {
-      await crearProspecto({
-        empresa: form.empresa.trim(),
-        nombre: form.nombre.trim(),
-        notas: form.notas.trim(),
-        slug: toSlug(form.empresa.trim()),
-        visitas: 0,
-        ultimaVisita: null,
-      })
-      setModal(false)
-      setForm({ empresa: '', nombre: '', notas: '' })
-    } finally { setGuardando(false) }
-  }
-
-  function copiar(p) {
-    navigator.clipboard.writeText(makeLink(p)).then(() => {
-      setCopiado(p.id)
-      setTimeout(() => setCopiado(null), 2000)
-    })
-  }
+  const prospectosVisibles = filtro === 'todos'
+    ? prospectos
+    : prospectos.filter(p => (p.etapa ?? 'nuevo') === filtro)
 
   const fechaFmt = (ts) => {
     if (!ts) return 'Nunca'
@@ -1178,145 +1179,315 @@ function Demos({ hxData }) {
     return d.toLocaleDateString('es-CL', { day: '2-digit', month: 'short', year: 'numeric' })
   }
 
+  async function handleCrearProspecto(e) {
+    e.preventDefault()
+    if (!formNuevo.empresa.trim()) return
+    setGuardandoNuevo(true)
+    try {
+      await crearProspecto({
+        empresa: formNuevo.empresa.trim(), nombre: formNuevo.nombre.trim(),
+        email: formNuevo.email.trim(), tel: formNuevo.tel.trim(),
+        notas: formNuevo.notas.trim(), slug: toSlug(formNuevo.empresa.trim()),
+        etapa: 'nuevo', visitas: 0, ultimaVisita: null, conversionEn: null, clienteId: null,
+      })
+      setModalNuevo(false)
+      setFormNuevo({ empresa: '', nombre: '', email: '', tel: '', notas: '' })
+    } finally { setGuardandoNuevo(false) }
+  }
+
+  function abrirModalConvertir(p) {
+    setFormConvertir({
+      productoId: 'rovsystem-acuicultura',
+      precioMensual: '', diaVencimiento: '19',
+      fechaInicio: new Date().toISOString().slice(0, 10),
+      movilesIncluidos: 4,
+      contactoNombre: p.nombre || '', contactoEmail: p.email || '', contactoTel: p.tel || '',
+    })
+    setModalConvertir(p)
+  }
+
+  async function handleConvertir(e) {
+    e.preventDefault()
+    if (!modalConvertir) return
+    setGuardandoConvertir(true)
+    try {
+      await convertirACliente(modalConvertir.id, {
+        slug: toSlug(modalConvertir.empresa),
+        empresa: modalConvertir.empresa,
+        productoId: formConvertir.productoId,
+        precioMensual: Number(formConvertir.precioMensual),
+        diaVencimiento: Number(formConvertir.diaVencimiento) || 19,
+        fechaInicio: formConvertir.fechaInicio,
+        movilesIncluidos: Number(formConvertir.movilesIncluidos) || 4,
+        contactoNombre: formConvertir.contactoNombre,
+        contactoEmail: formConvertir.contactoEmail,
+        contactoTel: formConvertir.contactoTel,
+      })
+      setModalConvertir(null)
+    } finally { setGuardandoConvertir(false) }
+  }
+
+  function copiar(p) {
+    navigator.clipboard.writeText(makeLink(p)).then(() => {
+      setCopiado(p.id); setTimeout(() => setCopiado(null), 2000)
+    })
+  }
+
   return (
     <div className="hx-stack">
       <div className="hx-panel">
+        {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, paddingBottom: 10, borderBottom: '1px solid var(--hx-border)' }}>
           <span style={{ fontFamily: 'var(--hx-mono)', fontSize: 9, fontWeight: 700, letterSpacing: '0.2em', color: 'var(--hx-muted)' }}>
-            BIBLIOTECA DE DEMOS — {prospectos.length} PROSPECTOS
+            CARTERA DE PROSPECTOS — {prospectos.length} TOTAL
           </span>
-          <button className="hx-btn hx-btn-primary" style={{ padding: '6px 12px', fontSize: 9 }} onClick={() => setModal(true)}>
+          <button className="hx-btn hx-btn-primary" style={{ padding: '6px 12px', fontSize: 9 }} onClick={() => setModalNuevo(true)}>
             + NUEVO PROSPECTO
           </button>
         </div>
 
-        {prospectos.length === 0 ? (
-          <div className="hx-empty">SIN PROSPECTOS — CREA UNO PARA GENERAR UN LINK DEMO PERSONALIZADO</div>
+        {/* Pipeline summary */}
+        <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
+          {ETAPAS.filter(e => e.id !== 'descartado').map(e => (
+            <div key={e.id} style={{ background: 'var(--hx-panel)', border: `1px solid ${e.color}`, borderRadius: 4, padding: '4px 10px', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ fontFamily: 'var(--hx-mono)', fontSize: 8, color: e.color, fontWeight: 700 }}>{e.label}</span>
+              <span style={{ fontFamily: 'var(--hx-mono)', fontSize: 12, color: e.color, fontWeight: 700 }}>{counts[e.id] ?? 0}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Filtros */}
+        <div style={{ display: 'flex', gap: 6, marginBottom: 14, flexWrap: 'wrap' }}>
+          {[{ id: 'todos', label: 'TODOS' }, ...ETAPAS].map(f => (
+            <button key={f.id} className={`hx-btn ${filtro === f.id ? 'hx-btn-primary' : 'hx-btn-ghost'}`}
+              style={{ padding: '3px 9px', fontSize: 8 }} onClick={() => setFiltro(f.id)}>
+              {f.label}{f.id !== 'todos' ? ` (${counts[f.id] ?? 0})` : ''}
+            </button>
+          ))}
+        </div>
+
+        {/* Lista */}
+        {prospectosVisibles.length === 0 ? (
+          <div className="hx-empty">
+            {filtro === 'todos' ? 'SIN PROSPECTOS — AGREGA UNO PARA INICIAR EL PIPELINE'
+              : `SIN PROSPECTOS EN ETAPA "${etapaLabel(filtro)}"`}
+          </div>
         ) : (
           <div className="hx-prospects-list">
-            {prospectos.map(p => (
-              <div key={p.id} className="hx-prospect-card">
-                <div className="hx-prospect-header">
-                  <div>
-                    <div className="hx-prospect-empresa">{p.empresa}</div>
-                    {p.nombre && <div className="hx-label-sm" style={{ marginTop: 2 }}>{p.nombre}</div>}
+            {prospectosVisibles.map(p => {
+              const etapa = p.etapa ?? 'nuevo'
+              const next  = nextEtapa(etapa)
+              const isCerrado    = etapa === 'cerrado'
+              const isDescartado = etapa === 'descartado'
+              return (
+                <div key={p.id} className="hx-prospect-card" style={{ opacity: isDescartado ? 0.55 : 1 }}>
+                  <div className="hx-prospect-header">
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                        <div className="hx-prospect-empresa">{p.empresa}</div>
+                        <span style={{ fontFamily: 'var(--hx-mono)', fontSize: 8, fontWeight: 700, color: etapaColor(etapa), border: `1px solid ${etapaColor(etapa)}`, borderRadius: 3, padding: '1px 5px' }}>
+                          {etapaLabel(etapa)}
+                        </span>
+                        {isCerrado && p.clienteId && (
+                          <span style={{ fontFamily: 'var(--hx-mono)', fontSize: 8, color: 'var(--hx-green)', opacity: 0.8 }}>
+                            → {p.clienteId}
+                          </span>
+                        )}
+                      </div>
+                      {(p.nombre || p.email || p.tel) && (
+                        <div className="hx-label-sm" style={{ marginTop: 3 }}>
+                          {[p.nombre, p.email, p.tel].filter(Boolean).join(' · ')}
+                        </div>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+                      <span className="hx-visits-badge">{p.visitas ?? 0} VISITAS</span>
+                      <span className="hx-label-sm">Última: {fechaFmt(p.ultimaVisita)}</span>
+                      {isCerrado && p.conversionEn && (
+                        <span className="hx-label-sm" style={{ color: 'var(--hx-green)' }}>Conv: {fechaFmt(p.conversionEn)}</span>
+                      )}
+                    </div>
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
-                    <span className="hx-visits-badge">{p.visitas ?? 0} VISITAS</span>
-                    <span className="hx-label-sm">Última: {fechaFmt(p.ultimaVisita)}</span>
-                  </div>
-                </div>
 
-                <div className="hx-prospect-link">
-                  {makeLink(p).replace('https://', '')}
-                </div>
-
-                <div className="hx-prospect-actions">
-                  <button
-                    className="hx-btn hx-btn-primary"
-                    style={{ padding: '4px 10px', fontSize: 9 }}
-                    onClick={() => copiar(p)}
-                  >
-                    {copiado === p.id ? '✓ COPIADO' : 'COPIAR LINK'}
-                  </button>
-                  <button
-                    className="hx-btn hx-btn-ghost"
-                    style={{ padding: '4px 10px', fontSize: 9 }}
-                    onClick={() => window.open(makeLink(p), '_blank')}
-                  >
-                    ABRIR DEMO
-                  </button>
-                  {confirmDel === p.id ? (
-                    <>
-                      <button
-                        className="hx-btn hx-btn-danger"
-                        onClick={() => { eliminarProspecto(p.id); setConfirmDel(null) }}
-                      >
-                        CONFIRMAR ✕
-                      </button>
-                      <button
-                        className="hx-btn hx-btn-ghost"
-                        style={{ padding: '4px 10px', fontSize: 9 }}
-                        onClick={() => setConfirmDel(null)}
-                      >
-                        CANCELAR
-                      </button>
-                    </>
-                  ) : (
-                    <button
-                      className="hx-btn hx-btn-ghost"
-                      style={{ padding: '4px 10px', fontSize: 9 }}
-                      onClick={() => setConfirmDel(p.id)}
-                    >
-                      ELIMINAR
-                    </button>
+                  {!isCerrado && !isDescartado && (
+                    <div className="hx-prospect-link">{makeLink(p).replace('https://', '')}</div>
                   )}
-                </div>
+                  {p.notas && (
+                    <div className="hx-label-sm" style={{ marginTop: 5, fontStyle: 'italic', opacity: 0.7 }}>{p.notas}</div>
+                  )}
 
-                {p.notas && (
-                  <div className="hx-label-sm" style={{ marginTop: 6, fontStyle: 'italic', opacity: 0.7 }}>
-                    {p.notas}
+                  <div className="hx-prospect-actions">
+                    {!isCerrado && !isDescartado && (
+                      <>
+                        <button className="hx-btn hx-btn-primary" style={{ padding: '4px 10px', fontSize: 9 }} onClick={() => copiar(p)}>
+                          {copiado === p.id ? '✓ COPIADO' : 'COPIAR LINK'}
+                        </button>
+                        <button className="hx-btn hx-btn-ghost" style={{ padding: '4px 10px', fontSize: 9 }} onClick={() => window.open(makeLink(p), '_blank')}>
+                          ABRIR DEMO
+                        </button>
+                        {next && (
+                          <button className="hx-btn hx-btn-ghost" style={{ padding: '4px 10px', fontSize: 9, color: 'var(--hx-amber)', borderColor: 'var(--hx-amber)' }}
+                            onClick={() => actualizarEtapaProspecto(p.id, next)}>
+                            → {etapaLabel(next)}
+                          </button>
+                        )}
+                        <button className="hx-btn hx-btn-primary"
+                          style={{ padding: '4px 10px', fontSize: 9, background: 'rgba(34,197,94,0.15)', borderColor: 'var(--hx-green)', color: 'var(--hx-green)' }}
+                          onClick={() => abrirModalConvertir(p)}>
+                          ⚡ CONVERTIR A CLIENTE
+                        </button>
+                        <button className="hx-btn hx-btn-ghost" style={{ padding: '4px 10px', fontSize: 9, opacity: 0.6 }}
+                          onClick={() => actualizarEtapaProspecto(p.id, 'descartado')}>
+                          DESCARTAR
+                        </button>
+                      </>
+                    )}
+                    {isDescartado && (
+                      <button className="hx-btn hx-btn-ghost" style={{ padding: '4px 10px', fontSize: 9 }}
+                        onClick={() => actualizarEtapaProspecto(p.id, 'nuevo')}>
+                        ↩ REACTIVAR
+                      </button>
+                    )}
+                    {confirmDel === p.id ? (
+                      <>
+                        <button className="hx-btn hx-btn-danger" onClick={() => { eliminarProspecto(p.id); setConfirmDel(null) }}>CONFIRMAR ✕</button>
+                        <button className="hx-btn hx-btn-ghost" style={{ padding: '4px 10px', fontSize: 9 }} onClick={() => setConfirmDel(null)}>CANCELAR</button>
+                      </>
+                    ) : (
+                      <button className="hx-btn hx-btn-ghost" style={{ padding: '4px 10px', fontSize: 9 }} onClick={() => setConfirmDel(p.id)}>ELIMINAR</button>
+                    )}
                   </div>
-                )}
-              </div>
-            ))}
+                </div>
+              )
+            })}
           </div>
         )}
       </div>
 
-      {modal && (
-        <div className="hx-overlay" onClick={() => setModal(false)}>
+      {/* Modal nuevo prospecto */}
+      {modalNuevo && (
+        <div className="hx-overlay" onClick={() => setModalNuevo(false)}>
           <div className="hx-modal" onClick={e => e.stopPropagation()}>
             <div className="hx-modal-header">
               <div className="hx-modal-title">NUEVO PROSPECTO</div>
-              <button className="hx-modal-close" onClick={() => setModal(false)}>✕</button>
+              <button className="hx-modal-close" onClick={() => setModalNuevo(false)}>✕</button>
             </div>
-            <form onSubmit={handleCrear}>
+            <form onSubmit={handleCrearProspecto}>
               <div className="hx-form-grid">
                 <div>
                   <label className="hx-label">EMPRESA *</label>
-                  <input
-                    className="hx-input"
-                    value={form.empresa}
-                    onChange={e => setForm(p => ({ ...p, empresa: e.target.value }))}
-                    placeholder="Ej: Cermaq S.A."
-                    required
-                    autoFocus
-                  />
+                  <input className="hx-input" value={formNuevo.empresa}
+                    onChange={e => setFormNuevo(p => ({ ...p, empresa: e.target.value }))}
+                    placeholder="Ej: Cermaq S.A." required autoFocus />
                 </div>
                 <div>
                   <label className="hx-label">CONTACTO</label>
-                  <input
-                    className="hx-input"
-                    value={form.nombre}
-                    onChange={e => setForm(p => ({ ...p, nombre: e.target.value }))}
-                    placeholder="Nombre del contacto comercial"
-                  />
+                  <input className="hx-input" value={formNuevo.nombre}
+                    onChange={e => setFormNuevo(p => ({ ...p, nombre: e.target.value }))}
+                    placeholder="Nombre del contacto comercial" />
+                </div>
+                <div>
+                  <label className="hx-label">EMAIL CONTACTO</label>
+                  <input className="hx-input" type="email" value={formNuevo.email}
+                    onChange={e => setFormNuevo(p => ({ ...p, email: e.target.value }))}
+                    placeholder="contacto@empresa.cl" />
+                </div>
+                <div>
+                  <label className="hx-label">TELÉFONO</label>
+                  <input className="hx-input" value={formNuevo.tel}
+                    onChange={e => setFormNuevo(p => ({ ...p, tel: e.target.value }))}
+                    placeholder="+56 9 1234 5678" />
                 </div>
               </div>
               <div style={{ marginBottom: 14 }}>
                 <label className="hx-label">NOTAS INTERNAS</label>
-                <textarea
-                  className="hx-input"
-                  value={form.notas}
-                  onChange={e => setForm(p => ({ ...p, notas: e.target.value }))}
-                  placeholder="Intereses, contexto, etapa..."
-                  rows={2}
-                  style={{ resize: 'vertical', minHeight: 54 }}
-                />
+                <textarea className="hx-input" value={formNuevo.notas}
+                  onChange={e => setFormNuevo(p => ({ ...p, notas: e.target.value }))}
+                  placeholder="Intereses, contexto..." rows={2} style={{ resize: 'vertical', minHeight: 54 }} />
               </div>
-              {linkPreview && (
+              {formNuevo.empresa && (
                 <div className="hx-link-preview">
                   <div className="hx-label" style={{ marginBottom: 5 }}>LINK QUE SE GENERARÁ</div>
-                  <div className="hx-link-preview-url">{linkPreview}</div>
+                  <div className="hx-link-preview-url">
+                    {`${DEMO_URL}/?cliente=${encodeURIComponent(formNuevo.empresa)}&ref=${toSlug(formNuevo.empresa)}`}
+                  </div>
                 </div>
               )}
               <div className="hx-modal-actions">
-                <button type="button" className="hx-btn hx-btn-ghost" onClick={() => setModal(false)}>
-                  CANCELAR
+                <button type="button" className="hx-btn hx-btn-ghost" onClick={() => setModalNuevo(false)}>CANCELAR</button>
+                <button type="submit" className="hx-btn hx-btn-primary" disabled={guardandoNuevo}>
+                  {guardandoNuevo ? 'CREANDO...' : 'CREAR PROSPECTO'}
                 </button>
-                <button type="submit" className="hx-btn hx-btn-primary" disabled={guardando}>
-                  {guardando ? 'CREANDO...' : 'CREAR PROSPECTO'}
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal convertir a cliente */}
+      {modalConvertir && (
+        <div className="hx-overlay" onClick={() => setModalConvertir(null)}>
+          <div className="hx-modal" style={{ maxWidth: 580 }} onClick={e => e.stopPropagation()}>
+            <div className="hx-modal-header">
+              <div className="hx-modal-title">CONVERTIR A CLIENTE — {modalConvertir.empresa}</div>
+              <button className="hx-modal-close" onClick={() => setModalConvertir(null)}>✕</button>
+            </div>
+            <form onSubmit={handleConvertir}>
+              <div style={{ marginBottom: 12, padding: '7px 10px', border: '1px solid var(--hx-green)', borderRadius: 4, color: 'var(--hx-green)', fontFamily: 'var(--hx-mono)', fontSize: 9, lineHeight: 1.5 }}>
+                ⚡ SE CREARÁ UN CLIENTE ACTIVO EN OPERACIONES Y SE CERRARÁ ESTE PROSPECTO
+              </div>
+              <div className="hx-form-grid">
+                <div>
+                  <label className="hx-label">PRODUCTO</label>
+                  <input className="hx-input" value="RovSystem Acuicultura" readOnly style={{ opacity: 0.5, cursor: 'not-allowed' }} />
+                </div>
+                <div>
+                  <label className="hx-label">PRECIO MENSUAL CLP *</label>
+                  <input className="hx-input" type="number" value={formConvertir.precioMensual}
+                    onChange={e => setFormConvertir(p => ({ ...p, precioMensual: e.target.value }))}
+                    placeholder="1000000" required />
+                </div>
+                <div>
+                  <label className="hx-label">DÍA DE COBRO (1-31)</label>
+                  <input className="hx-input" type="number" min={1} max={31} value={formConvertir.diaVencimiento}
+                    onChange={e => setFormConvertir(p => ({ ...p, diaVencimiento: e.target.value }))}
+                    placeholder="19" />
+                </div>
+                <div>
+                  <label className="hx-label">FECHA INICIO LICENCIA</label>
+                  <input className="hx-input" type="date" value={formConvertir.fechaInicio}
+                    onChange={e => setFormConvertir(p => ({ ...p, fechaInicio: e.target.value }))} />
+                </div>
+                <div>
+                  <label className="hx-label">MÓVILES INCLUIDOS</label>
+                  <input className="hx-input" type="number" min={0} value={formConvertir.movilesIncluidos}
+                    onChange={e => setFormConvertir(p => ({ ...p, movilesIncluidos: e.target.value }))}
+                    placeholder="4" />
+                </div>
+                <div>
+                  <label className="hx-label">CONTACTO PRINCIPAL</label>
+                  <input className="hx-input" value={formConvertir.contactoNombre}
+                    onChange={e => setFormConvertir(p => ({ ...p, contactoNombre: e.target.value }))}
+                    placeholder="Nombre admin cliente" />
+                </div>
+                <div>
+                  <label className="hx-label">EMAIL CONTACTO</label>
+                  <input className="hx-input" type="email" value={formConvertir.contactoEmail}
+                    onChange={e => setFormConvertir(p => ({ ...p, contactoEmail: e.target.value }))}
+                    placeholder="contacto@empresa.cl" />
+                </div>
+                <div>
+                  <label className="hx-label">TELÉFONO CONTACTO</label>
+                  <input className="hx-input" value={formConvertir.contactoTel}
+                    onChange={e => setFormConvertir(p => ({ ...p, contactoTel: e.target.value }))}
+                    placeholder="+56 9 ..." />
+                </div>
+              </div>
+              <div className="hx-modal-actions">
+                <button type="button" className="hx-btn hx-btn-ghost" onClick={() => setModalConvertir(null)}>CANCELAR</button>
+                <button type="submit" className="hx-btn hx-btn-primary" disabled={guardandoConvertir}
+                  style={{ background: 'rgba(34,197,94,0.15)', borderColor: 'var(--hx-green)', color: 'var(--hx-green)' }}>
+                  {guardandoConvertir ? 'CREANDO CLIENTE...' : '⚡ CREAR CLIENTE Y CERRAR PROSPECTO'}
                 </button>
               </div>
             </form>

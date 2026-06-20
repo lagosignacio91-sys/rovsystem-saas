@@ -9,7 +9,7 @@ import ThemeToggle from '../components/kit/ThemeToggle'
 export default function Login() {
   const { signIn } = useAuth()
   const { branding } = useAppConfig()
-  const cliente = branding.appName && branding.appName !== 'GL App' ? branding.appName : 'GL Robótica'
+  const cliente = branding.appName || 'GL Robótica'
   const { instalable, instalada, esIOS, instalar } = useInstallPrompt()
   const [email, setEmail]       = useState('')
   const [password, setPassword] = useState('')
@@ -119,7 +119,7 @@ export default function Login() {
             <ol style={s.iosList}>
               <li>Toca el botón <Share size={14} style={{ verticalAlign: 'middle' }} /> <b>Compartir</b> en la barra de Safari.</li>
               <li>Desliza y elige <b>“Agregar a inicio”</b>.</li>
-              <li>Confirma con <b>Agregar</b>. El ícono de GL App quedará en tu pantalla.</li>
+              <li>Confirma con <b>Agregar</b>. El ícono de RovSystem quedará en tu pantalla.</li>
             </ol>
           </div>
         </div>

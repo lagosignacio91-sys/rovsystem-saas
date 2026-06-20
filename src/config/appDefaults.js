@@ -58,7 +58,7 @@ export const NAV_META = {
 
 // ---- Marca ----
 export const BRANDING_DEFAULT = {
-  appName:     'GL App',
+  appName:     'RovSystem',
   brandColor:  '',          // vacío = usa el color del tema (--gl-brand)
   logoDataUrl: '',          // vacío = usa /logo.png
   whatsappContacto: '',     // número de contacto comercial (ej: 56912345678) para la pantalla de contratar móvil
