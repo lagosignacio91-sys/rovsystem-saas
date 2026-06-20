@@ -87,5 +87,5 @@ export function useAuth() {
     setAceptoTerminos(true)
   }
 
-  return { user, role, teamId, empresaId, nombre, movilHabilitado, aceptoTerminos, isOwner: role === 'owner', loading, authError, signIn, signOut, aceptarTerminos }
+  return { user, role, teamId, empresaId, nombre, movilHabilitado, aceptoTerminos, isOwner: role === 'owner', isVentas: role === 'ventas', loading, authError, signIn, signOut, aceptarTerminos }
 }

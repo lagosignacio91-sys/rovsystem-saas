@@ -45,7 +45,7 @@ function PrivateRoute({ children, user, role, loading, authError, signOut, acept
   if (authError) return <PantallaCarga error={authError} onRelogin={signOut} />
   if (!user) return <Navigate to="/login" replace />
   if (!role) return <PantallaCarga error="No se pudo verificar tu rol. Contacta al administrador." onRelogin={signOut} />
-  if (!aceptoTerminos && role !== 'owner') return <Navigate to="/terminos" replace />
+  if (!aceptoTerminos && role !== 'owner' && role !== 'ventas') return <Navigate to="/terminos" replace />
   return children
 }
 
@@ -66,7 +66,7 @@ function AnimatedRoutes() {
       <Route path="/login"      element={<PublicRoute user={user} loading={loading}><Login /></PublicRoute>} />
       <Route path="/privacidad" element={<PrivacidadPage />} />
       <Route path="/terminos"   element={
-        !loading && user && !aceptoTerminos && role !== 'owner'
+        !loading && user && !aceptoTerminos && role !== 'owner' && role !== 'ventas'
           ? <TerminosPage onAceptar={aceptarTerminos} />
           : <Navigate to="/" replace />
       } />
@@ -74,12 +74,12 @@ function AnimatedRoutes() {
       {/* Panel maestro — layout propio, sin sidebar GL */}
       <Route path="/olimpo" element={
         <PrivateRoute user={user} role={role} loading={loading} authError={authError} signOut={signOut} aceptoTerminos={aceptoTerminos}>
-          <RoleRoute roles={['owner']} role={role} loading={loading}><OlimpoPage /></RoleRoute>
+          <RoleRoute roles={['owner', 'ventas']} role={role} loading={loading}><OlimpoPage /></RoleRoute>
         </PrivateRoute>
       } />
 
       <Route path="/" element={<PrivateRoute user={user} role={role} loading={loading} authError={authError} signOut={signOut} aceptoTerminos={aceptoTerminos}><MainLayout /></PrivateRoute>}>
-        <Route index element={role === 'owner' ? <Navigate to="/olimpo" replace /> : <MapaPage />} />
+        <Route index element={(role === 'owner' || role === 'ventas') ? <Navigate to="/olimpo" replace /> : <MapaPage />} />
         <Route path="centros"    element={<RoleRoute roles={['admin', 'supervisor']} role={role} loading={loading}><CentrosPage /></RoleRoute>} />
         <Route path="despachos"  element={<DespachosPage />} />
         <Route path="operadores" element={<RoleRoute roles={['admin', 'supervisor']} role={role} loading={loading}><OperadoresPage /></RoleRoute>} />

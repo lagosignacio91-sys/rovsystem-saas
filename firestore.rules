@@ -13,12 +13,13 @@ service cloud.firestore {
     function isSupervisor() { return signedIn() && rol() == 'supervisor'; }  // el "taller"
     function isOperador()   { return signedIn() && rol() == 'operador'; }
     function isOwner()      { return signedIn() && rol() == 'owner'; }
+    function isVentas()     { return signedIn() && rol() == 'ventas'; }
 
     // ---- Usuarios ----
     // El roster lo leen varias vistas (mapa, centros, operadores).
     // Self puede actualizar su perfil (ej: passwordCambiado) PERO no su rol ni teamId
     // (evita auto-escalar privilegios). Crear/borrar solo admin.
-    function rolValido(r) { return r in ['operador', 'supervisor', 'admin', 'owner']; }
+    function rolValido(r) { return r in ['operador', 'supervisor', 'admin', 'owner', 'ventas']; }
     match /usuarios/{uid} {
       // PII (RUT, teléfono, correos): solo admin, taller y el propio usuario.
       allow read:   if isAdmin() || isSupervisor() || isOwner() || request.auth.uid == uid;
@@ -100,24 +101,29 @@ service cloud.firestore {
       allow delete:        if isAdmin() || isSupervisor();
     }
 
-    // ---- Panel HyperionX Olimpo (solo owner) ----
+    // ---- Panel HyperionX Olimpo ----
+    // Owner: acceso total. Ventas: solo lectura en clientes/pagos/productos + cartera completa.
     match /hxOlimpo/{doc} {
-      allow read, write: if isOwner();
+      allow read:  if isOwner() || isVentas();
+      allow write: if isOwner();
     }
     match /hxPagos/{doc} {
-      allow read, write: if isOwner();
+      allow read:  if isOwner() || isVentas();
+      allow write: if isOwner();
     }
     match /hxGastos/{doc} {
       allow read, write: if isOwner();
     }
     match /hxProductos/{doc} {
-      allow read, write: if isOwner();
+      allow read:  if isOwner() || isVentas();
+      allow write: if isOwner();
     }
     match /hxClientes/{doc=**} {
-      allow read, write: if isOwner();
+      allow read:  if isOwner() || isVentas();
+      allow write: if isOwner();
     }
     match /hxProspectos/{doc} {
-      allow read, write: if isOwner();
+      allow read, write: if isOwner() || isVentas();
       // Tracking anónimo: solo permite actualizar visitas y ultimaVisita
       allow update: if request.resource.data.diff(resource.data).affectedKeys()
                        .hasOnly(['visitas', 'ultimaVisita']);

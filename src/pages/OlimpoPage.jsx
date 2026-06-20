@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { LogOut, Target, Globe, TrendingUp, Package, Cpu, Monitor, ChevronRight } from 'lucide-react'
+import { LogOut, Target, Globe, TrendingUp, Package, Cpu, Monitor, ChevronRight, Sun, Moon } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { useHxData } from '../hooks/useHxData'
 import { useClienteMetrics } from '../hooks/useClienteMetrics'
@@ -20,10 +20,17 @@ const clp = (n) =>
   }).format(n ?? 0)
 
 export default function OlimpoPage() {
-  const { user, signOut } = useAuth()
-  const [seccion, setSeccion] = useState('command')
-  const [hora, setHora]       = useState('')
-  const hxData                = useHxData()
+  const { user, role, signOut } = useAuth()
+  const isVentas = role === 'ventas'
+  const SECS_VENTAS = ['operaciones', 'cartera']
+  const seccionesVisibles = isVentas
+    ? SECCIONES.filter(s => SECS_VENTAS.includes(s.id))
+    : SECCIONES
+
+  const [seccion,  setSeccion] = useState(() => isVentas ? 'cartera' : 'command')
+  const [hora,     setHora]    = useState('')
+  const [theme,    setTheme]   = useState(() => localStorage.getItem('hx-theme') || 'dark')
+  const hxData                 = useHxData()
 
   useEffect(() => {
     const tick = () => setHora(new Date().toLocaleTimeString('es-CL', { hour12: false }))
@@ -32,72 +39,87 @@ export default function OlimpoPage() {
     return () => clearInterval(id)
   }, [])
 
-  const email    = user?.email ?? ''
-  const userTag  = email.split('@')[0]?.toUpperCase() ?? '---'
-  const secActual = SECCIONES.find(s => s.id === seccion)
+  const toggleTheme = () => setTheme(t => {
+    const n = t === 'dark' ? 'light' : 'dark'
+    localStorage.setItem('hx-theme', n)
+    return n
+  })
+
+  const email         = user?.email ?? ''
+  const userTag       = email.split('@')[0]?.toUpperCase() ?? '---'
+  const seccionActual = seccionesVisibles.some(s => s.id === seccion) ? seccion : (seccionesVisibles[0]?.id ?? 'command')
+  const secActual     = SECCIONES.find(s => s.id === seccionActual)
 
   return (
-    <div className="hx-olimpo">
-      {/* ─── SIDEBAR ────────────────────────────────── */}
-      <aside className="hx-sidebar">
-        <div className="hx-sidebar-brand">
-          <div className="hx-hexagon">⬡</div>
-          <div>
-            <div className="hx-brand-name">HYPERIONX</div>
-            <div className="hx-brand-sub">OLIMPO · v2.0</div>
-          </div>
-        </div>
+    <div className="hx-olimpo" data-theme={theme}>
 
-        <div className="hx-sidebar-divider" />
-
-        <nav className="hx-nav">
-          {SECCIONES.map(({ id, label, Icon }) => (
-            <button
-              key={id}
-              className={`hx-nav-item ${seccion === id ? 'active' : ''}`}
-              onClick={() => setSeccion(id)}
-            >
-              <Icon size={13} strokeWidth={1.8} />
-              <span>{label}</span>
-              {seccion === id && <ChevronRight size={11} className="hx-nav-arrow" />}
-            </button>
-          ))}
-        </nav>
-
+      {/* ─── TOP BAR ───────────────────────────────── */}
+      <div className="hx-topbar">
+        <img src="/hyperionx-hx.png" className="hx-logo-img" alt="HyperionX" />
+        <div className="hx-topbar-divider" />
+        <span className="hx-topbar-prod">OLIMPO</span>
+        <span className="hx-topbar-sub">PANEL MAESTRO</span>
         <div style={{ flex: 1 }} />
-        <div className="hx-sidebar-divider" />
-
-        <div className="hx-sidebar-footer">
-          <div className="hx-sys-status">
-            <span className="hx-dot hx-dot-green" /> SYS ONLINE
+        <div className="hx-topbar-right">
+          <span className="hx-clock">{hora}</span>
+          <div className="hx-sys-badge">
+            <span className="hx-dot hx-dot-green" /> ACTIVO
           </div>
-          <div className="hx-user-info">{userTag}</div>
-          <button className="hx-logout-btn" onClick={signOut}>
-            <LogOut size={12} /> LOGOUT
+          <span className="hx-topbar-user">{userTag}</span>
+          <button className="hx-theme-toggle" onClick={toggleTheme} title={theme === 'dark' ? 'Modo claro' : 'Modo oscuro'}>
+            {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
           </button>
         </div>
-      </aside>
+      </div>
 
-      {/* ─── MAIN ───────────────────────────────────── */}
-      <div className="hx-main">
-        <header className="hx-header">
-          <div className="hx-header-title">{secActual?.label}</div>
-          <div className="hx-header-right">
-            <div className="hx-clock">{hora}</div>
-            <div className="hx-sys-badge">
-              <span className="hx-dot hx-dot-red hx-blink" /> SISTEMA ACTIVO
+      {/* ─── BODY ──────────────────────────────────── */}
+      <div className="hx-body">
+
+        {/* SIDEBAR */}
+        <aside className="hx-sidebar">
+          <nav className="hx-nav">
+            {seccionesVisibles.map(({ id, label, Icon }) => (
+              <button
+                key={id}
+                className={`hx-nav-item ${seccionActual === id ? 'active' : ''}`}
+                onClick={() => setSeccion(id)}
+              >
+                <Icon size={13} strokeWidth={1.8} />
+                <span>{label}</span>
+                {seccionActual === id && <ChevronRight size={11} className="hx-nav-arrow" />}
+              </button>
+            ))}
+          </nav>
+
+          <div style={{ flex: 1 }} />
+          <div className="hx-sidebar-divider" />
+
+          <div className="hx-sidebar-footer">
+            <div className="hx-sys-status">
+              <span className="hx-dot hx-dot-green" /> SYS ONLINE
             </div>
+            <div className="hx-user-info">{email}</div>
+            <button className="hx-logout-btn" onClick={signOut}>
+              <LogOut size={12} /> LOGOUT
+            </button>
           </div>
-        </header>
+        </aside>
 
-        <main className="hx-content">
-          {seccion === 'command'     && <CommandCenter hxData={hxData} />}
-          {seccion === 'operaciones' && <Operaciones   hxData={hxData} />}
-          {seccion === 'finanzas'    && <Finanzas  hxData={hxData} />}
-          {seccion === 'logistica'   && <Logistica hxData={hxData} />}
-          {seccion === 'sistemas'    && <Sistemas hxData={hxData} user={user} />}
-          {seccion === 'cartera'    && <Cartera  hxData={hxData} />}
-        </main>
+        {/* MAIN */}
+        <div className="hx-main">
+          <header className="hx-header">
+            <div className="hx-header-title">{secActual?.label}</div>
+          </header>
+
+          <main className="hx-content">
+            {seccionActual === 'command'     && <CommandCenter hxData={hxData} />}
+            {seccionActual === 'operaciones' && <Operaciones   hxData={hxData} isVentas={isVentas} />}
+            {seccionActual === 'finanzas'    && <Finanzas      hxData={hxData} />}
+            {seccionActual === 'logistica'   && <Logistica     hxData={hxData} />}
+            {seccionActual === 'sistemas'    && <Sistemas       hxData={hxData} user={user} />}
+            {seccionActual === 'cartera'    && <Cartera        hxData={hxData} />}
+          </main>
+        </div>
       </div>
     </div>
   )
@@ -110,13 +132,28 @@ function CommandCenter({ hxData }) {
   const { clientes, pagos, gastos, cargando, mesActual } = hxData
   const mes = mesActual()
 
-  const ingresosMes = pagos.filter(p => p.mes === mes).reduce((s, p) => s + (p.monto ?? 0), 0)
-  const gastosMes   = gastos.filter(g => g.mes === mes).reduce((s, g) => s + (g.monto ?? 0), 0)
-  const margen  = ingresosMes - gastosMes
-  const pct     = ingresosMes > 0 ? Math.round((margen / ingresosMes) * 100) : 0
-  const color   = margen >= 0 ? 'var(--hx-green)' : 'var(--hx-red-soft)'
+  const hoy  = new Date()
+  const prevD = new Date(hoy.getFullYear(), hoy.getMonth() - 1, 1)
+  const mesPrev = `${prevD.getFullYear()}-${String(prevD.getMonth() + 1).padStart(2, '0')}`
+
+  const ingresosMes  = pagos.filter(p => p.mes === mes).reduce((s, p) => s + (p.monto ?? 0), 0)
+  const gastosMes    = gastos.filter(g => (g.mes ?? g.fecha?.slice(0, 7)) === mes).reduce((s, g) => s + (g.monto ?? 0), 0)
+  const ingresosPrev = pagos.filter(p => p.mes === mesPrev).reduce((s, p) => s + (p.monto ?? 0), 0)
+  const gastosPrev   = gastos.filter(g => (g.mes ?? g.fecha?.slice(0, 7)) === mesPrev).reduce((s, g) => s + (g.monto ?? 0), 0)
+  const margen     = ingresosMes - gastosMes
+  const margenPrev = ingresosPrev - gastosPrev
+  const pct        = ingresosMes > 0 ? Math.round((margen / ingresosMes) * 100) : 0
+  const color      = margen >= 0 ? 'var(--hx-green)' : 'var(--hx-red-soft)'
+
   const activos = clientes.filter(c => c.estado === 'activa').length
   const enAviso = clientes.filter(c => c.estado === 'aviso').length
+  const mrr     = clientes.filter(c => c.estado === 'activa').reduce((s, c) => s + (c.plan?.tarifaBase ?? 0), 0)
+  const arr     = mrr * 12
+
+  const clientesSinPago = clientes
+    .filter(c => c.estado === 'activa')
+    .filter(c => !pagos.some(p => p.clienteId === c.id && p.mes === mes))
+
   const proximoCobro = calcProximoCobro(clientes, pagos, mes)
   const alertas      = calcAlertas(gastos)
   const mesNombre    = new Date(mes + '-15').toLocaleString('es-CL', { month: 'long', year: 'numeric' })
@@ -125,28 +162,16 @@ function CommandCenter({ hxData }) {
 
   return (
     <div className="hx-stack">
-      <div className="hx-grid-2">
-        <StatCard title="INGRESOS DEL MES" value={clp(ingresosMes)} sub={mesNombre.toUpperCase()} color="var(--hx-green)" />
-        <StatCard title="GASTOS DEL MES"   value={clp(gastosMes)}   sub={mesNombre.toUpperCase()} color="var(--hx-red-soft)" />
-      </div>
 
-      <div className="hx-panel">
-        <div className="hx-panel-title">MARGEN NETO DEL MES</div>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 14 }}>
-          <span className="hx-value" style={{ color, textShadow: `0 0 16px ${color}55` }}>{clp(margen)}</span>
-          <span style={{ fontFamily: 'var(--hx-mono)', fontSize: 13, color: 'var(--hx-muted)', letterSpacing: '0.06em' }}>{pct}%</span>
-        </div>
-        <div className="hx-progress-track">
-          <div className="hx-progress-fill" style={{ width: `${Math.min(100, Math.max(0, pct))}%`, background: color, boxShadow: `0 0 10px ${color}` }} />
-        </div>
-      </div>
-
-      <div className="hx-grid-2">
+      {/* MRR / ARR / Clientes */}
+      <div className="hx-grid-3">
+        <StatCard title="MRR" value={clp(mrr)} sub="INGRESO MENSUAL RECURRENTE" color="var(--hx-green)" />
+        <StatCard title="ARR" value={clp(arr)} sub="PROYECCIÓN ANUAL" color="var(--hx-text)" />
         <div className="hx-panel">
           <div className="hx-panel-title">CLIENTES</div>
-          <div style={{ display: 'flex', gap: 32, marginTop: 4 }}>
+          <div style={{ display: 'flex', gap: 28, marginTop: 4 }}>
             <div>
-              <div className="hx-value" style={{ color: 'var(--hx-green)', textShadow: '0 0 14px var(--hx-green-glow)' }}>{activos}</div>
+              <div className="hx-value" style={{ color: 'var(--hx-green)' }}>{activos}</div>
               <div className="hx-label-sm">ACTIVOS</div>
             </div>
             <div>
@@ -155,15 +180,51 @@ function CommandCenter({ hxData }) {
             </div>
           </div>
         </div>
-        <ProximoCobro cobro={proximoCobro} />
       </div>
 
+      {/* Ingresos / Gastos del mes */}
+      <div className="hx-grid-2">
+        <StatCard title="INGRESOS DEL MES" value={clp(ingresosMes)} sub={mesNombre.toUpperCase()} color="var(--hx-green)" />
+        <StatCard title="GASTOS DEL MES"   value={clp(gastosMes)}   sub={mesNombre.toUpperCase()} color="var(--hx-red-soft)" />
+      </div>
+
+      {/* Margen + barra */}
+      <div className="hx-panel">
+        <div className="hx-panel-title">MARGEN NETO DEL MES</div>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 14 }}>
+          <span className="hx-value" style={{ color }}>{clp(margen)}</span>
+          <span style={{ fontFamily: 'var(--hx-mono)', fontSize: 13, color: 'var(--hx-muted)', letterSpacing: '0.06em' }}>{pct}%</span>
+        </div>
+        <div className="hx-progress-track">
+          <div className="hx-progress-fill" style={{ width: `${Math.min(100, Math.max(0, pct))}%`, background: color }} />
+        </div>
+      </div>
+
+      {/* Resumen vs mes anterior */}
+      <div className="hx-panel">
+        <div className="hx-panel-title">RESUMEN VS MES ANTERIOR</div>
+        <div className="hx-grid-3">
+          <ResumenItem label="INGRESOS" actual={ingresosMes} anterior={ingresosPrev} />
+          <ResumenItem label="GASTOS"   actual={gastosMes}   anterior={gastosPrev}   invertido />
+          <ResumenItem label="MARGEN"   actual={margen}       anterior={margenPrev} />
+        </div>
+      </div>
+
+      {/* Próximo cobro */}
+      <ProximoCobro cobro={proximoCobro} />
+
+      {/* Alertas */}
       <div className="hx-panel">
         <div className="hx-panel-title">ALERTAS DEL SISTEMA</div>
-        {alertas.length === 0
-          ? <div className="hx-empty" style={{ color: 'var(--hx-green)' }}>✓ &nbsp;SIN ALERTAS ACTIVAS</div>
-          : alertas.map((a, i) => <div key={i} className="hx-alert-row amber">⚠ {a}</div>)
-        }
+        {clientesSinPago.map(c => (
+          <div key={c.id} className="hx-alert-row red">
+            ⚠ {c.nombre?.toUpperCase()} — SIN PAGO REGISTRADO EN {mesNombre.toUpperCase()}
+          </div>
+        ))}
+        {alertas.map((a, i) => <div key={i} className="hx-alert-row amber">⚠ {a}</div>)}
+        {alertas.length === 0 && clientesSinPago.length === 0 && (
+          <div className="hx-empty" style={{ color: 'var(--hx-green)' }}>✓ &nbsp;SIN ALERTAS ACTIVAS</div>
+        )}
       </div>
     </div>
   )
@@ -193,6 +254,22 @@ function calcAlertas(gastos) {
       const dias = Math.ceil((new Date(g.proximoVencimiento) - hoy) / 86400000)
       return dias <= 0 ? `${g.descripcion} — VENCIDO` : `${g.descripcion} — vence en ${dias} días`
     })
+}
+
+function ResumenItem({ label, actual, anterior, invertido }) {
+  const delta = actual - anterior
+  const isPositive = invertido ? delta <= 0 : delta >= 0
+  const cls = anterior === 0 ? 'neutral' : isPositive ? 'pos' : 'neg'
+  const sign = delta > 0 ? '+' : ''
+  return (
+    <div className="hx-resumen-item">
+      <div className="hx-label-sm">{label}</div>
+      <div className="hx-value-sm" style={{ color: 'var(--hx-text)', marginTop: 4 }}>{clp(actual)}</div>
+      {anterior !== 0 && (
+        <div className={`hx-delta ${cls}`}>{sign}{clp(delta)} vs anterior</div>
+      )}
+    </div>
+  )
 }
 
 function ProximoCobro({ cobro }) {
@@ -227,7 +304,7 @@ function ProximoCobro({ cobro }) {
 /* ═══════════════════════════════════════════════════════════════
    OPERACIONES
 ═══════════════════════════════════════════════════════════════ */
-function Operaciones({ hxData }) {
+function Operaciones({ hxData, isVentas }) {
   const { clientes, productos, pagos, actualizarCliente, registrarPago, registrarMejora } = hxData
   const [expandido,   setExpandido]   = useState(null)
   const [modalPago,   setModalPago]   = useState(null)
@@ -249,6 +326,7 @@ function Operaciones({ hxData }) {
               productos={productos}
               pagos={pagos.filter(p => p.clienteId === c.id)}
               expandido={expandido === c.id}
+              isVentas={isVentas}
               onToggle={() => setExpandido(expandido === c.id ? null : c.id)}
               onPago={()   => setModalPago({   clienteId: c.id, nombre: c.nombre, monto: c.plan?.tarifaBase ?? 0 })}
               onEstado={()  => setModalEstado({ clienteId: c.id, estadoActual: c.estado })}
@@ -257,21 +335,21 @@ function Operaciones({ hxData }) {
           ))
       }
 
-      {modalPago && (
+      {!isVentas && modalPago && (
         <ModalPago
           {...modalPago}
           onGuardar={async d => { await registrarPago(d); setModalPago(null) }}
           onCerrar={() => setModalPago(null)}
         />
       )}
-      {modalEstado && (
+      {!isVentas && modalEstado && (
         <ModalEstado
           {...modalEstado}
           onGuardar={async e => { await actualizarCliente(modalEstado.clienteId, { estado: e }); setModalEstado(null) }}
           onCerrar={() => setModalEstado(null)}
         />
       )}
-      {modalMejora && (
+      {!isVentas && modalMejora && (
         <ModalMejora
           {...modalMejora}
           onGuardar={async d => { await registrarMejora(modalMejora.clienteId, d); setModalMejora(null) }}
@@ -282,7 +360,7 @@ function Operaciones({ hxData }) {
   )
 }
 
-function ClienteRow({ cliente, productos, pagos, expandido, onToggle, onPago, onEstado, onMejora }) {
+function ClienteRow({ cliente, productos, pagos, expandido, isVentas, onToggle, onPago, onEstado, onMejora }) {
   const producto  = productos.find(p => p.id === cliente.productoId)
   const usadas    = cliente.licencia?.mejorasUsadas ?? 0
   const disponibles = cliente.licencia?.mejorasDisponibles ?? 2
@@ -311,11 +389,13 @@ function ClienteRow({ cliente, productos, pagos, expandido, onToggle, onPago, on
             <UltimosPagos pagos={pagos} />
             <MejorasBox licencia={cliente.licencia} />
           </div>
-          <div style={{ display: 'flex', gap: 8, marginTop: 14, flexWrap: 'wrap' }}>
-            <button className="hx-btn hx-btn-primary" onClick={onPago}>+ REGISTRAR PAGO</button>
-            <button className="hx-btn hx-btn-ghost"  onClick={onEstado}>CAMBIAR ESTADO</button>
-            <button className="hx-btn hx-btn-ghost"  onClick={onMejora}>+ MEJORA USADA</button>
-          </div>
+          {!isVentas && (
+            <div style={{ display: 'flex', gap: 8, marginTop: 14, flexWrap: 'wrap' }}>
+              <button className="hx-btn hx-btn-primary" onClick={onPago}>+ REGISTRAR PAGO</button>
+              <button className="hx-btn hx-btn-ghost"  onClick={onEstado}>CAMBIAR ESTADO</button>
+              <button className="hx-btn hx-btn-ghost"  onClick={onMejora}>+ MEJORA USADA</button>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -527,7 +607,7 @@ function ModalMejora({ disponibles, usadas, onGuardar, onCerrar }) {
    FINANZAS
 ═══════════════════════════════════════════════════════════════ */
 function Finanzas({ hxData }) {
-  const { clientes, pagos, registrarPago, eliminarPago, mesActual } = hxData
+  const { clientes, pagos, gastos, registrarPago, eliminarPago, mesActual } = hxData
   const [modalPagoF, setModalPagoF] = useState(null)
   const mes = mesActual()
   const año = mes.slice(0, 4)
@@ -542,6 +622,11 @@ function Finanzas({ hxData }) {
       <div className="hx-grid-2">
         <StatCard title="INGRESOS DEL MES"  value={clp(totalMes)} sub={mes} color="var(--hx-green)" />
         <StatCard title="INGRESOS DEL AÑO"  value={clp(totalAño)} sub={año} color="var(--hx-text)" />
+      </div>
+
+      <div className="hx-panel">
+        <div className="hx-panel-title">INGRESOS VS GASTOS — ÚLTIMOS 12 MESES</div>
+        <BarChart12Meses pagos={pagos} gastos={gastos} />
       </div>
 
       <div className="hx-panel">
@@ -1094,7 +1179,7 @@ function StatCard({ title, value, sub, color }) {
   return (
     <div className="hx-panel">
       <div className="hx-panel-title">{title}</div>
-      <div className="hx-value" style={{ color, textShadow: `0 0 14px ${color}44` }}>{value}</div>
+      <div className="hx-value" style={{ color }}>{value}</div>
       <div className="hx-label-sm">{sub}</div>
     </div>
   )
@@ -1117,6 +1202,54 @@ function Placeholder({ label }) {
       <div className="hx-placeholder-inner">
         <div className="hx-placeholder-title">[ {label} ]</div>
         <div className="hx-placeholder-sub">MÓDULO EN INICIALIZACIÓN...</div>
+      </div>
+    </div>
+  )
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   BAR CHART — ingresos vs gastos 12 meses
+═══════════════════════════════════════════════════════════════ */
+function BarChart12Meses({ pagos, gastos }) {
+  const hoy = new Date()
+  const meses = Array.from({ length: 12 }, (_, i) => {
+    const d = new Date(hoy.getFullYear(), hoy.getMonth() - (11 - i), 1)
+    return {
+      mes:   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`,
+      label: d.toLocaleString('es-CL', { month: 'short' }),
+    }
+  })
+  const datos = meses.map(({ mes, label }) => ({
+    mes, label,
+    ingresos: pagos.filter(p => p.mes === mes).reduce((s, p) => s + (p.monto ?? 0), 0),
+    gastos:   gastos.filter(g => (g.mes ?? g.fecha?.slice(0, 7)) === mes).reduce((s, g) => s + (g.monto ?? 0), 0),
+  }))
+  const maxVal = Math.max(...datos.flatMap(d => [d.ingresos, d.gastos]), 1)
+
+  return (
+    <div className="hx-bar-chart">
+      <div className="hx-bar-grid">
+        {datos.map(d => (
+          <div key={d.mes} className="hx-bar-col">
+            <div className="hx-bar-pair">
+              <div
+                className={`hx-bar ${d.ingresos > 0 ? 'hx-bar-income' : 'hx-bar-empty'}`}
+                style={{ height: `${Math.max(2, Math.round((d.ingresos / maxVal) * 80))}px` }}
+                title={`Ingresos ${d.mes}: ${clp(d.ingresos)}`}
+              />
+              <div
+                className={`hx-bar ${d.gastos > 0 ? 'hx-bar-expense' : 'hx-bar-empty'}`}
+                style={{ height: `${Math.max(2, Math.round((d.gastos / maxVal) * 80))}px` }}
+                title={`Gastos ${d.mes}: ${clp(d.gastos)}`}
+              />
+            </div>
+            <div className="hx-bar-label">{d.label}</div>
+          </div>
+        ))}
+      </div>
+      <div className="hx-bar-legend">
+        <span><span className="hx-legend-dot" style={{ background: 'var(--hx-green)' }} />Ingresos</span>
+        <span><span className="hx-legend-dot" style={{ background: 'var(--hx-accent)' }} />Gastos</span>
       </div>
     </div>
   )
