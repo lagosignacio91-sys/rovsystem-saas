@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
-import { db } from '../../lib/firebase'
+import { db, storage } from '../../lib/firebase'
 import { doc, setDoc, onSnapshot, deleteField } from 'firebase/firestore'
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 import { useAppConfig } from '../../hooks/useAppConfig'
 import { TIPOS_OPERADOR } from '../../config/appDefaults'
 
@@ -105,6 +106,7 @@ export default function TabOperador({ centro, role }) {
   const [editando, setEditando]       = useState(null)
   const [form, setForm]               = useState({})
   const [fotoPreview, setFotoPreview] = useState(null)
+  const [fotoFile, setFotoFile]       = useState(null)
   const [verFoto, setVerFoto]         = useState(null)
   const fileRef = useRef()
 
@@ -127,7 +129,13 @@ export default function TabOperador({ centro, role }) {
     await setDoc(ref, { lista: nuevaLista, op1: deleteField(), op2: deleteField() }, { merge: true })
   }
 
+  const cerrarEdicion = () => {
+    if (fotoFile) URL.revokeObjectURL(fotoPreview)
+    setEditando(null); setForm({}); setFotoPreview(null); setFotoFile(null)
+  }
+
   const handleEditar = (idx) => {
+    setFotoFile(null)
     setForm(lista[idx])
     setFotoPreview(lista[idx].foto ?? null)
     setEditando(idx)
@@ -136,19 +144,27 @@ export default function TabOperador({ centro, role }) {
   const handleFoto = (e) => {
     const file = e.target.files[0]
     if (!file) return
-    const reader = new FileReader()
-    reader.onload = (ev) => {
-      setFotoPreview(ev.target.result)
-      setForm(f => ({ ...f, foto: ev.target.result }))
-    }
-    reader.readAsDataURL(file)
+    if (fotoFile) URL.revokeObjectURL(fotoPreview)
+    setFotoFile(file)
+    setFotoPreview(URL.createObjectURL(file))
   }
 
   const handleGuardar = async () => {
-    const nueva = lista.map((op, i) => i === editando ? { ...form } : op)
+    let fotoUrl = form.foto ?? null
+    if (fotoFile) {
+      try {
+        const path    = `operadores/${centro.id}/${Date.now()}_foto`
+        const storRef = ref(storage, path)
+        const snap    = await uploadBytes(storRef, fotoFile)
+        fotoUrl = await getDownloadURL(snap.ref)
+      } catch {
+        // Error de Storage — se conserva la foto anterior sin abortar el guardado
+      }
+    }
+    const nueva = lista.map((op, i) => i === editando ? { ...form, foto: fotoUrl } : op)
     setLista(nueva)
     await guardar(nueva)
-    setEditando(null); setForm({}); setFotoPreview(null)
+    cerrarEdicion()
   }
 
   const handleToggleEstado = async (idx) => {
@@ -195,7 +211,7 @@ export default function TabOperador({ centro, role }) {
           form={form} setForm={setForm}
           fotoPreview={fotoPreview} fileRef={fileRef} handleFoto={handleFoto}
           onGuardar={handleGuardar}
-          onCerrar={() => { setEditando(null); setForm({}); setFotoPreview(null) }}
+          onCerrar={cerrarEdicion}
           campos={campos}
         />
       )}
