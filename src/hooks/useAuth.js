@@ -76,5 +76,5 @@ export function useAuth() {
     await firebaseSignOut(auth)
   }
 
-  return { user, role, teamId, empresaId, nombre, movilHabilitado, loading, authError, signIn, signOut }
+  return { user, role, teamId, empresaId, nombre, movilHabilitado, isOwner: role === 'owner', loading, authError, signIn, signOut }
 }

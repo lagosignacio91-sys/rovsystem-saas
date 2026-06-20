@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { NavLink, Outlet, useLocation } from 'react-router-dom'
+import { NavLink, Outlet, useLocation, Navigate } from 'react-router-dom'
 import { LogOut, Menu, X, Clock, SlidersHorizontal } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import { useCentros } from '../../hooks/useCentros'
@@ -51,6 +51,9 @@ export default function MainLayout() {
   const usuarioLabel = nombre || user?.email?.split('@')[0] || ''
   const inicial = (usuarioLabel[0] ?? '?').toUpperCase()
   const badges  = { despachos: pendientes.length }
+
+  // Owner nunca entra a la app GL — va directo a su panel
+  if (role === 'owner') return <Navigate to="/olimpo" replace />
 
   // Gate de licencia móvil: en teléfono, si el usuario no tiene acceso móvil,
   // mostrar la pantalla de invitación a contratar (en computador entra normal).
@@ -151,6 +154,12 @@ export default function MainLayout() {
           </div>
           <ThemeToggle />
         </header>
+
+        {empresaActiva?.estado === 'aviso' && (
+          <div style={{ background: 'rgba(245,158,11,0.12)', borderBottom: '1px solid rgba(245,158,11,0.3)', padding: '7px 16px', display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#f59e0b', flexShrink: 0 }}>
+            ⚠️ Cuenta con pago pendiente · Contacta a HyperionX para regularizar
+          </div>
+        )}
 
         <main className="gl-content">
           <Outlet context={{ ...centrosState, role, uid: user?.uid, teamId, empresaActiva }} />

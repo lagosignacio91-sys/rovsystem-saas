@@ -120,6 +120,7 @@ export default function FormOperador({ inicial, esEdicion, onGuardar, onCerrar }
               <option value="operador">Operador</option>
               <option value="supervisor">Supervisor</option>
               <option value="admin">Admin</option>
+              <option value="owner">Owner (HyperionX)</option>
             </select>
           </div>
         </div>

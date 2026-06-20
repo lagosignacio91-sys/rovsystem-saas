@@ -13,6 +13,7 @@ import TurnosPage     from './pages/TurnosPage'
 import BodegaVirtualPage from './pages/BodegaVirtualPage'
 import BodegaAdminPage   from './pages/BodegaAdminPage'
 import ReportesPage      from './pages/ReportesPage'
+import OlimpoPage        from './pages/OlimpoPage'
 
 function PantallaCarga({ error, onRelogin }) {
   return (
@@ -60,8 +61,16 @@ function AnimatedRoutes() {
   return (
     <Routes>
       <Route path="/login" element={<PublicRoute user={user} loading={loading}><Login /></PublicRoute>} />
+
+      {/* Panel maestro — layout propio, sin sidebar GL */}
+      <Route path="/olimpo" element={
+        <PrivateRoute user={user} role={role} loading={loading} authError={authError} signOut={signOut}>
+          <RoleRoute roles={['owner']} role={role} loading={loading}><OlimpoPage /></RoleRoute>
+        </PrivateRoute>
+      } />
+
       <Route path="/" element={<PrivateRoute user={user} role={role} loading={loading} authError={authError} signOut={signOut}><MainLayout /></PrivateRoute>}>
-        <Route index element={<MapaPage />} />
+        <Route index element={role === 'owner' ? <Navigate to="/olimpo" replace /> : <MapaPage />} />
         <Route path="centros"    element={<RoleRoute roles={['admin', 'supervisor']} role={role} loading={loading}><CentrosPage /></RoleRoute>} />
         <Route path="despachos"  element={<DespachosPage />} />
         <Route path="operadores" element={<RoleRoute roles={['admin', 'supervisor']} role={role} loading={loading}><OperadoresPage /></RoleRoute>} />

@@ -63,7 +63,7 @@ export default function ReportesPage() {
   const [mesSel, setMesSel] = useState(mesOpts[0].value)
   const [despachos, setDespachos] = useState([])
   const [fallas, setFallas]       = useState([])
-  const [cargando, setCargando]   = useState(false)
+  const [cargando, setCargando]   = useState(true)
 
   useEffect(() => {
     let cancelled = false
@@ -163,7 +163,7 @@ export default function ReportesPage() {
         {cargando && <p style={{ color: t.textMuted, fontSize: t.textSm }}>Cargando datos de {mesLabel}…</p>}
 
         {!cargando && (
-          <>
+          <div className="fade-in">
             {/* Stats generales */}
             <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 20 }}>
               <StatBox label="Solicitudes totales" value={despFiltrados.length} color={t.brand} />
@@ -310,7 +310,7 @@ export default function ReportesPage() {
                 })()}
               </div>
             )}
-          </>
+          </div>
         )}
       </div>
     </div>

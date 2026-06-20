@@ -79,6 +79,8 @@
 }
 
 .gl-content { flex: 1; overflow: hidden; position: relative; }
+/* Fade-in al navegar entre rutas (React desmonta/monta el child al cambiar) */
+.gl-content > * { animation: fadeIn var(--gl-dur, 0.18s) var(--gl-ease, ease); }
 
 /* ---- Bottom nav (móvil) ---- */
 .gl-bottomnav { display: none; }

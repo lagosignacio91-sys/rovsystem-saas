@@ -12,15 +12,16 @@ service cloud.firestore {
     function isAdmin()      { return signedIn() && rol() == 'admin'; }
     function isSupervisor() { return signedIn() && rol() == 'supervisor'; }  // el "taller"
     function isOperador()   { return signedIn() && rol() == 'operador'; }
+    function isOwner()      { return signedIn() && rol() == 'owner'; }
 
     // ---- Usuarios ----
     // El roster lo leen varias vistas (mapa, centros, operadores).
     // Self puede actualizar su perfil (ej: passwordCambiado) PERO no su rol ni teamId
     // (evita auto-escalar privilegios). Crear/borrar solo admin.
-    function rolValido(r) { return r in ['operador', 'supervisor', 'admin']; }
+    function rolValido(r) { return r in ['operador', 'supervisor', 'admin', 'owner']; }
     match /usuarios/{uid} {
       // PII (RUT, teléfono, correos): solo admin, taller y el propio usuario.
-      allow read:   if isAdmin() || isSupervisor() || request.auth.uid == uid;
+      allow read:   if isAdmin() || isSupervisor() || isOwner() || request.auth.uid == uid;
       allow create: if isAdmin() && rolValido(request.resource.data.rol);
       allow delete: if isAdmin();
       // Admin edita todo (con rol válido). El propio usuario solo campos seguros:
@@ -34,7 +35,7 @@ service cloud.firestore {
     // ---- Catálogos: cualquiera lee, solo admin escribe ----
     match /empresas/{id} {
       allow read:  if signedIn();
-      allow write: if isAdmin();
+      allow write: if isAdmin() || isOwner();
     }
     match /config/{doc} {
       allow read:  if signedIn();
@@ -98,6 +99,20 @@ service cloud.firestore {
                == get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.teamId);
       allow delete:        if isAdmin() || isSupervisor();
     }
+
+    // ---- Panel HyperionX Olimpo (solo owner) ----
+    match /hxOlimpo/{doc} {
+      allow read, write: if isOwner();
+    }
+    match /hxPagos/{doc} {
+      allow read, write: if isOwner();
+    }
+    match /hxGastos/{doc} {
+      allow read, write: if isOwner();
+    }
+
+    // ---- Centros: owner puede leer para métricas ----
+    // (la regla principal de centros ya cubre read: if signedIn(); isOwner implica signedIn)
 
     // ---- Bodega Central (taller del supervisor) ----
     // Leer: admin y supervisor. Escribir: solo supervisor.
