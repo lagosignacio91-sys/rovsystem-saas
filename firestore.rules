@@ -110,6 +110,12 @@ service cloud.firestore {
     match /hxGastos/{doc} {
       allow read, write: if isOwner();
     }
+    match /hxProductos/{doc} {
+      allow read, write: if isOwner();
+    }
+    match /hxClientes/{doc=**} {
+      allow read, write: if isOwner();
+    }
 
     // ---- Centros: owner puede leer para métricas ----
     // (la regla principal de centros ya cubre read: if signedIn(); isOwner implica signedIn)
