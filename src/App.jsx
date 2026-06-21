@@ -19,6 +19,7 @@ import TerminosPage      from './pages/TerminosPage'
 import PrivacidadPage    from './pages/PrivacidadPage'
 
 const isOlimpoHost = window.location.hostname === 'olimpo.hyperionx.tech'
+  || window.location.search.includes('olimpo=1')
 
 function PantallaCarga({ error, onRelogin }) {
   return (

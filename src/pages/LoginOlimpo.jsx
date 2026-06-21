@@ -56,12 +56,15 @@ export default function LoginOlimpo() {
     }
   }
 
+  const loginTheme = localStorage.getItem('hx-theme') || 'gold'
+
   return (
     <>
       <style>{CSS}</style>
-      <div className="hxl-root">
+      <div className={`hxl-root${loginTheme === 'gold' ? ' gold' : ''}`}>
         <div className="hxl-overlay" />
         <div className="hxl-col">
+        <div className="hxl-col-inner">
 
           {/* LOGO */}
           <div className="hxl-logo-wrap hxl-fade-up" style={{ animationDelay: '0.05s' }}>
@@ -193,6 +196,13 @@ export default function LoginOlimpo() {
           )}
 
         </div>
+        </div>
+
+        <div className="hxl-footer">
+          <a href="/politica-de-privacidad" className="hxl-footer-link">Política de Privacidad</a>
+          <span className="hxl-footer-sep">·</span>
+          <a href="/terminos-de-uso" className="hxl-footer-link">Términos de Uso</a>
+        </div>
       </div>
     </>
   )
@@ -216,10 +226,40 @@ const CSS = `
     background: #000 url('/olimpo-bg.jpg') center center / contain no-repeat;
     font-family: 'Inter', sans-serif;
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     justify-content: center;
-    padding: 32px 24px;
   }
+
+  /* Tema dorado (default de Olimpo) — mantiene imagen de fondo */
+  .hxl-root.gold .hxl-overlay { background: rgba(247,247,245,0.60); }
+  .hxl-root.gold .hxl-subtitle { color: rgba(17,17,17,0.42); }
+  .hxl-root.gold .hxl-input { color: #111; border-bottom-color: rgba(0,0,0,0.18); }
+  .hxl-root.gold .hxl-input::placeholder { color: rgba(17,17,17,0.32); }
+  .hxl-root.gold .hxl-input:focus { border-bottom-color: #96720a; }
+  .hxl-root.gold .hxl-input:-webkit-autofill {
+    -webkit-text-fill-color: #111;
+    -webkit-box-shadow: 0 0 0 40px #f7f7f5 inset;
+  }
+  .hxl-root.gold .hxl-field-icon { color: rgba(17,17,17,0.30); }
+  .hxl-root.gold .hxl-field-icon-right { color: rgba(17,17,17,0.30); }
+  .hxl-root.gold .hxl-field-icon-right:hover { color: rgba(17,17,17,0.70); }
+  .hxl-root.gold .hxl-btn {
+    border-color: rgba(150,114,10,0.55);
+    color: #96720a;
+  }
+  .hxl-root.gold .hxl-btn:hover { background: rgba(150,114,10,0.06); border-color: #96720a; }
+  .hxl-root.gold .hxl-btn-ghost { border-color: rgba(17,17,17,0.15); color: rgba(17,17,17,0.45); }
+  .hxl-root.gold .hxl-btn-ghost:hover { border-color: rgba(17,17,17,0.35); color: rgba(17,17,17,0.75); }
+  .hxl-root.gold .hxl-forgot { color: rgba(17,17,17,0.35); }
+  .hxl-root.gold .hxl-forgot:hover { color: rgba(17,17,17,0.70); }
+  .hxl-root.gold .hxl-error { border-left-color: #96720a; }
+  .hxl-root.gold .hxl-error span { color: rgba(185,28,28,0.90); }
+  .hxl-root.gold .hxl-reset-desc { color: rgba(17,17,17,0.42); }
+  .hxl-root.gold .hxl-sent-title { color: #111; }
+  .hxl-root.gold .hxl-sent-desc { color: rgba(17,17,17,0.40); }
+  .hxl-root.gold .hxl-logo { filter: none; opacity: 1; }
+  .hxl-root.gold svg[stroke="rgba(255,255,255,.80)"] { stroke: #111; }
+
   .hxl-overlay {
     position: absolute;
     inset: 0;
@@ -227,10 +267,16 @@ const CSS = `
     background: rgba(0,0,0,.48);
   }
   .hxl-col {
-    position: relative;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
     z-index: 2;
-    width: 100%;
-    max-width: 380px;
+    width: 360px;
+    max-width: calc(100vw - 48px);
+    text-align: center;
+  }
+  .hxl-col-inner {
     animation: hxlFadeUp .8s cubic-bezier(.16,1,.3,1) both;
   }
   .hxl-fade-up {
@@ -355,6 +401,28 @@ const CSS = `
 
   /* FORGOT */
   .hxl-forgot-wrap { text-align: center; margin-top: 22px; }
+
+  .hxl-footer {
+    margin-top: 28px;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .hxl-footer-link {
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    color: rgba(255,255,255,0.35);
+    text-decoration: none;
+    transition: color .2s;
+  }
+  .hxl-footer-link:hover { color: rgba(255,255,255,0.70); }
+  .hxl-footer-sep { color: rgba(255,255,255,0.20); font-size: 11px; }
+
+  .hxl-root.gold .hxl-footer-link { color: rgba(17,17,17,0.30); }
+  .hxl-root.gold .hxl-footer-link:hover { color: rgba(17,17,17,0.65); }
+  .hxl-root.gold .hxl-footer-sep { color: rgba(17,17,17,0.15); }
   .hxl-forgot {
     background: none;
     border: none;

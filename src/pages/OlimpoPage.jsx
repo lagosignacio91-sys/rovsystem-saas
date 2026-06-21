@@ -1,17 +1,21 @@
-import { useState, useEffect } from 'react'
-import { LogOut, Target, Globe, TrendingUp, Package, Cpu, Monitor, ChevronRight, Sun, Moon } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { LogOut, Target, Globe, TrendingUp, Package, Cpu, Monitor, ChevronRight, Sun, Moon, CalendarDays, FileText, Bell, X, Menu, Trash2, Download, Upload } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { useHxData } from '../hooks/useHxData'
 import { useClienteMetrics } from '../hooks/useClienteMetrics'
+import { useHxEventos } from '../hooks/useHxEventos'
+import { useHxDocs } from '../hooks/useHxDocs'
 import '../styles/olimpo.css'
 
 const SECCIONES = [
-  { id: 'command',     label: 'COMMAND CENTER', Icon: Target     },
-  { id: 'operaciones', label: 'OPERACIONES',    Icon: Globe      },
-  { id: 'finanzas',    label: 'FINANZAS',       Icon: TrendingUp },
-  { id: 'logistica',   label: 'LOGÍSTICA',      Icon: Package    },
-  { id: 'sistemas',    label: 'SISTEMAS',        Icon: Cpu        },
-  { id: 'cartera',    label: 'CARTERA',         Icon: Monitor    },
+  { id: 'command',     label: 'COMMAND CENTER', Icon: Target      },
+  { id: 'operaciones', label: 'OPERACIONES',    Icon: Globe       },
+  { id: 'finanzas',    label: 'FINANZAS',       Icon: TrendingUp  },
+  { id: 'logistica',   label: 'LOGÍSTICA',      Icon: Package     },
+  { id: 'sistemas',    label: 'SISTEMAS',        Icon: Cpu         },
+  { id: 'cartera',    label: 'CARTERA',         Icon: Monitor     },
+  { id: 'agenda',     label: 'AGENDA',          Icon: CalendarDays},
+  { id: 'documentos', label: 'DOCUMENTOS',      Icon: FileText    },
 ]
 
 const clp = (n) =>
@@ -22,15 +26,18 @@ const clp = (n) =>
 export default function OlimpoPage() {
   const { user, role, signOut } = useAuth()
   const isVentas = role === 'ventas'
-  const SECS_VENTAS = ['operaciones', 'cartera']
+  const SECS_VENTAS = ['operaciones', 'cartera', 'agenda']
   const seccionesVisibles = isVentas
     ? SECCIONES.filter(s => SECS_VENTAS.includes(s.id))
     : SECCIONES
 
-  const [seccion,  setSeccion] = useState(() => isVentas ? 'cartera' : 'command')
-  const [hora,     setHora]    = useState('')
-  const [theme,    setTheme]   = useState(() => localStorage.getItem('hx-theme') || 'dark')
-  const hxData                 = useHxData()
+  const [seccion,     setSeccion]     = useState(() => isVentas ? 'cartera' : 'command')
+  const [hora,        setHora]        = useState('')
+  const [theme,       setTheme]       = useState(() => localStorage.getItem('hx-theme') || 'gold')
+  const [drawerOpen,  setDrawerOpen]  = useState(false)
+  const [notifOpen,   setNotifOpen]   = useState(false)
+  const notifRef                      = useRef(null)
+  const hxData                        = useHxData()
 
   useEffect(() => {
     const tick = () => setHora(new Date().toLocaleTimeString('es-CL', { hour12: false }))
@@ -39,16 +46,33 @@ export default function OlimpoPage() {
     return () => clearInterval(id)
   }, [])
 
+  const THEMES = ['dark', 'light', 'gold']
   const toggleTheme = () => setTheme(t => {
-    const n = t === 'dark' ? 'light' : 'dark'
+    const n = THEMES[(THEMES.indexOf(t) + 1) % THEMES.length]
     localStorage.setItem('hx-theme', n)
     return n
   })
+
+  const themeIcon = theme === 'dark' ? <Sun size={14} /> : theme === 'light' ? <Moon size={14} /> : <span style={{ fontSize: 11, fontWeight: 700 }}>◆</span>
+
+  // Alertas calculadas
+  const alertas = !isVentas ? calcularAlertas(hxData) : []
+
+  // Cerrar notif al click fuera
+  useEffect(() => {
+    function handleClick(e) {
+      if (notifRef.current && !notifRef.current.contains(e.target)) setNotifOpen(false)
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
 
   const email         = user?.email ?? ''
   const userTag       = email.split('@')[0]?.toUpperCase() ?? '---'
   const seccionActual = seccionesVisibles.some(s => s.id === seccion) ? seccion : (seccionesVisibles[0]?.id ?? 'command')
   const secActual     = SECCIONES.find(s => s.id === seccionActual)
+
+  const navegar = (id) => { setSeccion(id); setDrawerOpen(false) }
 
   return (
     <div className="hx-olimpo" data-theme={theme}>
@@ -66,8 +90,33 @@ export default function OlimpoPage() {
             <span className="hx-dot hx-dot-green" /> ACTIVO
           </div>
           <span className="hx-topbar-user">{userTag}</span>
-          <button className="hx-theme-toggle" onClick={toggleTheme} title={theme === 'dark' ? 'Modo claro' : 'Modo oscuro'}>
-            {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
+
+          {/* Campanita notificaciones (solo owner) */}
+          {!isVentas && (
+            <div className="hx-notif-wrap" ref={notifRef}>
+              <button className="hx-notif-btn" onClick={() => setNotifOpen(o => !o)} title="Notificaciones">
+                <Bell size={15} />
+                {alertas.length > 0 && <span className="hx-notif-badge">{alertas.length}</span>}
+              </button>
+              {notifOpen && (
+                <div className="hx-notif-dropdown">
+                  <div className="hx-notif-header">ALERTAS ({alertas.length})</div>
+                  {alertas.length === 0
+                    ? <div className="hx-notif-empty">Sin alertas activas</div>
+                    : alertas.map((a, i) => (
+                        <div key={i} className="hx-notif-item">
+                          <span className="hx-notif-dot" style={{ background: a.prioridad === 'alta' ? 'var(--hx-red)' : 'var(--hx-amber)' }} />
+                          <span>{a.mensaje}</span>
+                        </div>
+                      ))
+                  }
+                </div>
+              )}
+            </div>
+          )}
+
+          <button className="hx-theme-toggle" onClick={toggleTheme} title={`Tema: ${theme}`}>
+            {themeIcon}
           </button>
         </div>
       </div>
@@ -75,14 +124,14 @@ export default function OlimpoPage() {
       {/* ─── BODY ──────────────────────────────────── */}
       <div className="hx-body">
 
-        {/* SIDEBAR */}
+        {/* SIDEBAR (desktop) */}
         <aside className="hx-sidebar">
           <nav className="hx-nav">
             {seccionesVisibles.map(({ id, label, Icon }) => (
               <button
                 key={id}
                 className={`hx-nav-item ${seccionActual === id ? 'active' : ''}`}
-                onClick={() => setSeccion(id)}
+                onClick={() => navegar(id)}
               >
                 <Icon size={13} strokeWidth={1.8} />
                 <span>{label}</span>
@@ -118,8 +167,359 @@ export default function OlimpoPage() {
             {seccionActual === 'logistica'   && <Logistica     hxData={hxData} />}
             {seccionActual === 'sistemas'    && <Sistemas       hxData={hxData} user={user} />}
             {seccionActual === 'cartera'    && <Cartera        hxData={hxData} />}
+            {seccionActual === 'agenda'     && <Agenda         email={email} />}
+            {seccionActual === 'documentos' && <Documentos     hxData={hxData} email={email} />}
           </main>
         </div>
+      </div>
+
+      {/* ─── FAB MÓVIL ─────────────────────────────── */}
+      <button className="hx-fab-menu" onClick={() => setDrawerOpen(true)} aria-label="Menú">
+        <Menu size={22} />
+      </button>
+
+      {/* ─── DRAWER MÓVIL ──────────────────────────── */}
+      <div className={`hx-drawer ${drawerOpen ? 'open' : ''}`}>
+        <div className="hx-drawer-overlay" onClick={() => setDrawerOpen(false)} />
+        <div className="hx-drawer-panel">
+          <div className="hx-drawer-head">
+            <img src="/hyperionx-hx.png" className="hx-drawer-logo" alt="HX" />
+            <span className="hx-drawer-title">OLIMPO</span>
+            <button className="hx-drawer-close" onClick={() => setDrawerOpen(false)}>
+              <X size={16} />
+            </button>
+          </div>
+
+          <nav className="hx-drawer-nav">
+            {seccionesVisibles.map(({ id, label, Icon }) => (
+              <button
+                key={id}
+                className={`hx-drawer-item ${seccionActual === id ? 'active' : ''}`}
+                onClick={() => navegar(id)}
+              >
+                <Icon size={15} strokeWidth={1.8} />
+                <span>{label}</span>
+              </button>
+            ))}
+          </nav>
+
+          <div className="hx-drawer-footer">
+            <div className="hx-drawer-user">{email}</div>
+            <button className="hx-drawer-logout" onClick={() => { setDrawerOpen(false); signOut() }}>
+              <LogOut size={14} /> CERRAR SESIÓN
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function calcularAlertas({ clientes, pagos, prospectos, gastos, mesActual }) {
+  const alertas = []
+  const mes = mesActual ? mesActual() : new Date().toISOString().slice(0, 7)
+  const hoy = new Date()
+
+  // Clientes activos sin pago del mes
+  clientes.filter(c => c.estado === 'activa').forEach(c => {
+    if (!pagos.some(p => p.clienteId === c.id && p.mes === mes)) {
+      alertas.push({ mensaje: `${c.nombre} — sin pago registrado en ${mes}`, prioridad: 'alta' })
+    }
+  })
+
+  // Prospectos sin seguimiento > 7 días
+  prospectos.filter(p => ['nuevo', 'negociando'].includes(p.etapa ?? 'nuevo')).forEach(p => {
+    const ts = p.actualizadoEn ?? p.creadoEn
+    if (ts) {
+      const fecha = ts.toDate ? ts.toDate() : new Date(ts)
+      const dias = Math.ceil((hoy - fecha) / 86400000)
+      if (dias > 7) alertas.push({ mensaje: `Prospecto ${p.empresa} — ${dias}d sin seguimiento`, prioridad: 'media' })
+    }
+  })
+
+  // Gastos con vencimiento próximo ≤ 30 días
+  gastos.forEach(g => {
+    if (!g.proximoVencimiento) return
+    const dias = Math.ceil((new Date(g.proximoVencimiento) - hoy) / 86400000)
+    if (dias >= 0 && dias <= 30) {
+      alertas.push({ mensaje: `${g.descripcion} — vence en ${dias}d`, prioridad: dias <= 7 ? 'alta' : 'media' })
+    }
+  })
+
+  return alertas
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   AGENDA — Calendario
+═══════════════════════════════════════════════════════════════ */
+const TIPO_COLORES = { pago: '#96720a', reunion: '#2563eb', otro: '#6b7280' }
+const TIPO_LABELS  = { pago: 'PAGO', reunion: 'REUNIÓN', otro: 'OTRO' }
+
+function Agenda({ email }) {
+  const { eventos, agregarEvento, eliminarEvento } = useHxEventos()
+  const hoy = new Date()
+  const [año,   setAño]   = useState(hoy.getFullYear())
+  const [mes,   setMes]   = useState(hoy.getMonth())
+  const [diaS,  setDiaS]  = useState(null)
+  const [form,  setForm]  = useState({ titulo: '', fecha: '', hora: '', tipo: 'reunion', descripcion: '' })
+  const [guard, setGuard] = useState(false)
+
+  const primerDia  = new Date(año, mes, 1).getDay()
+  const diasMes    = new Date(año, mes + 1, 0).getDate()
+  const blancos    = (primerDia + 6) % 7  // lunes = 0
+  const mesNombre  = new Date(año, mes, 1).toLocaleString('es-CL', { month: 'long', year: 'numeric' })
+  const mesStr     = `${año}-${String(mes + 1).padStart(2, '0')}`
+  const eventosMes = eventos.filter(e => e.fecha?.startsWith(mesStr))
+  const hoyStr     = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(hoy.getDate()).padStart(2, '0')}`
+  const diasConEventos = new Set(eventosMes.map(e => e.fecha))
+
+  const diaStr = (d) => `${año}-${String(mes + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
+  const eventosDia = diaS ? eventos.filter(e => e.fecha === diaStr(diaS)) : []
+
+  const prevMes = () => { if (mes === 0) { setMes(11); setAño(a => a - 1) } else setMes(m => m - 1); setDiaS(null) }
+  const nextMes = () => { if (mes === 11) { setMes(0); setAño(a => a + 1) } else setMes(m => m + 1); setDiaS(null) }
+
+  const selDia = (d) => {
+    setDiaS(d)
+    setForm(f => ({ ...f, fecha: diaStr(d) }))
+  }
+
+  const handleAgregar = async (e) => {
+    e.preventDefault()
+    if (!form.titulo.trim() || !form.fecha) return
+    setGuard(true)
+    await agregarEvento({ ...form, creadoPor: email })
+    setForm(f => ({ ...f, titulo: '', hora: '', descripcion: '' }))
+    setGuard(false)
+  }
+
+  return (
+    <div className="hx-stack">
+      <div className="hx-agenda-layout">
+        {/* Calendario */}
+        <div className="hx-panel">
+          <div className="hx-cal-nav">
+            <button className="hx-cal-nav-btn" onClick={prevMes}>‹</button>
+            <span className="hx-cal-title">{mesNombre}</span>
+            <button className="hx-cal-nav-btn" onClick={nextMes}>›</button>
+          </div>
+
+          <div className="hx-cal-grid">
+            {['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'].map(d => (
+              <div key={d} className="hx-cal-dow">{d}</div>
+            ))}
+            {Array.from({ length: blancos }, (_, i) => (
+              <div key={`b${i}`} className="hx-cal-day empty" />
+            ))}
+            {Array.from({ length: diasMes }, (_, i) => {
+              const d = i + 1
+              const ds = diaStr(d)
+              const isHoy = ds === hoyStr
+              const isSel = diaS === d
+              const evs   = eventosMes.filter(e => e.fecha === ds)
+              return (
+                <div
+                  key={d}
+                  className={`hx-cal-day${isHoy ? ' today' : ''}${isSel ? ' selected' : ''}`}
+                  onClick={() => selDia(d)}
+                >
+                  <span className="hx-cal-num">{d}</span>
+                  {evs.length > 0 && (
+                    <div className="hx-cal-dots">
+                      {evs.slice(0, 3).map((ev, j) => (
+                        <span key={j} className="hx-cal-dot" style={{ background: TIPO_COLORES[ev.tipo] ?? '#6b7280' }} />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Panel lateral */}
+        <div className="hx-agenda-side">
+          {diaS ? (
+            <>
+              {/* Eventos del día seleccionado */}
+              <div className="hx-panel">
+                <div className="hx-agenda-day-title">
+                  {new Date(año, mes, diaS).toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long' }).toUpperCase()}
+                </div>
+                {eventosDia.length === 0
+                  ? <div className="hx-empty" style={{ fontSize: 11 }}>SIN EVENTOS</div>
+                  : eventosDia.map(ev => (
+                      <div key={ev.id} className="hx-evento-item" style={{ borderLeftColor: TIPO_COLORES[ev.tipo] ?? '#6b7280' }}>
+                        <div style={{ flex: 1 }}>
+                          <div className="hx-evento-tipo">{TIPO_LABELS[ev.tipo] ?? ev.tipo}</div>
+                          <div className="hx-evento-titulo">{ev.titulo}</div>
+                          {ev.hora && <div className="hx-evento-hora">🕐 {ev.hora}</div>}
+                          {ev.descripcion && <div className="hx-evento-hora" style={{ marginTop: 4 }}>{ev.descripcion}</div>}
+                        </div>
+                        <button className="hx-evento-del" onClick={() => eliminarEvento(ev.id)} title="Eliminar">
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
+                    ))
+                }
+              </div>
+
+              {/* Formulario agregar */}
+              <div className="hx-panel">
+                <div className="hx-agenda-day-title" style={{ marginBottom: 12 }}>AGREGAR EVENTO</div>
+                <form onSubmit={handleAgregar} className="hx-agenda-form" style={{ padding: 0, background: 'none', border: 'none' }}>
+                  <div>
+                    <label className="hx-form-label">TÍTULO *</label>
+                    <input className="hx-form-input" value={form.titulo} onChange={e => setForm(f => ({ ...f, titulo: e.target.value }))} placeholder="Ej: Pago GL Robótica" required />
+                  </div>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <div style={{ flex: 1 }}>
+                      <label className="hx-form-label">TIPO</label>
+                      <select className="hx-form-select" value={form.tipo} onChange={e => setForm(f => ({ ...f, tipo: e.target.value }))}>
+                        <option value="reunion">Reunión</option>
+                        <option value="pago">Pago</option>
+                        <option value="otro">Otro</option>
+                      </select>
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <label className="hx-form-label">HORA</label>
+                      <input className="hx-form-input" type="time" value={form.hora} onChange={e => setForm(f => ({ ...f, hora: e.target.value }))} />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="hx-form-label">DESCRIPCIÓN</label>
+                    <textarea className="hx-form-textarea" value={form.descripcion} onChange={e => setForm(f => ({ ...f, descripcion: e.target.value }))} placeholder="Opcional..." />
+                  </div>
+                  <button type="submit" className="hx-btn hx-btn-primary" style={{ width: '100%', marginTop: 4 }} disabled={guard}>
+                    {guard ? 'GUARDANDO...' : '+ AGREGAR'}
+                  </button>
+                </form>
+              </div>
+            </>
+          ) : (
+            <div className="hx-panel">
+              <div className="hx-empty" style={{ fontSize: 12 }}>SELECCIONA UN DÍA EN EL CALENDARIO</div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   DOCUMENTOS
+═══════════════════════════════════════════════════════════════ */
+function Documentos({ hxData, email }) {
+  const { clientes } = hxData
+  const { docs, subirDoc, eliminarDoc } = useHxDocs()
+  const [clienteF, setClienteF] = useState('todos')
+  const [subiendo, setSubiendo] = useState(false)
+  const [progreso, setProgreso] = useState(0)
+  const [form,     setForm]     = useState({ nombre: '', tipo: 'contrato', clienteId: '' })
+  const inputRef = useRef(null)
+
+  const docsFiltrados = clienteF === 'todos' ? docs : docs.filter(d => d.clienteId === clienteF)
+
+  const fmtBytes = (b) => b < 1024 * 1024 ? `${(b / 1024).toFixed(0)} KB` : `${(b / (1024 * 1024)).toFixed(1)} MB`
+
+  const handleSubir = async (e) => {
+    e.preventDefault()
+    const archivo = inputRef.current?.files[0]
+    if (!archivo || !form.nombre.trim()) return
+    setSubiendo(true)
+    setProgreso(0)
+    try {
+      await subirDoc(
+        { archivo, nombre: form.nombre.trim(), clienteId: form.clienteId || 'general', tipo: form.tipo, subidoPor: email },
+        pct => setProgreso(pct)
+      )
+      setForm({ nombre: '', tipo: 'contrato', clienteId: '' })
+      if (inputRef.current) inputRef.current.value = ''
+    } finally { setSubiendo(false); setProgreso(0) }
+  }
+
+  return (
+    <div className="hx-stack">
+      {/* Subir archivo */}
+      <div className="hx-panel">
+        <div className="hx-panel-title">SUBIR DOCUMENTO</div>
+        <form onSubmit={handleSubir}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              <div>
+                <label className="hx-form-label">NOMBRE DEL ARCHIVO *</label>
+                <input className="hx-form-input" value={form.nombre} onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))} placeholder="Ej: Contrato GL Robótica 2026" required />
+              </div>
+              <div>
+                <label className="hx-form-label">TIPO</label>
+                <select className="hx-form-select" value={form.tipo} onChange={e => setForm(f => ({ ...f, tipo: e.target.value }))}>
+                  <option value="contrato">Contrato</option>
+                  <option value="factura">Factura</option>
+                  <option value="propuesta">Propuesta</option>
+                  <option value="otro">Otro</option>
+                </select>
+              </div>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              <div>
+                <label className="hx-form-label">CLIENTE</label>
+                <select className="hx-form-select" value={form.clienteId} onChange={e => setForm(f => ({ ...f, clienteId: e.target.value }))}>
+                  <option value="">General (sin cliente)</option>
+                  {clientes.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="hx-form-label">ARCHIVO *</label>
+                <input ref={inputRef} type="file" className="hx-form-input" style={{ padding: '6px 10px', cursor: 'pointer' }} required />
+              </div>
+            </div>
+            {subiendo && (
+              <div className="hx-progress-upload">
+                <div className="hx-progress-upload-bar" style={{ width: `${progreso}%` }} />
+              </div>
+            )}
+            <button type="submit" className="hx-btn hx-btn-primary" disabled={subiendo} style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center' }}>
+              <Upload size={13} /> {subiendo ? `SUBIENDO ${progreso}%...` : 'SUBIR ARCHIVO'}
+            </button>
+          </div>
+        </form>
+      </div>
+
+      {/* Lista de documentos */}
+      <div className="hx-panel">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, paddingBottom: 10, borderBottom: '1px solid var(--hx-border)' }}>
+          <span className="hx-panel-title" style={{ margin: 0 }}>DOCUMENTOS ({docsFiltrados.length})</span>
+          <select className="hx-form-select" style={{ width: 'auto', padding: '5px 10px', fontSize: 11 }} value={clienteF} onChange={e => setClienteF(e.target.value)}>
+            <option value="todos">Todos los clientes</option>
+            {clientes.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+          </select>
+        </div>
+
+        {docsFiltrados.length === 0
+          ? <div className="hx-empty">SIN DOCUMENTOS</div>
+          : docsFiltrados.map(d => {
+              const clienteNombre = clientes.find(c => c.id === d.clienteId)?.nombre ?? d.clienteId ?? '—'
+              const fecha = d.creadoEn?.toDate ? d.creadoEn.toDate().toLocaleDateString('es-CL') : '—'
+              return (
+                <div key={d.id} className="hx-doc-item">
+                  <FileText size={16} style={{ color: 'var(--hx-accent)', flexShrink: 0 }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div className="hx-doc-name" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.nombre}</div>
+                    <div className="hx-doc-meta">{d.tipo?.toUpperCase()} · {clienteNombre} · {fmtBytes(d.tamaño ?? 0)} · {fecha}</div>
+                  </div>
+                  <div className="hx-doc-actions">
+                    <a href={d.url} target="_blank" rel="noreferrer" className="hx-doc-btn">
+                      <Download size={12} /> VER
+                    </a>
+                    <button className="hx-doc-btn danger" onClick={() => eliminarDoc(d.id, d.storageRef)}>
+                      <Trash2 size={12} />
+                    </button>
+                  </div>
+                </div>
+              )
+            })
+        }
       </div>
     </div>
   )
