@@ -1,23 +1,19 @@
 import { useState, useEffect } from 'react'
 import { sendPasswordResetEmail } from 'firebase/auth'
 import { auth } from '../lib/firebase'
-import { Mail, Lock, Eye, EyeOff, ArrowRight, AlertCircle, CheckCircle2 } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
-import '../styles/olimpo.css'
 
 export default function LoginOlimpo() {
   const { signIn, signOut, role, user } = useAuth()
-  const [email,    setEmail]    = useState('')
-  const [password, setPassword] = useState('')
-  const [verPass,  setVerPass]  = useState(false)
-  const [error,    setError]    = useState(null)
-  const [loading,  setLoading]  = useState(false)
+  const [email,          setEmail]          = useState('')
+  const [password,       setPassword]       = useState('')
+  const [showPass,       setShowPass]       = useState(false)
+  const [error,          setError]          = useState(null)
+  const [loading,        setLoading]        = useState(false)
   const [waitingForRole, setWaitingForRole] = useState(false)
-  const [resetSent, setResetSent] = useState(false)
-  const [showReset, setShowReset] = useState(false)
-  const [resetEmail, setResetEmail] = useState('')
+  const [view,           setView]           = useState('login') // 'login' | 'reset' | 'sent'
+  const [resetEmail,     setResetEmail]     = useState('')
 
-  // Después del login, espera a que llegue el rol y verifica acceso
   useEffect(() => {
     if (!waitingForRole || !user || role === null) return
     if (role !== 'owner' && role !== 'ventas') {
@@ -44,7 +40,6 @@ export default function LoginOlimpo() {
       setLoading(false)
       return
     }
-    // signIn OK — esperar a que useAuth cargue el rol desde Firestore
     setWaitingForRole(true)
     setLoading(false)
   }
@@ -54,293 +49,352 @@ export default function LoginOlimpo() {
     if (!resetEmail) return
     try {
       await sendPasswordResetEmail(auth, resetEmail)
-      setResetSent(true)
+      setView('sent')
     } catch {
       setError('No se encontró una cuenta con ese correo.')
-      setShowReset(false)
+      setView('login')
     }
   }
 
   return (
-    <div className="hx-olimpo" style={s.wrapper}>
-      <div style={s.card}>
+    <>
+      <style>{CSS}</style>
+      <div className="hxl-root">
+        <div className="hxl-overlay" />
+        <div className="hxl-col">
 
-        <div style={s.head}>
-          <img src="/hyperionx-hx.png" alt="HyperionX" style={s.logo}
-            onError={(e) => { e.currentTarget.style.display = 'none' }} />
-          <h1 style={s.title}>OLIMPO</h1>
-          <p style={s.sub}>PANEL MAESTRO · HYPERIONX</p>
-        </div>
+          {/* LOGO */}
+          <div className="hxl-logo-wrap hxl-fade-up" style={{ animationDelay: '0.05s' }}>
+            <img
+              src="/olimpo-logo.png"
+              alt="HyperionX"
+              className="hxl-logo"
+              onError={e => { e.currentTarget.style.display = 'none' }}
+            />
+          </div>
 
-        {!showReset ? (
-          <>
-            <form onSubmit={handleSubmit} style={s.form}>
-              <div>
-                <label style={s.label}>Correo electrónico</label>
-                <div style={s.inputBox(false)}>
-                  <Mail size={16} style={{ color: 'var(--hx-muted)', flexShrink: 0 }} />
+          {/* SUBTITLE */}
+          <div className="hxl-subtitle-wrap hxl-fade-up" style={{ animationDelay: '0.10s' }}>
+            <p className="hxl-subtitle">Panel Maestro · HyperionX</p>
+          </div>
+
+          {/* ── STATE: LOGIN ── */}
+          {view === 'login' && (
+            <div className="hxl-fade-up" style={{ animationDelay: '0.15s' }}>
+              <form onSubmit={handleSubmit}>
+                <div className="hxl-field">
+                  <span className="hxl-field-icon">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+                  </span>
                   <input
+                    className="hxl-input"
                     type="email"
                     value={email}
                     onChange={e => setEmail(e.target.value)}
-                    placeholder="correo@hyperionx.tech"
-                    required
-                    style={s.input}
+                    placeholder="Correo electrónico"
                     autoComplete="email"
+                    required
                   />
                 </div>
-              </div>
 
-              <div>
-                <label style={s.label}>Contraseña</label>
-                <div style={s.inputBox(false)}>
-                  <Lock size={16} style={{ color: 'var(--hx-muted)', flexShrink: 0 }} />
+                <div className="hxl-field">
+                  <span className="hxl-field-icon">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                  </span>
                   <input
-                    type={verPass ? 'text' : 'password'}
+                    className="hxl-input"
+                    type={showPass ? 'text' : 'password'}
                     value={password}
                     onChange={e => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    required
-                    style={s.input}
+                    placeholder="Contraseña"
                     autoComplete="current-password"
+                    required
                   />
-                  <button
-                    type="button"
-                    onClick={() => setVerPass(v => !v)}
-                    style={s.eyeBtn}
-                    aria-label={verPass ? 'Ocultar' : 'Mostrar'}
-                  >
-                    {verPass ? <EyeOff size={15} /> : <Eye size={15} />}
+                  <button type="button" className="hxl-field-icon-right" onClick={() => setShowPass(v => !v)}>
+                    {showPass ? (
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/></svg>
+                    ) : (
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                    )}
                   </button>
                 </div>
-              </div>
 
-              {error && (
-                <div style={s.errorBox}>
-                  <AlertCircle size={15} style={{ color: 'var(--hx-accent)', flexShrink: 0 }} />
-                  <span style={s.errorText}>{error}</span>
-                </div>
-              )}
+                {error && (
+                  <div className="hxl-error hxl-fade-up">
+                    <span>{error}</span>
+                  </div>
+                )}
 
-              <button
-                type="submit"
-                disabled={loading || waitingForRole}
-                style={s.btn}
-              >
-                {(loading || waitingForRole) ? 'Verificando...' : <><span>Ingresar</span><ArrowRight size={16} /></>}
-              </button>
-            </form>
+                <button type="submit" className="hxl-btn" disabled={loading || waitingForRole}>
+                  {(loading || waitingForRole) ? 'Verificando...' : 'Ingresar'}
+                </button>
+              </form>
 
-            <button
-              type="button"
-              onClick={() => { setShowReset(true); setResetEmail(email); setError(null) }}
-              style={s.forgotBtn}
-            >
-              ¿Olvidaste tu clave?
-            </button>
-          </>
-        ) : resetSent ? (
-          <div style={s.resetSuccessBox}>
-            <CheckCircle2 size={28} style={{ color: 'var(--hx-green)', marginBottom: 10 }} />
-            <p style={{ color: 'var(--hx-text)', fontSize: 14, margin: '0 0 6px' }}>Correo enviado</p>
-            <p style={{ color: 'var(--hx-text-dim)', fontSize: 12, margin: '0 0 18px' }}>
-              Revisa tu bandeja de entrada y sigue las instrucciones para restablecer tu clave.
-            </p>
-            <button onClick={() => { setShowReset(false); setResetSent(false) }} style={s.backBtn}>
-              Volver al login
-            </button>
-          </div>
-        ) : (
-          <form onSubmit={handleReset} style={s.form}>
-            <p style={{ color: 'var(--hx-text-dim)', fontSize: 13, margin: '0 0 16px' }}>
-              Ingresa tu correo HyperionX y te enviaremos un enlace para restablecer tu clave.
-            </p>
-            <div>
-              <label style={s.label}>Correo electrónico</label>
-              <div style={s.inputBox(false)}>
-                <Mail size={16} style={{ color: 'var(--hx-muted)', flexShrink: 0 }} />
-                <input
-                  type="email"
-                  value={resetEmail}
-                  onChange={e => setResetEmail(e.target.value)}
-                  placeholder="correo@hyperionx.tech"
-                  required
-                  style={s.input}
-                  autoFocus
-                />
+              <div className="hxl-forgot-wrap">
+                <button
+                  type="button"
+                  className="hxl-forgot"
+                  onClick={() => { setView('reset'); setResetEmail(email); setError(null) }}
+                >
+                  ¿Olvidaste tu clave?
+                </button>
               </div>
             </div>
-            {error && (
-              <div style={s.errorBox}>
-                <AlertCircle size={15} style={{ color: 'var(--hx-accent)', flexShrink: 0 }} />
-                <span style={s.errorText}>{error}</span>
-              </div>
-            )}
-            <button type="submit" style={s.btn}>Enviar enlace</button>
-            <button
-              type="button"
-              onClick={() => { setShowReset(false); setError(null) }}
-              style={s.backBtn}
-            >
-              Cancelar
-            </button>
-          </form>
-        )}
+          )}
+
+          {/* ── STATE: RESET ── */}
+          {view === 'reset' && (
+            <div className="hxl-fade-up">
+              <p className="hxl-reset-desc">Ingresa tu correo y te enviaremos un enlace para restablecer tu clave.</p>
+              <form onSubmit={handleReset}>
+                <div className="hxl-field">
+                  <span className="hxl-field-icon">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+                  </span>
+                  <input
+                    className="hxl-input"
+                    type="email"
+                    value={resetEmail}
+                    onChange={e => setResetEmail(e.target.value)}
+                    placeholder="Correo electrónico"
+                    autoFocus
+                    required
+                  />
+                </div>
+                <button type="submit" className="hxl-btn">Enviar enlace</button>
+                <button
+                  type="button"
+                  className="hxl-btn hxl-btn-ghost"
+                  onClick={() => { setView('login'); setError(null) }}
+                >
+                  Cancelar
+                </button>
+              </form>
+            </div>
+          )}
+
+          {/* ── STATE: SENT ── */}
+          {view === 'sent' && (
+            <div className="hxl-sent hxl-fade-up">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.80)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" className="hxl-check-pop">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                <path d="m9 11 3 3L22 4"/>
+              </svg>
+              <h2 className="hxl-sent-title">ENLACE ENVIADO</h2>
+              <p className="hxl-sent-desc">Revisa tu bandeja de entrada y sigue las instrucciones para restablecer tu clave.</p>
+              <button
+                type="button"
+                className="hxl-btn hxl-btn-ghost"
+                onClick={() => { setView('login'); setResetEmail('') }}
+              >
+                Volver al login
+              </button>
+            </div>
+          )}
+
+        </div>
       </div>
-    </div>
+    </>
   )
 }
 
-const s = {
-  wrapper: {
-    minHeight: '100vh',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    background: 'var(--hx-bg)',
-    padding: 20,
-  },
-  card: {
-    width: '100%',
-    maxWidth: 380,
-    background: 'var(--hx-panel)',
-    border: '1px solid var(--hx-border)',
-    borderRadius: 14,
-    padding: '36px 32px',
-    boxShadow: '0 8px 40px rgba(0,0,0,0.45)',
-  },
-  head: {
-    textAlign: 'center',
-    marginBottom: 28,
-  },
-  logo: {
-    width: 64,
-    height: 64,
-    objectFit: 'contain',
-    display: 'block',
-    margin: '0 auto 14px',
-    filter: 'drop-shadow(0 0 12px rgba(204,16,32,0.4))',
-  },
-  title: {
-    fontFamily: "'Barlow Condensed', sans-serif",
-    fontSize: 32,
-    fontWeight: 700,
-    color: 'var(--hx-accent)',
-    margin: '0 0 4px',
-    letterSpacing: '0.08em',
-  },
-  sub: {
-    fontSize: 11,
-    fontWeight: 600,
-    letterSpacing: '0.12em',
-    color: 'var(--hx-muted)',
-    margin: 0,
-  },
-  form: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 14,
-  },
-  label: {
-    display: 'block',
-    fontSize: 11,
-    fontWeight: 600,
-    color: 'var(--hx-text-dim)',
-    letterSpacing: '0.06em',
-    marginBottom: 6,
-  },
-  inputBox: () => ({
-    display: 'flex',
-    alignItems: 'center',
-    gap: 8,
-    background: 'rgba(255,255,255,0.04)',
-    border: '1px solid var(--hx-border)',
-    borderRadius: 8,
-    padding: '10px 12px',
-    transition: 'border-color 0.15s',
-  }),
-  input: {
-    flex: 1,
-    background: 'transparent',
-    border: 'none',
-    outline: 'none',
-    color: 'var(--hx-text)',
-    fontSize: 14,
-    minWidth: 0,
-    fontFamily: 'inherit',
-  },
-  eyeBtn: {
-    background: 'none',
-    border: 'none',
-    cursor: 'pointer',
-    color: 'var(--hx-muted)',
-    padding: 2,
-    display: 'flex',
-    alignItems: 'center',
-  },
-  errorBox: {
-    display: 'flex',
-    alignItems: 'flex-start',
-    gap: 8,
-    background: 'rgba(204,16,32,0.10)',
-    border: '1px solid rgba(204,16,32,0.28)',
-    borderRadius: 8,
-    padding: '9px 11px',
-  },
-  errorText: {
-    color: 'var(--hx-red-soft)',
-    fontSize: 12,
-    lineHeight: 1.5,
-  },
-  btn: {
-    marginTop: 4,
-    width: '100%',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    background: 'var(--hx-accent)',
-    border: 'none',
-    borderRadius: 8,
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: 700,
-    letterSpacing: '0.04em',
-    padding: '12px',
-    cursor: 'pointer',
-    transition: 'opacity 0.15s',
-  },
-  forgotBtn: {
-    display: 'block',
-    width: '100%',
-    marginTop: 14,
-    background: 'none',
-    border: 'none',
-    color: 'var(--hx-muted)',
-    fontSize: 12,
-    cursor: 'pointer',
-    textAlign: 'center',
-    textDecoration: 'underline',
-    textUnderlineOffset: 3,
-    padding: 0,
-  },
-  backBtn: {
-    display: 'block',
-    width: '100%',
-    marginTop: 8,
-    background: 'none',
-    border: '1px solid var(--hx-border)',
-    borderRadius: 8,
-    color: 'var(--hx-text-dim)',
-    fontSize: 13,
-    cursor: 'pointer',
-    padding: '10px',
-  },
-  resetSuccessBox: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    textAlign: 'center',
-    paddingTop: 8,
-  },
-}
+const CSS = `
+  @keyframes hxlFadeUp {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: none; }
+  }
+  @keyframes hxlCheckPop {
+    0%   { opacity: 0; transform: scale(.3); }
+    65%  { transform: scale(1.08); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+
+  .hxl-root {
+    position: fixed;
+    inset: 0;
+    overflow-y: auto;
+    background: #000 url('/olimpo-bg.jpg') center center / contain no-repeat;
+    font-family: 'Inter', sans-serif;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 32px 24px;
+  }
+  .hxl-overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: rgba(0,0,0,.48);
+  }
+  .hxl-col {
+    position: relative;
+    z-index: 2;
+    width: 100%;
+    max-width: 380px;
+    animation: hxlFadeUp .8s cubic-bezier(.16,1,.3,1) both;
+  }
+  .hxl-fade-up {
+    animation: hxlFadeUp .6s ease both;
+  }
+
+  /* LOGO */
+  .hxl-logo-wrap { text-align: center; margin-bottom: 20px; }
+  .hxl-logo {
+    width: 110px;
+    height: auto;
+    display: inline-block;
+    filter: brightness(1.8) contrast(1.05) drop-shadow(0 2px 18px rgba(255,255,255,.18)) drop-shadow(0 0 8px rgba(0,0,0,.55));
+    opacity: .90;
+  }
+
+  /* SUBTITLE */
+  .hxl-subtitle-wrap { text-align: center; margin-bottom: 32px; }
+  .hxl-subtitle {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 10px;
+    font-weight: 400;
+    letter-spacing: .32em;
+    color: rgba(255,255,255,.38);
+    margin: 0;
+    text-transform: uppercase;
+  }
+
+  /* INPUTS */
+  .hxl-field { position: relative; margin-bottom: 20px; }
+  .hxl-field-icon {
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    color: rgba(255,255,255,.32);
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+  }
+  .hxl-field-icon-right {
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: rgba(255,255,255,.32);
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    transition: color .15s;
+  }
+  .hxl-field-icon-right:hover { color: rgba(255,255,255,.70); }
+  .hxl-input {
+    width: 100%;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid rgba(255,255,255,.22);
+    outline: none;
+    color: #fff;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 300;
+    padding: 10px 28px 10px 28px;
+    letter-spacing: .02em;
+    transition: border-color .2s;
+  }
+  .hxl-input::placeholder { color: rgba(255,255,255,.32); font-size: 13px; letter-spacing: .06em; }
+  .hxl-input:focus { border-bottom-color: rgba(255,255,255,.70); }
+  .hxl-input:-webkit-autofill {
+    -webkit-text-fill-color: #fff;
+    -webkit-box-shadow: 0 0 0 40px #000 inset;
+  }
+
+  /* ERROR */
+  .hxl-error {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    border-left: 2px solid #cc1020;
+    padding: 8px 12px;
+    margin-bottom: 24px;
+  }
+  .hxl-error span {
+    color: rgba(248,113,113,.90);
+    font-size: 12px;
+    line-height: 1.55;
+    letter-spacing: .01em;
+  }
+
+  /* BUTTONS */
+  .hxl-btn {
+    width: 100%;
+    background: transparent;
+    border: 1px solid rgba(255,255,255,.55);
+    color: #fff;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: .22em;
+    padding: 14px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: background .18s, border-color .18s;
+    border-radius: 0;
+    margin-top: 8px;
+    display: block;
+  }
+  .hxl-btn:hover { background: rgba(255,255,255,.06); border-color: rgba(255,255,255,.85); }
+  .hxl-btn:disabled { opacity: .5; cursor: not-allowed; }
+  .hxl-btn-ghost {
+    border-color: rgba(255,255,255,.15);
+    color: rgba(255,255,255,.45);
+    font-size: 13px;
+    font-weight: 400;
+    letter-spacing: .18em;
+    margin-top: 12px;
+  }
+  .hxl-btn-ghost:hover { border-color: rgba(255,255,255,.35); color: rgba(255,255,255,.75); }
+
+  /* FORGOT */
+  .hxl-forgot-wrap { text-align: center; margin-top: 22px; }
+  .hxl-forgot {
+    background: none;
+    border: none;
+    color: rgba(255,255,255,.35);
+    font-family: 'Inter', sans-serif;
+    font-size: 11.5px;
+    cursor: pointer;
+    letter-spacing: .04em;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    padding: 0;
+    transition: color .15s;
+  }
+  .hxl-forgot:hover { color: rgba(255,255,255,.70); }
+
+  /* RESET */
+  .hxl-reset-desc {
+    color: rgba(255,255,255,.42);
+    font-size: 13px;
+    line-height: 1.7;
+    margin: 0 0 32px;
+    font-weight: 300;
+  }
+
+  /* SENT */
+  .hxl-sent { text-align: center; }
+  .hxl-check-pop { margin-bottom: 24px; animation: hxlCheckPop .5s cubic-bezier(.16,1,.3,1) both; }
+  .hxl-sent-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 26px;
+    font-weight: 500;
+    letter-spacing: .10em;
+    color: #fff;
+    margin: 0 0 10px;
+  }
+  .hxl-sent-desc {
+    color: rgba(255,255,255,.40);
+    font-size: 13px;
+    line-height: 1.7;
+    margin: 0 0 32px;
+    font-weight: 300;
+  }
+`
