@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { db } from '../lib/firebase'
 import {
   collection, addDoc, onSnapshot,
@@ -75,11 +75,17 @@ export function useCentros() {
     return () => { unsubCentros(); unsubEmpresas() }
   }, [])
 
-  // Enriquecer cada centro con el nombre de su empresa (resuelto desde empresaId)
-  const centros = centrosRaw.map(c => ({
-    ...c,
-    empresaNombre: c.empresaNombre ?? empresasMap[c.empresaId] ?? null,
-  }))
+  // Enriquecer cada centro con el nombre de su empresa (resuelto desde empresaId).
+  // Memoizado: sin esto, `centros` cambia de referencia en CADA render (p. ej. el
+  // reloj de MainLayout que actualiza cada segundo), re-disparando los useEffect
+  // que dependen de `centros` (ReportesPage) — causaba parpadeo y queries por segundo.
+  const centros = useMemo(
+    () => centrosRaw.map(c => ({
+      ...c,
+      empresaNombre: c.empresaNombre ?? empresasMap[c.empresaId] ?? null,
+    })),
+    [centrosRaw, empresasMap]
+  )
 
   const agregarCentro = async (datos) => {
     setCargando(true)
