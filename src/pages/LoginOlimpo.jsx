@@ -56,7 +56,7 @@ export default function LoginOlimpo() {
     }
   }
 
-  const loginTheme = localStorage.getItem('hx-theme') || 'gold'
+  const loginTheme = localStorage.getItem('app-theme') || 'gold'
 
   return (
     <>

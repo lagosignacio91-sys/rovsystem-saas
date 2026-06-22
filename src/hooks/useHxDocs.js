@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { collection, onSnapshot, addDoc, deleteDoc, doc, serverTimestamp, query, orderBy } from 'firebase/firestore'
 import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage'
-import { db, storage } from '../lib/firebase'
+import { db, storage, auth } from '../lib/firebase'
 
 export function useHxDocs() {
   const [docs,     setDocs]     = useState([])
@@ -18,8 +18,9 @@ export function useHxDocs() {
 
   function subirDoc({ archivo, nombre, clienteId, tipo, subidoPor }, onProgress) {
     return new Promise((resolve, reject) => {
+      const uid = auth.currentUser?.uid ?? 'unknown'
       const storageRef = ref(storage, `hxDocs/${Date.now()}_${archivo.name}`)
-      const task = uploadBytesResumable(storageRef, archivo)
+      const task = uploadBytesResumable(storageRef, archivo, { customMetadata: { uploadedBy: uid } })
       task.on('state_changed',
         snap => onProgress && onProgress(Math.round(snap.bytesTransferred / snap.totalBytes * 100)),
         reject,

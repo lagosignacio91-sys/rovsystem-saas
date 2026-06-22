@@ -5,6 +5,7 @@ import { descargarPDF, compartirPDF } from '../../lib/generatePDF'
 import ModalEntregaTurno from '../turno/ModalEntregaTurno'
 import { storage } from '../../lib/firebase'
 import { ref, uploadBytes, getDownloadURL, listAll, deleteObject } from 'firebase/storage'
+import { auth } from '../../lib/firebase'
 
 function formatFecha(iso) {
   if (!iso) return ''
@@ -107,7 +108,8 @@ export default function TabEntregaTurno({ centro, role, uid }) {
       if (file) {
         try {
           const storageRef = ref(storage, `entregas/${centro.id}/${id}/${equipo}_${sec.id}`)
-          await uploadBytes(storageRef, file)
+          const uid = auth.currentUser?.uid ?? 'unknown'
+          await uploadBytes(storageRef, file, { customMetadata: { uploadedBy: uid } })
           limpio.fotoUrl = await getDownloadURL(storageRef)
         } catch (e) {
           console.warn('No se pudo subir foto', equipo, sec.id, e)

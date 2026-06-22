@@ -3,14 +3,16 @@ import { X, Camera, XCircle } from 'lucide-react'
 import { t } from '../../theme/tokens'
 import { storage } from '../../lib/firebase'
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
+import { auth } from '../../lib/firebase'
 
 async function subirFotos(despachoId, archivos) {
   const urls = []
+  const uid = auth.currentUser?.uid ?? 'unknown'
   for (const { file } of archivos) {
     try {
       const path    = `despachos/${despachoId}/${Date.now()}_${file.name}`
       const storRef = ref(storage, path)
-      const snap    = await uploadBytes(storRef, file)
+      const snap    = await uploadBytes(storRef, file, { customMetadata: { uploadedBy: uid } })
       urls.push(await getDownloadURL(snap.ref))
     } catch {
       // Error de Storage — se omite la foto sin abortar el despacho

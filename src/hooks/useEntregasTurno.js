@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { db, storage } from '../lib/firebase'
+import { db, storage, auth } from '../lib/firebase'
 import {
   collection, addDoc, deleteDoc, doc, onSnapshot, orderBy, query,
   getDoc, setDoc, updateDoc,
@@ -57,7 +57,8 @@ export function useEntregasTurno(centroId) {
 
   const subirFoto = async (centroId, entregaId, seccionId, file) => {
     const storageRef = ref(storage, `entregas/${centroId}/${entregaId}/${seccionId}`)
-    await uploadBytes(storageRef, file)
+    const uid = auth.currentUser?.uid ?? 'unknown'
+    await uploadBytes(storageRef, file, { customMetadata: { uploadedBy: uid } })
     return getDownloadURL(storageRef)
   }
 

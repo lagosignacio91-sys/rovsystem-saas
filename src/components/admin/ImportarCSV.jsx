@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react'
+import { validarRut, validarEmail } from '../../lib/validaciones'
 
 // Columnas del CSV real de GL Robótica: Área, Centro, Proveedor, Nombre, Rut, Correo, Teléfono
 const COLUMNAS_CSV = ['area', 'centro', 'proveedor', 'nombre', 'rut', 'correoCorporativo', 'telefono']
@@ -55,11 +56,9 @@ export default function ImportarCSV({ onImportar, onCerrar }) {
           setErrorArchivo('El archivo contiene más de 200 operadores. Divídelo en partes.')
           return
         }
-        const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-        const rutRe   = /^\d{1,8}-[\dkK]$/
         const invalidos = parsed.filter(op =>
-          !emailRe.test(op.correoCorporativo?.trim() ?? '') ||
-          (op.rut && !rutRe.test(op.rut?.trim() ?? ''))
+          !validarEmail(op.correoCorporativo) ||
+          (op.rut && !validarRut(op.rut))
         )
         if (invalidos.length > 0) {
           setErrorArchivo(

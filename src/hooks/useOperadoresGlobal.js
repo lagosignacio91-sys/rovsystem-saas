@@ -6,7 +6,8 @@ export function useOperadoresGlobal(centros) {
   const [operadores, setOperadores] = useState([])
   const [cargando, setCargando]     = useState(true)
 
-  const ids = centros.map(c => c.id).join(',')
+  // Sorted join → mismo resultado sin importar el orden de llegada de Firestore
+  const idsStable = [...centros.map(c => c.id)].sort().join(',')
 
   useEffect(() => {
     if (!centros.length) { setOperadores([]); setCargando(false); return }
@@ -34,7 +35,7 @@ export function useOperadoresGlobal(centros) {
     )
 
     return () => { active = false; unsubs.forEach(u => u()) }
-  }, [ids]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [idsStable]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return { operadores, cargando }
 }

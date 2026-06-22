@@ -2,23 +2,48 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
 
-    // Fotos de inspección de entregas de turno.
-    // Delete habilitado para auth: la función borrarFotosEntrega() lo necesita para
-    // limpiar fotos de entregas anteriores al crear una nueva (fire-and-forget).
-    // Trade-off aceptado: app invite-only con usuarios de confianza y paths con ID no predecible.
-    // Mejora futura: incluir uid del operador en el path y restringir delete por uid.
+    // Fotos de entregas de turno.
+    // Write/delete: solo usuario que subió el archivo (metadata.uploadedBy) o admin.
     match /entregas/{centroId}/{entregaId}/{archivo} {
-      allow read, write, delete: if request.auth != null;
+      allow read: if request.auth != null;
+      allow write: if request.auth != null
+        && request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+      allow delete: if request.auth != null
+        && (resource.metadata['uploadedBy'] == request.auth.uid
+            || request.auth.token.email.matches('.*@hyperionx\\.tech'));
     }
 
-    // Fotos del paquete al despachar (ModalDespacho sube a despachos/{id}/...).
+    // Fotos de despacho.
     match /despachos/{despachoId}/{archivo} {
-      allow read, write, delete: if request.auth != null;
+      allow read: if request.auth != null;
+      allow write: if request.auth != null
+        && request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+      allow delete: if request.auth != null
+        && (resource.metadata['uploadedBy'] == request.auth.uid
+            || request.auth.token.email.matches('.*@hyperionx\\.tech'));
     }
 
-    // Fotos de operador (TabOperador sube a operadores/{centroId}/...).
+    // Fotos de operador.
     match /operadores/{centroId}/{archivo} {
-      allow read, write, delete: if request.auth != null;
+      allow read: if request.auth != null;
+      allow write: if request.auth != null
+        && request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+      allow delete: if request.auth != null
+        && (resource.metadata['uploadedBy'] == request.auth.uid
+            || request.auth.token.email.matches('.*@hyperionx\\.tech'));
+    }
+
+    // Documentos Olimpo (hxDocs).
+    match /hxDocs/{archivo} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null
+        && request.resource.size < 20 * 1024 * 1024;
+      allow delete: if request.auth != null
+        && (resource.metadata['uploadedBy'] == request.auth.uid
+            || request.auth.token.email.matches('.*@hyperionx\\.tech'));
     }
 
     // Resto: denegado por defecto.

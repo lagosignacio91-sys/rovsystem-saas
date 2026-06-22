@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { db, storage } from '../../lib/firebase'
+import { db, storage, auth } from '../../lib/firebase'
 import { doc, setDoc, onSnapshot, deleteField } from 'firebase/firestore'
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 import { useAppConfig } from '../../hooks/useAppConfig'
@@ -155,7 +155,8 @@ export default function TabOperador({ centro, role }) {
       try {
         const path    = `operadores/${centro.id}/${Date.now()}_foto`
         const storRef = ref(storage, path)
-        const snap    = await uploadBytes(storRef, fotoFile)
+        const uid = auth.currentUser?.uid ?? 'unknown'
+        const snap    = await uploadBytes(storRef, fotoFile, { customMetadata: { uploadedBy: uid } })
         fotoUrl = await getDownloadURL(snap.ref)
       } catch {
         // Error de Storage — se conserva la foto anterior sin abortar el guardado

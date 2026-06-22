@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react'
 import { comprimirFoto } from '../../lib/compressorFotos'
 import { useEmpresas } from '../../hooks/useEmpresas'
+import { validarRut, validarEmail } from '../../lib/validaciones'
 
 const CAMPOS = [
   { key: 'nombre',            label: 'Nombre completo *',       type: 'text',  requerido: true },
@@ -33,9 +34,9 @@ export default function FormOperador({ inicial, esEdicion, onGuardar, onCerrar }
   const handleSubmit = async () => {
     if (!form.nombre?.trim())            return setErrorLocal('El nombre es obligatorio')
     if (!form.rut?.trim())               return setErrorLocal('El RUT es obligatorio')
+    if (!validarRut(form.rut))           return setErrorLocal('RUT inválido. Formato: 12345678-K')
     if (!form.correoCorporativo?.trim()) return setErrorLocal('El correo corporativo es obligatorio')
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!emailRegex.test(form.correoCorporativo)) return setErrorLocal('Correo corporativo inválido')
+    if (!validarEmail(form.correoCorporativo)) return setErrorLocal('Correo corporativo inválido')
     if (!esEdicion && !password.trim())  return setErrorLocal('La contraseña inicial es obligatoria')
 
     setErrorLocal('')

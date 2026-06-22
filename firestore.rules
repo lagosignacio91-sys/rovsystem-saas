@@ -55,15 +55,18 @@ service cloud.firestore {
                 || (isOperador()
                     && resource.data.teamAsignado == get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.teamId)));
 
-      // Entregas de turno: handoff entre operadores; se auto-limpian al crear una nueva.
+      // Entregas de turno: handoff entre operadores del MISMO team; admin y taller también.
       match /entregas/{entregaId} {
-        allow read, create, update, delete: if signedIn();
+        allow read, create, update, delete: if isAdmin() || isSupervisor()
+          || (isOperador()
+              && get(/databases/$(database)/documents/centros/$(centroId)).data.teamAsignado
+                 == get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.teamId);
       }
 
-      // Config por centro (ej: lista de ítems del wizard de turno, editada por el operador).
+      // Config por centro (lista de ítems del wizard): admin y taller escriben; operador solo lee.
       match /config/{doc} {
         allow read:  if signedIn();
-        allow write: if signedIn();
+        allow write: if isAdmin() || isSupervisor();
       }
 
       // Equipos ROV: solo admin y operador editan. El taller (supervisor) NO edita; sí lee fallas.

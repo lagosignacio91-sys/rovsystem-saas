@@ -33,7 +33,7 @@ export default function OlimpoPage() {
 
   const [seccion,     setSeccion]     = useState(() => isVentas ? 'cartera' : 'command')
   const [hora,        setHora]        = useState('')
-  const [theme,       setTheme]       = useState(() => localStorage.getItem('hx-theme') || 'gold')
+  const [theme,       setTheme]       = useState(() => localStorage.getItem('app-theme') || 'gold')
   const [drawerOpen,  setDrawerOpen]  = useState(false)
   const [notifOpen,   setNotifOpen]   = useState(false)
   const notifRef                      = useRef(null)
@@ -49,7 +49,7 @@ export default function OlimpoPage() {
   const THEMES = ['dark', 'light', 'gold']
   const toggleTheme = () => setTheme(t => {
     const n = THEMES[(THEMES.indexOf(t) + 1) % THEMES.length]
-    localStorage.setItem('hx-theme', n)
+    localStorage.setItem('app-theme', n)
     return n
   })
 

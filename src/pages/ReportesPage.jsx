@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useOutletContext } from 'react-router-dom'
-import { collection, getDocs, query, where } from 'firebase/firestore'
+import { collection, getDocs, query, where, orderBy, limit } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { t } from '../theme/tokens'
 import { useIsMobile } from '../hooks/useIsMobile'
@@ -74,13 +74,19 @@ export default function ReportesPage() {
     async function cargar() {
       setCargando(true)
       try {
-        // Despachos del mes
+        // Despachos del mes — límite 500 para evitar carga masiva accidental
+        const LIMITE_DESPACHOS = 500
         const snap = await getDocs(
           query(collection(db, 'despachos'),
             where('creadoEn', '>=', inicio),
-            where('creadoEn', '<', fin)
+            where('creadoEn', '<', fin),
+            orderBy('creadoEn', 'desc'),
+            limit(LIMITE_DESPACHOS)
           )
         )
+        if (snap.size >= LIMITE_DESPACHOS) {
+          console.warn(`Reportes: se alcanzó el límite de ${LIMITE_DESPACHOS} despachos. Los datos pueden estar incompletos.`)
+        }
         const despData = snap.docs
           .map(d => ({ id: d.id, ...d.data() }))
           .filter(d => !d.eliminado)

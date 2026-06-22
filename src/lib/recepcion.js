@@ -4,9 +4,10 @@
 // `cantidadSolicitada` de los ítems despachados, luego recalcula el estado
 // del centro. Idempotencia: el llamador debe evitar aplicarlo dos veces
 // (flag `stockAplicado` en el doc del despacho).
+// Atomicidad: toda la operación (stock + estado) ocurre en una sola transacción.
 // ============================================================
 import { db } from './firebase'
-import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore'
+import { doc, runTransaction } from 'firebase/firestore'
 import { calcularEstadoCentro } from '../hooks/useCentros'
 
 export async function aplicarRecepcionStock(centroId, items) {
@@ -18,26 +19,44 @@ export async function aplicarRecepcionStock(centroId, items) {
     grupos[col].push(it)
   }
 
-  for (const col of ['herramientas', 'insumos']) {
-    const recibidos = grupos[col]
-    if (recibidos.length === 0) continue
-    const ref  = doc(db, 'centros', centroId, 'datos', col)
-    const snap = await getDoc(ref)
-    if (!snap.exists()) continue
-    const lista = snap.data().lista ?? []
-    const nueva = lista.map(item => {
-      const rec = recibidos.find(r => String(r.id) === String(item.id))
-      if (!rec) return item
-      const qty = Number(rec.cantidadEnviada ?? rec.cantidadDespachada ?? rec.cantidadSolicitada ?? 0) || 0
-      return { ...item, cantidad: (Number(item.cantidad) || 0) + qty, solicitado: false, cantidadSolicitada: 0 }
-    })
-    await setDoc(ref, { lista: nueva }, { merge: true })
+  // Refs que necesitamos leer y escribir
+  const refs = {
+    herramientas: doc(db, 'centros', centroId, 'datos', 'herramientas'),
+    insumos:      doc(db, 'centros', centroId, 'datos', 'insumos'),
+    centro:       doc(db, 'centros', centroId),
   }
 
-  // Recalcular el semáforo del centro tras reponer stock.
+  await runTransaction(db, async (transaction) => {
+    // 1. Leer todo primero (las lecturas deben ir antes de escrituras en Firestore transactions)
+    const [snapH, snapI] = await Promise.all([
+      transaction.get(refs.herramientas),
+      transaction.get(refs.insumos),
+    ])
+
+    const snaps = { herramientas: snapH, insumos: snapI }
+
+    // 2. Calcular nuevas listas
+    for (const col of ['herramientas', 'insumos']) {
+      const recibidos = grupos[col]
+      if (recibidos.length === 0 || !snaps[col].exists()) continue
+
+      const lista = snaps[col].data().lista ?? []
+      const nueva = lista.map(item => {
+        const rec = recibidos.find(r => String(r.id) === String(item.id))
+        if (!rec) return item
+        const qty = Number(rec.cantidadEnviada ?? rec.cantidadDespachada ?? rec.cantidadSolicitada ?? 0) || 0
+        return { ...item, cantidad: (Number(item.cantidad) || 0) + qty, solicitado: false, cantidadSolicitada: 0 }
+      })
+      transaction.set(refs[col], { lista: nueva }, { merge: true })
+    }
+  })
+
+  // Recalcular semáforo fuera de la transacción (usa getDoc internamente)
   try {
     const estado = await calcularEstadoCentro(centroId)
-    await updateDoc(doc(db, 'centros', centroId), { estado })
+    await runTransaction(db, async (transaction) => {
+      transaction.update(refs.centro, { estado })
+    })
   } catch (e) {
     console.error('Error recalculando estado tras recepción:', e)
   }
