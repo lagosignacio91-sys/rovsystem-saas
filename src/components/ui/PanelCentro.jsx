@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, memo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { db } from '../../lib/firebase'
 import { doc, onSnapshot } from 'firebase/firestore'
@@ -24,7 +24,7 @@ const TAB_COMPONENTES = {
   bitacora:   (p) => <TabBitacora {...p} />,
 }
 
-export default function PanelCentro({ centro, onCerrar, onEliminar, sincronizarEstado, actualizarCentro, role, uid }) {
+export default memo(function PanelCentro({ centro, onCerrar, onEliminar, sincronizarEstado, actualizarCentro, role, uid }) {
   const { tabs, permiso } = useAppConfig()
   const tabsVisibles = tabs.filter(
     (tb) => !tb.hidden && TAB_COMPONENTES[tb.id] && permiso(tb.id, role) !== 'hidden',
@@ -139,6 +139,7 @@ export default function PanelCentro({ centro, onCerrar, onEliminar, sincronizarE
           const active = tabActiva === id
           return (
             <button key={id} className="gl-tab-btn" onClick={() => { setTabActiva(id); setExpanded(true) }}
+              tabIndex={0} role="tab" aria-selected={active}
               style={{ ...styles.tab, color: active ? t.brandSoft : t.textMuted, borderBottom: `2px solid ${active ? t.brand : 'transparent'}` }}>
               {Icon && <Icon size={17} strokeWidth={2} />}
               <span className="gl-tab-label" style={{ fontSize: 9, letterSpacing: '0.04em', fontWeight: 600 }}>{label}</span>
@@ -173,7 +174,7 @@ export default function PanelCentro({ centro, onCerrar, onEliminar, sincronizarE
       )}
     </div>
   )
-}
+})
 
 const styles = {
   panel:       { width: 420, maxWidth: '100vw', height: '100%', background: t.bgSurface, borderLeft: `1px solid ${t.border}`, display: 'flex', flexDirection: 'column', boxShadow: t.shadowLg },

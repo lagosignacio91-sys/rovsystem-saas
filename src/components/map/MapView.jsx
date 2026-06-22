@@ -1,5 +1,5 @@
 import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet'
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { useState, useRef, useCallback, useEffect, memo } from 'react'
 import { Search, X, MapPin, Maximize2 } from 'lucide-react'
 import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
@@ -438,9 +438,9 @@ function MapInner({ centros, onMapClick, onCentroClick, role, userTeamId }) {
   )
 }
 
-export default function MapView({ centros = [], onMapClick, onCentroClick, role, userTeamId }) {
+export default memo(function MapView({ centros = [], onMapClick, onCentroClick, role, userTeamId }) {
   return <MapInner centros={centros} onMapClick={onMapClick} onCentroClick={onCentroClick} role={role} userTeamId={userTeamId} />
-}
+})
 
 const buscador = {
   box:        { position: 'absolute', top: 10, left: 48, zIndex: 600, width: 'min(300px, calc(100% - 58px))' },

@@ -264,9 +264,18 @@ body {
 /* Focus visible accesible para teclado --------------------- */
 .gl-btn:focus-visible,
 .gl-icon-btn:focus-visible,
-.gl-input:focus-visible {
+.gl-input:focus-visible,
+.gl-tab-btn:focus-visible,
+button:focus-visible,
+a:focus-visible,
+select:focus-visible {
   outline: 2px solid var(--gl-brand-soft);
   outline-offset: 2px;
+}
+/* Quitar outline por defecto solo cuando hay focus-visible (no en click) */
+button:focus:not(:focus-visible),
+a:focus:not(:focus-visible) {
+  outline: none;
 }
 
 /* Animaciones del kit -------------------------------------- */

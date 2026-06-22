@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { db, auth } from '../lib/firebase'
 import { collection, onSnapshot, updateDoc, doc, arrayUnion } from 'firebase/firestore'
 import { aplicarRecepcionStock } from '../lib/recepcion'
@@ -78,7 +78,10 @@ export function useDespachosGlobal({ role, teamId, onNuevaSolicitud, onDespachoC
     })
   }
 
-  const pendientes = despachos.filter(d => d.estado === 'pendiente' || d.estado === 'enviado' || d.estado === 'parcial')
+  const pendientes = useMemo(
+    () => despachos.filter(d => d.estado === 'pendiente' || d.estado === 'enviado' || d.estado === 'parcial'),
+    [despachos]
+  )
 
   return { despachos, pendientes, cargando, marcarEnviado, confirmarRecepcion, eliminarDespacho }
 }
