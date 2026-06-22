@@ -8,6 +8,7 @@
 // ============================================================
 import { db } from './firebase'
 import { doc, runTransaction } from 'firebase/firestore'
+import { logError } from './logger'
 import { calcularEstadoCentro } from '../hooks/useCentros'
 
 export async function aplicarRecepcionStock(centroId, items) {
@@ -44,8 +45,8 @@ export async function aplicarRecepcionStock(centroId, items) {
       const nueva = lista.map(item => {
         const rec = recibidos.find(r => String(r.id) === String(item.id))
         if (!rec) return item
-        const qty = Number(rec.cantidadEnviada ?? rec.cantidadDespachada ?? rec.cantidadSolicitada ?? 0) || 0
-        return { ...item, cantidad: (Number(item.cantidad) || 0) + qty, solicitado: false, cantidadSolicitada: 0 }
+        const qty = Math.max(0, Number(rec.cantidadEnviada ?? rec.cantidadDespachada ?? rec.cantidadSolicitada ?? 0) || 0)
+        return { ...item, cantidad: Math.max(0, (Number(item.cantidad) || 0) + qty), solicitado: false, cantidadSolicitada: 0 }
       })
       transaction.set(refs[col], { lista: nueva }, { merge: true })
     }
@@ -58,6 +59,6 @@ export async function aplicarRecepcionStock(centroId, items) {
       transaction.update(refs.centro, { estado })
     })
   } catch (e) {
-    console.error('Error recalculando estado tras recepción:', e)
+    logError('recepcion/recalcularEstado', e)
   }
 }

@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { db } from '../lib/firebase'
+import { logError } from '../lib/logger'
 import {
   collection, addDoc, onSnapshot,
   updateDoc, deleteDoc, doc, getDoc, getDocs, writeBatch, setDoc
@@ -52,7 +53,7 @@ export async function calcularEstadoCentro(centroId) {
 
     return 'OK'
   } catch (e) {
-    console.error('Error calculando estado:', e)
+    logError('useCentros/calcularEstado', e)
     return 'OK'
   }
 }
@@ -95,7 +96,7 @@ export function useCentros() {
         creadoEn: new Date().toISOString(),
       })
     } catch (e) {
-      console.error('Error agregando centro:', e)
+      logError('useCentros/agregar', e)
     }
     setCargando(false)
   }
@@ -104,7 +105,7 @@ export function useCentros() {
     try {
       await updateDoc(doc(db, 'centros', id), datos)
     } catch (e) {
-      console.error('Error actualizando centro:', e)
+      logError('useCentros/actualizar', e)
     }
   }
 
@@ -118,7 +119,7 @@ export function useCentros() {
       batch.delete(doc(db, 'centros', id))
       await batch.commit()
     } catch (e) {
-      console.error('Error eliminando centro:', e)
+      logError('useCentros/eliminar', e)
     }
   }
 
@@ -159,7 +160,7 @@ export function useCentros() {
         })
       }
     } catch (e) {
-      console.error('Error inicializando centros:', e)
+      logError('useCentros/inicializar', e)
       throw e
     }
     setCargando(false)

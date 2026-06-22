@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { auth } from '../lib/firebase'
+import { logError } from '../lib/logger'
 import {
   signInWithEmailAndPassword,
   signOut as firebaseSignOut,
@@ -43,7 +44,7 @@ export function useAuth() {
           setAceptoTerminos(!!data.aceptoTerminos?.fecha)
         } catch (e) {
           // No asignar rol por defecto ante error de red — mostrar error y pedir re-login.
-          console.error('Error obteniendo perfil de usuario:', e)
+          logError('useAuth/perfil', e)
           setAuthError('No se pudo cargar tu perfil. Verifica tu conexión y vuelve a iniciar sesión.')
           setRole(null)
           setTeamId(null)
@@ -70,7 +71,7 @@ export function useAuth() {
       const result = await signInWithEmailAndPassword(auth, email, password)
       return { error: null }
     } catch (error) {
-      console.error('Error login:', error.code, error.message)
+      logError('useAuth/login', error)
       return { error }
     }
   }

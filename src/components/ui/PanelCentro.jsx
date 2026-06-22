@@ -124,7 +124,7 @@ export default memo(function PanelCentro({ centro, onCerrar, onEliminar, sincron
       {opEnFaena && (
         <div style={styles.opFaena}>
           {opEnFaena.foto
-            ? <img src={opEnFaena.foto} alt="" style={styles.opFoto} />
+            ? <img src={opEnFaena.foto} alt={opEnFaena.nombre} style={styles.opFoto} />
             : <div style={styles.opFotoVacia}>{(opEnFaena.nombre[0] ?? '?').toUpperCase()}</div>}
           <div style={{ minWidth: 0 }}>
             <div style={styles.opNombre}>{opEnFaena.nombre}</div>

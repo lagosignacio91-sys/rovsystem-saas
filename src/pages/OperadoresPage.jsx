@@ -133,7 +133,7 @@ export default function OperadoresPage() {
                 <div style={{ display: 'flex', gap: 11, alignItems: 'center' }}>
                   <div style={{ position: 'relative', flexShrink: 0 }}>
                     {o.foto
-                      ? <img src={o.foto} alt="" style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover', border: `2px solid ${enFaena ? t.ok : t.border}` }} />
+                      ? <img src={o.foto} alt={o.nombre} style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover', border: `2px solid ${enFaena ? t.ok : t.border}` }} />
                       : <div style={{ width: 44, height: 44, borderRadius: '50%', background: t.brandTint, color: t.brandSoft, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, fontWeight: 600, border: `2px solid ${enFaena ? t.ok : t.border}` }}>{inicial}</div>}
                     <span style={{ position: 'absolute', bottom: 0, right: 0, width: 12, height: 12, borderRadius: '50%', background: enFaena ? t.ok : t.noop, border: `2px solid ${t.bgElevated}` }} />
                   </div>

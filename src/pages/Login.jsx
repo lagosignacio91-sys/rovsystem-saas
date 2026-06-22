@@ -23,15 +23,13 @@ export default function Login() {
     setLoading(true); setError(null)
     const { error } = await signIn(email, password)
     if (error) {
-      const code = error.code ?? ''
-      if (code.includes('wrong-password')) setError('Clave incorrecta. Verifica tus datos e intenta de nuevo.')
-      else if (code.includes('user-not-found') || code.includes('invalid-email')) setError('Correo no registrado.')
-      else setError('Correo o clave incorrectos.')
+      // Mensaje genérico para todos los errores de credenciales — evita enumeración de usuarios
+      setError('Correo o clave incorrectos. Verifica tus datos e intenta de nuevo.')
     }
     setLoading(false)
   }
 
-  const passError = error?.toLowerCase().includes('clave')
+  const passError = !!error
 
   return (
     <div style={s.wrapper}>

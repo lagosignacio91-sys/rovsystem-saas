@@ -202,7 +202,7 @@ export default function CentrosPage() {
                           {opFaena && (
                             <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
                               {opFaena.foto
-                                ? <img src={opFaena.foto} alt="" style={{ width: 20, height: 20, borderRadius: '50%', objectFit: 'cover', border: `1.5px solid ${t.ok}`, flexShrink: 0 }} />
+                                ? <img src={opFaena.foto} alt={opFaena.nombre} style={{ width: 20, height: 20, borderRadius: '50%', objectFit: 'cover', border: `1.5px solid ${t.ok}`, flexShrink: 0 }} />
                                 : <div style={{ width: 20, height: 20, borderRadius: '50%', background: t.brandTint, color: t.brandSoft, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, flexShrink: 0 }}>{(opFaena.nombre[0] ?? '?').toUpperCase()}</div>}
                               <span style={{ fontSize: 10, color: t.ok, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{opFaena.nombre}</span>
                               {opFaena.telefono && (

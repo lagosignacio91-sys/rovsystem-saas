@@ -9,7 +9,12 @@ export default class ErrorBoundary extends Component {
   }
 
   componentDidCatch(error, info) {
-    console.error('ErrorBoundary caught:', error, info.componentStack)
+    const isDev = import.meta.env.DEV
+    if (isDev) {
+      console.error('ErrorBoundary caught:', error, info.componentStack)
+    } else {
+      console.error(`[ErrorBoundary] error:${error?.name ?? 'unknown'}`)
+    }
   }
 
   render() {
@@ -17,7 +22,7 @@ export default class ErrorBoundary extends Component {
       return (
         <div style={s.wrapper}>
           <div style={s.titulo}>Algo salió mal</div>
-          <div style={s.msg}>{this.state.error?.message || 'Error inesperado'}</div>
+          <div style={s.msg}>Ocurrió un error inesperado. Por favor recarga la página.</div>
           <button style={s.btn} onClick={() => { this.setState({ error: null }); window.location.reload() }}>
             Recargar
           </button>
