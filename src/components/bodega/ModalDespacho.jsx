@@ -28,6 +28,7 @@ export default function ModalDespacho({ isOpen, onClose, solicitud, onDespachar 
   const [fotos,         setFotos]         = useState([])
   const [cargando,      setCargando]      = useState(false)
   const [progreso,      setProgreso]      = useState('')
+  const [cantidades,    setCantidades]    = useState({})
   const fileRef = useRef(null)
 
   useEffect(() => {
@@ -36,6 +37,12 @@ export default function ModalDespacho({ isOpen, onClose, solicitud, onDespachar 
       setTransportista('')
       setFotos([])
       setProgreso('')
+      // Inicializar cantidades con los valores solicitados
+      const init = {}
+      ;(solicitud?.itemsSolicitados ?? []).forEach(item => {
+        init[item.itemId ?? item.nombre] = item.cantidad
+      })
+      setCantidades(init)
     }
   }, [isOpen, solicitud?.id])
 
@@ -67,7 +74,7 @@ export default function ModalDespacho({ isOpen, onClose, solicitud, onDespachar 
       setProgreso('Registrando despacho...')
       const itemsDespachados = (solicitud.itemsSolicitados || []).map(item => ({
         ...item,
-        cantidadDespachada: item.cantidad,
+        cantidadDespachada: Math.max(1, Number(cantidades[item.itemId ?? item.nombre] ?? item.cantidad) || 1),
       }))
       await onDespachar(solicitud.id, itemsDespachados, comentario, urls, transportista)
       onClose()
@@ -114,16 +121,30 @@ export default function ModalDespacho({ isOpen, onClose, solicitud, onDespachar 
         </div>
 
         <div style={s.body}>
-          {/* Resumen de items */}
+          {/* Resumen de items con cantidades editables */}
           <div style={s.resumen}>
-            <div style={{ fontSize: t.textXs, fontWeight: 700, color: t.textSecondary, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              Items a despachar
+            <div style={{ fontSize: t.textXs, fontWeight: 700, color: t.textSecondary, marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Ítems a despachar
             </div>
-            {(solicitud.itemsSolicitados || []).map((item, idx) => (
-              <div key={idx} style={{ fontSize: t.textSm, color: t.textPrimary, marginBottom: 2 }}>
-                • {item.nombre || item.itemId} × <strong>{item.cantidad}</strong>
-              </div>
-            ))}
+            {(solicitud.itemsSolicitados || []).map((item, idx) => {
+              const key = item.itemId ?? item.nombre
+              return (
+                <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6, gap: 8 }}>
+                  <span style={{ fontSize: t.textSm, color: t.textPrimary, flex: 1 }}>{item.nombre || item.itemId}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <span style={{ fontSize: t.textXs, color: t.textMuted }}>Cant:</span>
+                    <input
+                      type="number"
+                      min={1}
+                      value={cantidades[key] ?? item.cantidad}
+                      onChange={e => setCantidades(prev => ({ ...prev, [key]: Math.max(1, Number(e.target.value) || 1) }))}
+                      disabled={cargando}
+                      style={{ width: 54, padding: '3px 6px', background: t.bgInput, border: `1px solid ${t.border}`, borderRadius: t.radiusSm, color: t.textPrimary, fontSize: t.textSm, textAlign: 'center' }}
+                    />
+                  </div>
+                </div>
+              )
+            })}
             {solicitud.centroNombre && (
               <div style={{ fontSize: t.textXs, color: t.textMuted, marginTop: 6 }}>
                 Destino: {solicitud.centroNombre}

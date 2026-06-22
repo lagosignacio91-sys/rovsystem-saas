@@ -191,7 +191,9 @@ export function useBodegaCentral() {
       if (!nombre) continue
       const qty = Number(item.cantidadEnviada ?? item.cantidadDespachada ?? item.cantidad ?? 1) || 0
 
-      const repuesto = repuestos.find(r => r.nombre?.toLowerCase() === nombre)
+      const repuesto = repuestos.find(r =>
+        (item.id && String(r.id) === String(item.id)) || r.nombre?.toLowerCase() === nombre
+      )
       if (repuesto) {
         const nuevo = Math.max(0, (Number(repuesto.cantidad) || 0) - qty)
         await updateDoc(doc(db, 'bodegaCentral', 'almacen', 'repuestos', repuesto.id), {
@@ -200,7 +202,9 @@ export function useBodegaCentral() {
         continue
       }
 
-      const hi = herramientasInsumos.find(h => h.nombre?.toLowerCase() === nombre)
+      const hi = herramientasInsumos.find(h =>
+        (item.id && String(h.id) === String(item.id)) || h.nombre?.toLowerCase() === nombre
+      )
       if (hi) {
         const nuevo = Math.max(0, (Number(hi.cantidad) || 0) - qty)
         await updateDoc(doc(db, 'bodegaCentral', 'almacen', 'herramientasInsumos', hi.id), {
@@ -209,7 +213,7 @@ export function useBodegaCentral() {
         continue
       }
 
-      console.warn(`Bodega: ítem despachado "${item.nombre}" no existe en bodega — no se descontó stock.`)
+      logError('bodega/descontarStock', new Error(`Ítem "${item.nombre}" no encontrado en bodega`))
     }
   }, [repuestos, herramientasInsumos])
 

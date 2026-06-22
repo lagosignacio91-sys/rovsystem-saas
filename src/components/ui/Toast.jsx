@@ -19,7 +19,7 @@ export function ToastProvider() {
   const add = useCallback((t) => {
     const id = Date.now()
     setItems(prev => [...prev.slice(-3), { ...t, id }])
-    timers.current[id] = setTimeout(() => remove(id), 5000)
+    timers.current[id] = setTimeout(() => remove(id), 10000)
   }, [remove])
 
   useEffect(() => { _addToast = add; return () => { _addToast = null } }, [add])

@@ -62,13 +62,20 @@ export function useDespachosGlobal({ role, teamId, onNuevaSolicitud, onDespachoC
     const ts   = new Date().toISOString()
     const desp = despachos.find(d => d.id === id)
     const aplicar = desp && !desp.stockAplicado
-    await updateDoc(doc(db, 'despachos', id), {
-      estado: completo ? 'recibido' : 'parcial', recibidoEn: ts, recibidoPor: uid, observacion,
-      historial: arrayUnion({ tipo: completo ? 'recibido' : 'parcial', uid, ts }),
-      ...(aplicar ? { stockAplicado: true } : {}),
-    })
+
     if (aplicar) {
+      // Primero aplicar stock; solo si tiene éxito setear stockAplicado=true
       await aplicarRecepcionStock(desp.centroId, desp.itemsEnviados ?? desp.items ?? [])
+      await updateDoc(doc(db, 'despachos', id), {
+        estado: completo ? 'recibido' : 'parcial', recibidoEn: ts, recibidoPor: uid, observacion,
+        historial: arrayUnion({ tipo: completo ? 'recibido' : 'parcial', uid, ts }),
+        stockAplicado: true,
+      })
+    } else {
+      await updateDoc(doc(db, 'despachos', id), {
+        estado: completo ? 'recibido' : 'parcial', recibidoEn: ts, recibidoPor: uid, observacion,
+        historial: arrayUnion({ tipo: completo ? 'recibido' : 'parcial', uid, ts }),
+      })
     }
   }
   // Soft-delete: conserva la evidencia para auditoría.
