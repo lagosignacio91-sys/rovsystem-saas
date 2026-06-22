@@ -6,7 +6,7 @@ import { getStorage } from 'firebase/storage'
 const required = (key) => {
   const val = import.meta.env[key]
   if (!val) throw new Error(`Variable de entorno ${key} no configurada. Revisa .env o Vercel.`)
-  return val
+  return val.replace(/^﻿/, '')
 }
 
 const firebaseConfig = {
