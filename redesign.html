@@ -1,0 +1,1576 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GL Robótica Submarina — Tecnología ROV en la Patagonia</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    /* ========== RESET & BASE ========== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #0a0a0a;
+      color: #f0f0f0;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* ========== CSS VARIABLES ========== */
+    :root {
+      --teal-dark:   #0a0a0a;
+      --teal-mid:    #111111;
+      --teal-light:  #161616;
+      --steel:       #0f0f0f;
+      --steel-mid:   #1a1a1a;
+      --orange:      #e8792a;
+      --orange-dark: #c45e18;
+      --white:       #f0f0f0;
+      --gray:        #888888;
+      --gray-dark:   #555555;
+      --border:      rgba(255,255,255,0.08);
+    }
+
+    /* ========== NAVBAR ========== */
+    #navbar {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 1000;
+      padding: 1rem 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: transparent;
+      transition: background 0.3s, box-shadow 0.3s;
+    }
+    #navbar.scrolled {
+      background: rgba(5, 5, 5, 0.97);
+      box-shadow: 0 1px 0 rgba(255,255,255,0.06);
+    }
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      text-decoration: none;
+    }
+    .nav-brand img {
+      height: 48px;
+      width: 48px;
+      object-fit: contain;
+      border-radius: 50%;
+    }
+    .nav-brand-text {
+      display: flex;
+      flex-direction: column;
+    }
+    .nav-brand-text .name {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--white);
+      letter-spacing: 0.02em;
+    }
+    .nav-brand-text .sub {
+      font-size: 0.65rem;
+      font-weight: 400;
+      color: var(--gray);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 2rem;
+      list-style: none;
+    }
+    .nav-links a {
+      text-decoration: none;
+      color: var(--gray);
+      font-size: 0.88rem;
+      font-weight: 500;
+      letter-spacing: 0.03em;
+      transition: color 0.2s;
+    }
+    .nav-links a:hover { color: var(--white); }
+    .btn-nav {
+      background: var(--orange);
+      color: var(--white) !important;
+      padding: 0.5rem 1.25rem;
+      border-radius: 6px;
+      font-weight: 600 !important;
+      transition: background 0.2s !important;
+    }
+    .btn-nav:hover { background: var(--orange-dark) !important; }
+
+    /* hamburger */
+    .nav-toggle {
+      display: none;
+      flex-direction: column;
+      gap: 5px;
+      cursor: pointer;
+      background: none;
+      border: none;
+      padding: 4px;
+    }
+    .nav-toggle span {
+      display: block;
+      width: 24px;
+      height: 2px;
+      background: var(--white);
+      border-radius: 2px;
+      transition: 0.3s;
+    }
+
+    /* ========== HERO ========== */
+    #hero {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      position: relative;
+      background:
+        linear-gradient(135deg, rgba(13,38,38,0.80) 0%, rgba(13,50,60,0.70) 100%),
+        url('foto-hero.jpg') center/cover no-repeat;
+      background-color: var(--steel);
+      overflow: hidden;
+    }
+    /* Animated teal wave bg for hero */
+    #hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse at 20% 50%, rgba(26,107,107,0.4) 0%, transparent 60%),
+        radial-gradient(ellipse at 80% 20%, rgba(232,121,42,0.15) 0%, transparent 50%);
+    }
+    .hero-content {
+      position: relative;
+      z-index: 2;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 7rem 2rem 4rem;
+    }
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(232,121,42,0.15);
+      border: 1px solid rgba(232,121,42,0.4);
+      border-radius: 20px;
+      padding: 0.35rem 1rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--orange);
+      margin-bottom: 1.5rem;
+    }
+    .hero-badge::before {
+      content: '●';
+      font-size: 0.5rem;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+    .hero-title {
+      font-size: clamp(2.2rem, 5vw, 4rem);
+      font-weight: 800;
+      line-height: 1.1;
+      color: var(--white);
+      max-width: 750px;
+      margin-bottom: 1.25rem;
+    }
+    .hero-title span { color: var(--orange); }
+    .hero-sub {
+      font-size: clamp(1rem, 2vw, 1.25rem);
+      color: var(--gray);
+      max-width: 580px;
+      margin-bottom: 2.5rem;
+      font-weight: 400;
+    }
+    .hero-ctas {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .btn-primary {
+      display: inline-block;
+      background: var(--orange);
+      color: var(--white);
+      padding: 0.85rem 2rem;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 0.95rem;
+      transition: background 0.2s, transform 0.1s;
+    }
+    .btn-primary:hover { background: var(--orange-dark); transform: translateY(-1px); }
+    .btn-secondary {
+      display: inline-block;
+      background: transparent;
+      color: var(--white);
+      padding: 0.85rem 2rem;
+      border-radius: 8px;
+      border: 1.5px solid rgba(255,255,255,0.3);
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 0.95rem;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .btn-secondary:hover {
+      border-color: var(--white);
+      background: rgba(255,255,255,0.05);
+    }
+    .hero-stats {
+      display: flex;
+      gap: 3rem;
+      margin-top: 4rem;
+      padding-top: 2.5rem;
+      border-top: 1px solid var(--border);
+      flex-wrap: wrap;
+    }
+    .hero-stat .num {
+      font-size: 2rem;
+      font-weight: 800;
+      color: var(--orange);
+    }
+    .hero-stat .label {
+      font-size: 0.8rem;
+      color: var(--gray);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-top: 0.15rem;
+    }
+
+    /* ========== SECTION BASE ========== */
+    section {
+      padding: 5rem 2rem;
+    }
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    .section-label {
+      display: inline-block;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--orange);
+      margin-bottom: 0.75rem;
+    }
+    .section-title {
+      font-size: clamp(1.6rem, 3vw, 2.4rem);
+      font-weight: 800;
+      color: var(--white);
+      margin-bottom: 1rem;
+      line-height: 1.2;
+    }
+    .section-sub {
+      color: var(--gray);
+      font-size: 1.05rem;
+      max-width: 560px;
+      margin-bottom: 3rem;
+    }
+
+    /* ========== QUIÉNES SOMOS ========== */
+    #nosotros { background: var(--teal-dark); }
+    .nosotros-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4rem;
+      align-items: start;
+    }
+    .nosotros-text p {
+      color: var(--gray);
+      margin-bottom: 1.25rem;
+      font-size: 1rem;
+      line-height: 1.75;
+    }
+    .nosotros-text p strong { color: var(--white); }
+    .stat-row {
+      display: flex;
+      gap: 1.5rem;
+      margin: 2rem 0;
+      flex-wrap: wrap;
+    }
+    .stat-box {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.25rem 1.5rem;
+      flex: 1;
+      min-width: 120px;
+      text-align: center;
+    }
+    .stat-box .n { font-size: 1.8rem; font-weight: 800; color: var(--orange); }
+    .stat-box .l { font-size: 0.75rem; color: var(--gray); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 0.25rem; }
+    .nosotros-image {
+      border-radius: 16px;
+      overflow: hidden;
+      position: relative;
+    }
+    .nosotros-image .img-placeholder {
+      width: 100%;
+      height: 320px;
+      background: linear-gradient(135deg, var(--steel) 0%, var(--teal-mid) 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.85rem;
+      color: var(--gray);
+      border-radius: 16px;
+      border: 1px dashed var(--border);
+      text-align: center;
+      padding: 1rem;
+    }
+    .location-card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-top: 1.5rem;
+    }
+    .location-card h4 {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--orange);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 0.75rem;
+    }
+    .location-card ul {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .location-card li {
+      color: var(--gray);
+      font-size: 0.9rem;
+      padding-left: 1.2rem;
+      position: relative;
+    }
+    .location-card li::before {
+      content: '→';
+      position: absolute;
+      left: 0;
+      color: var(--orange);
+    }
+
+    /* ========== SERVICIOS ========== */
+    #servicios { background: var(--steel); }
+    .services-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.5rem;
+    }
+    .service-card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 2rem;
+      transition: border-color 0.2s, background 0.2s, transform 0.2s;
+      cursor: default;
+    }
+    .service-card:hover {
+      border-color: var(--orange);
+      background: rgba(232,121,42,0.06);
+      transform: translateY(-3px);
+    }
+    .service-icon {
+      width: 52px;
+      height: 52px;
+      background: rgba(232,121,42,0.15);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 1.25rem;
+      font-size: 1.5rem;
+    }
+    .service-card h3 {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--white);
+      margin-bottom: 0.65rem;
+    }
+    .service-card p {
+      font-size: 0.88rem;
+      color: var(--gray);
+      line-height: 1.65;
+      margin-bottom: 1rem;
+    }
+    .service-bullets {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+    .service-bullets li {
+      font-size: 0.82rem;
+      color: var(--gray-dark);
+      padding-left: 1rem;
+      position: relative;
+    }
+    .service-bullets li::before {
+      content: '•';
+      position: absolute;
+      left: 0;
+      color: var(--orange);
+    }
+
+    /* ========== TECNOLOGÍA ========== */
+    #tecnologia { background: var(--teal-mid); }
+    .tech-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 3rem;
+    }
+    .tech-col h3 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--white);
+      margin-bottom: 1.5rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .rov-cards {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    .rov-card {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      background: rgba(0,0,0,0.2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.25rem;
+      transition: border-color 0.2s;
+    }
+    .rov-card:hover { border-color: var(--orange); }
+    .rov-img {
+      width: 72px;
+      height: 72px;
+      border-radius: 8px;
+      object-fit: cover;
+      flex-shrink: 0;
+      background: var(--steel);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.8rem;
+    }
+    .rov-img img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 8px;
+    }
+    .rov-info h4 { font-size: 0.95rem; font-weight: 700; color: var(--white); }
+    .rov-info p { font-size: 0.82rem; color: var(--gray); margin-top: 0.25rem; }
+    .tech-feature {
+      background: rgba(0,0,0,0.2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 1rem;
+    }
+    .tech-feature h4 {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--white);
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .tech-feature h4 span { color: var(--orange); }
+    .tech-feature p { font-size: 0.85rem; color: var(--gray); line-height: 1.65; }
+    .tech-feature ul {
+      list-style: none;
+      margin-top: 0.75rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+    }
+    .tech-feature ul li {
+      font-size: 0.82rem;
+      color: var(--gray-dark);
+      padding-left: 1rem;
+      position: relative;
+    }
+    .tech-feature ul li::before { content: '·'; position: absolute; left: 0; color: var(--orange); font-size: 1.2rem; line-height: 1; }
+    .tech-quote {
+      background: rgba(232,121,42,0.1);
+      border-left: 3px solid var(--orange);
+      padding: 1rem 1.25rem;
+      border-radius: 0 8px 8px 0;
+      margin-top: 1.25rem;
+      font-style: italic;
+      color: var(--gray);
+      font-size: 0.9rem;
+    }
+
+    /* ========== EQUIPO ========== */
+    #equipo { background: var(--teal-dark); }
+    .equipo-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4rem;
+      align-items: start;
+    }
+    .equipo-text p {
+      color: var(--gray);
+      font-size: 0.95rem;
+      line-height: 1.75;
+      margin-bottom: 1rem;
+    }
+    .values-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+      margin-top: 1.75rem;
+    }
+    .value-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.85rem 1rem;
+    }
+    .value-icon {
+      width: 36px;
+      height: 36px;
+      background: rgba(232,121,42,0.15);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      flex-shrink: 0;
+    }
+    .value-item span { font-size: 0.85rem; font-weight: 600; color: var(--white); }
+    .equipo-visual .img-placeholder {
+      width: 100%;
+      height: 360px;
+      background: linear-gradient(135deg, var(--steel-mid) 0%, var(--teal-mid) 100%);
+      border-radius: 16px;
+      border: 1px dashed var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 1rem;
+      font-size: 0.85rem;
+      color: var(--gray);
+    }
+
+    /* ========== COMPROMISO REGIÓN ========== */
+    #region { background: var(--steel); }
+    .region-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4rem;
+      align-items: center;
+    }
+    .region-text .big-stat {
+      font-size: 3.5rem;
+      font-weight: 800;
+      color: var(--orange);
+      line-height: 1;
+    }
+    .region-text .big-label {
+      font-size: 0.9rem;
+      color: var(--gray);
+      margin-bottom: 1.5rem;
+    }
+    .region-bullets {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    .region-bullets li {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      font-size: 0.95rem;
+      color: var(--gray);
+    }
+    .region-bullets li::before {
+      content: '✓';
+      color: var(--orange);
+      font-weight: 700;
+      flex-shrink: 0;
+      margin-top: 0.1rem;
+    }
+    .news-card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+    }
+    .news-card .news-label {
+      background: var(--orange);
+      padding: 0.4rem 0.85rem;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+    .news-card .news-body {
+      padding: 1.5rem;
+    }
+    .news-card .news-img {
+      width: 100%;
+      height: 180px;
+      background: linear-gradient(135deg, var(--teal-dark) 0%, var(--steel) 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.8rem;
+      color: var(--gray);
+      text-align: center;
+      padding: 1rem;
+    }
+    .news-card h4 {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--white);
+      line-height: 1.4;
+      margin-bottom: 0.5rem;
+    }
+    .news-card p { font-size: 0.85rem; color: var(--gray); }
+    .news-card .news-source {
+      font-size: 0.75rem;
+      color: var(--gray-dark);
+      margin-top: 0.5rem;
+    }
+
+    /* ========== CLIENTES ========== */
+    #clientes { background: var(--teal-mid); }
+    .clientes-inner { text-align: center; }
+    .clients-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      justify-content: center;
+      margin: 2.5rem 0;
+    }
+    .client-badge {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.85rem 1.75rem;
+      font-size: 0.92rem;
+      font-weight: 600;
+      color: var(--white);
+      transition: background 0.2s, border-color 0.2s;
+    }
+    .client-badge:hover {
+      background: rgba(232,121,42,0.15);
+      border-color: var(--orange);
+    }
+
+    /* ========== POR QUÉ NOSOTROS ========== */
+    #porque { background: var(--teal-dark); }
+    .porque-intro { max-width: 600px; margin-bottom: 3rem; }
+    .diferenciadores {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1.25rem;
+    }
+    .dif-card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1.5rem;
+      transition: transform 0.2s, border-color 0.2s;
+    }
+    .dif-card:hover {
+      transform: translateY(-3px);
+      border-color: rgba(232,121,42,0.4);
+    }
+    .dif-num {
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: var(--orange);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 0.5rem;
+    }
+    .dif-card h4 { font-size: 0.9rem; font-weight: 700; color: var(--white); line-height: 1.35; }
+
+    /* ========== GALERÍA ========== */
+    #galeria { background: var(--steel); }
+    .galeria-filters {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin-bottom: 2rem;
+    }
+    .filter-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--gray);
+      padding: 0.4rem 1rem;
+      border-radius: 20px;
+      font-size: 0.82rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: 'Inter', sans-serif;
+    }
+    .filter-btn.active, .filter-btn:hover {
+      background: var(--orange);
+      border-color: var(--orange);
+      color: var(--white);
+    }
+    .gallery-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1rem;
+    }
+    .gallery-item {
+      border-radius: 10px;
+      overflow: hidden;
+      aspect-ratio: 1;
+      background: linear-gradient(135deg, var(--steel-mid) 0%, var(--teal-mid) 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      color: var(--gray);
+      text-align: center;
+      padding: 0.75rem;
+      border: 1px dashed var(--border);
+      cursor: pointer;
+      transition: transform 0.2s, border-color 0.2s;
+      position: relative;
+    }
+    .gallery-item:hover {
+      transform: scale(1.02);
+      border-color: var(--orange);
+    }
+    .gallery-item img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .gallery-item .gallery-label {
+      position: relative;
+      z-index: 1;
+    }
+    .gallery-item.large {
+      grid-column: span 2;
+      grid-row: span 2;
+    }
+
+    /* ========== CONTACTO ========== */
+    #contacto { background: var(--steel); }
+    .contacto-grid {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 4rem;
+    }
+    .form-group {
+      margin-bottom: 1.25rem;
+    }
+    .form-group label {
+      display: block;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--gray);
+      margin-bottom: 0.4rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.8rem 1rem;
+      color: var(--white);
+      font-family: 'Inter', sans-serif;
+      font-size: 0.9rem;
+      transition: border-color 0.2s;
+    }
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: var(--orange);
+    }
+    .form-group select option { background: var(--steel); color: var(--white); }
+    .form-group textarea { resize: vertical; min-height: 120px; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .btn-submit {
+      width: 100%;
+      background: var(--orange);
+      color: var(--white);
+      border: none;
+      padding: 1rem;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      transition: background 0.2s;
+      margin-top: 0.5rem;
+    }
+    .btn-submit:hover { background: var(--orange-dark); }
+    .contact-info {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+    .contact-info .tagline {
+      font-size: 1rem;
+      font-style: italic;
+      color: var(--gray);
+      border-left: 3px solid var(--orange);
+      padding-left: 1rem;
+      line-height: 1.5;
+      margin-bottom: 0.5rem;
+    }
+    .contact-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 1rem;
+    }
+    .contact-icon {
+      width: 44px;
+      height: 44px;
+      background: rgba(232,121,42,0.15);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      flex-shrink: 0;
+    }
+    .contact-item h5 {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--orange);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 0.25rem;
+    }
+    .contact-item p, .contact-item a {
+      font-size: 0.92rem;
+      color: var(--gray);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    .contact-item a:hover { color: var(--white); }
+    .social-row {
+      display: flex;
+      gap: 0.75rem;
+      margin-top: 0.5rem;
+    }
+    .social-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.5rem 1rem;
+      text-decoration: none;
+      color: var(--gray);
+      font-size: 0.85rem;
+      transition: all 0.2s;
+    }
+    .social-btn:hover {
+      background: rgba(232,121,42,0.15);
+      border-color: var(--orange);
+      color: var(--white);
+    }
+
+    /* ========== FOOTER ========== */
+    footer {
+      background: rgba(0,0,0,0.5);
+      padding: 2.5rem 2rem;
+      border-top: 1px solid var(--border);
+    }
+    .footer-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .footer-brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .footer-brand img {
+      height: 40px;
+      width: 40px;
+      object-fit: contain;
+      border-radius: 50%;
+    }
+    .footer-brand-text { font-size: 0.85rem; font-weight: 700; color: var(--white); }
+    .footer-brand-sub { font-size: 0.7rem; color: var(--gray); }
+    .footer-links {
+      display: flex;
+      gap: 1.5rem;
+      list-style: none;
+    }
+    .footer-links a {
+      text-decoration: none;
+      font-size: 0.82rem;
+      color: var(--gray);
+      transition: color 0.2s;
+    }
+    .footer-links a:hover { color: var(--white); }
+    .footer-copy { font-size: 0.78rem; color: var(--gray-dark); }
+
+    /* ========== DIVIDER ========== */
+    .section-divider {
+      width: 60px;
+      height: 3px;
+      background: var(--orange);
+      border-radius: 2px;
+      margin: 0.75rem 0 2rem;
+    }
+
+    /* ========== RESPONSIVE ========== */
+    @media (max-width: 900px) {
+      .nosotros-grid, .equipo-grid, .region-grid, .contacto-grid, .tech-grid { grid-template-columns: 1fr; gap: 2.5rem; }
+      .services-grid { grid-template-columns: 1fr 1fr; }
+      .diferenciadores { grid-template-columns: 1fr 1fr; }
+      .gallery-grid { grid-template-columns: repeat(2, 1fr); }
+      .gallery-item.large { grid-column: span 1; grid-row: span 1; }
+    }
+    @media (max-width: 640px) {
+      .nav-links { display: none; }
+      .nav-links.open {
+        display: flex;
+        flex-direction: column;
+        position: fixed;
+        inset: 0;
+        background: rgba(5,5,5,0.98);
+        justify-content: center;
+        align-items: center;
+        gap: 2rem;
+        z-index: 999;
+      }
+      .nav-links.open a { font-size: 1.2rem; }
+      .nav-toggle { display: flex; }
+      .services-grid { grid-template-columns: 1fr; }
+      .diferenciadores { grid-template-columns: 1fr; }
+      .hero-stats { gap: 1.5rem; }
+      .values-grid { grid-template-columns: 1fr; }
+      .gallery-grid { grid-template-columns: 1fr 1fr; }
+      .form-grid { grid-template-columns: 1fr; }
+      .footer-inner { flex-direction: column; align-items: flex-start; }
+      .footer-links { flex-wrap: wrap; gap: 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ===== NAVBAR ===== -->
+<nav id="navbar">
+  <a href="#" class="nav-brand">
+    <img src="logo.jpeg" alt="GL Robótica Submarina" />
+    <div class="nav-brand-text">
+      <span class="name">GL Robótica</span>
+      <span class="sub">Submarina</span>
+    </div>
+  </a>
+  <button class="nav-toggle" onclick="document.querySelector('.nav-links').classList.toggle('open')" aria-label="Menú">
+    <span></span><span></span><span></span>
+  </button>
+  <ul class="nav-links">
+    <li><a href="#nosotros">Nosotros</a></li>
+    <li><a href="#servicios">Servicios</a></li>
+    <li><a href="#tecnologia">Tecnología</a></li>
+    <li><a href="#equipo">Equipo</a></li>
+    <li><a href="#clientes">Clientes</a></li>
+    <li><a href="#contacto" class="btn-nav">Solicitar cotización</a></li>
+  </ul>
+</nav>
+
+<!-- ===== HERO ===== -->
+<section id="hero">
+  <div class="hero-content">
+    <div class="hero-badge">Puerto Chacabuco · Región de Aysén</div>
+    <h1 class="hero-title">
+      Tecnología Submarina<br />al Servicio de la <span>Acuicultura</span>
+    </h1>
+    <p class="hero-sub">
+      Operamos con ROVs especializados en los centros de cultivo de la Patagonia.
+      Inspección, reparación y soporte operacional con más de 8 años de experiencia.
+    </p>
+    <div class="hero-ctas">
+      <a href="#servicios" class="btn-primary">Conoce nuestros servicios</a>
+      <a href="#contacto" class="btn-secondary">Contáctanos</a>
+    </div>
+    <div class="hero-stats">
+      <div class="hero-stat">
+        <div class="num">+8</div>
+        <div class="label">Años de experiencia</div>
+      </div>
+      <div class="hero-stat">
+        <div class="num">6+</div>
+        <div class="label">Servicios especializados</div>
+      </div>
+      <div class="hero-stat">
+        <div class="num">90%</div>
+        <div class="label">Pilotos de la región</div>
+      </div>
+      <div class="hero-stat">
+        <div class="num">7+</div>
+        <div class="label">Empresas atendidas</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== QUIÉNES SOMOS ===== -->
+<section id="nosotros">
+  <div class="container">
+    <span class="section-label">Quiénes somos</span>
+    <div class="section-divider"></div>
+    <div class="nosotros-grid">
+      <div class="nosotros-text">
+        <h2 class="section-title">Especialistas en operaciones submarinas</h2>
+        <p>
+          <strong>GL Robótica Submarina</strong> es una empresa especializada en operaciones submarinas
+          mediante tecnología ROV para la industria acuícola. Nacimos el año 2019 en Puerto Chacabuco,
+          Región de Aysén, con el objetivo de entregar soluciones eficientes, seguras y oportunas
+          para los distintos desafíos operacionales de los centros de cultivo.
+        </p>
+        <p>
+          Nuestro equipo acumula <strong>más de 7 años de experiencia en terreno</strong>,
+          participando en operaciones críticas para algunas de las principales empresas
+          salmoneras del país.
+        </p>
+        <div class="stat-row">
+          <div class="stat-box">
+            <div class="n">+8</div>
+            <div class="l">Años de experiencia</div>
+          </div>
+          <div class="stat-box">
+            <div class="n">2019</div>
+            <div class="l">Fundación</div>
+          </div>
+          <div class="stat-box">
+            <div class="n">Aysén</div>
+            <div class="l">Base de operaciones</div>
+          </div>
+        </div>
+        <div class="location-card">
+          <h4>📍 Nuestra ubicación estratégica</h4>
+          <p style="font-size:0.88rem; color: var(--gray); margin-bottom:0.75rem;">
+            Nuestra base en <strong style="color:var(--white)">Puerto Chacabuco</strong> es una ubicación privilegiada
+            para la atención de centros de cultivo en la Región de Aysén. Esto nos permite:
+          </p>
+          <ul>
+            <li>Movilización rápida de personal</li>
+            <li>Respuesta inmediata ante contingencias</li>
+            <li>Gestión eficiente de repuestos e insumos</li>
+            <li>Menores tiempos de espera para nuestros clientes</li>
+            <li>Mayor continuidad operacional</li>
+          </ul>
+        </div>
+      </div>
+      <div>
+        <div class="nosotros-image">
+          <img src="foto-chacabuco.webp" alt="Puerto Chacabuco, Región de Aysén" style="width:100%;height:320px;object-fit:cover;border-radius:16px;" />
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== SERVICIOS ===== -->
+<section id="servicios">
+  <div class="container">
+    <span class="section-label">Servicios</span>
+    <div class="section-divider"></div>
+    <h2 class="section-title">Soluciones submarinas para la industria acuícola</h2>
+    <p class="section-sub">Entregamos servicios ROV especializados para mantener la integridad operacional de los centros de cultivo.</p>
+    <div class="services-grid">
+
+      <div class="service-card">
+        <div class="service-icon">🔍</div>
+        <h3>Inspección de Redes</h3>
+        <p>Realizamos inspecciones visuales submarinas mediante vehículos ROV para verificar el estado estructural de las redes de cultivo.</p>
+        <ul class="service-bullets">
+          <li>Roturas y desgastes</li>
+          <li>Deformaciones estructurales</li>
+          <li>Acumulación de fouling</li>
+          <li>Riesgos potenciales de escape</li>
+        </ul>
+      </div>
+
+      <div class="service-card">
+        <div class="service-icon">🪡</div>
+        <h3>Costura de Redes con ROV</h3>
+        <p>Ejecutamos reparaciones submarinas mediante sistemas especializados instalados en nuestros ROV.</p>
+        <ul class="service-bullets">
+          <li>Reparación sin extracción completa</li>
+          <li>Reducción de tiempos de respuesta</li>
+          <li>Menor costo operacional</li>
+          <li>Mantención de la seguridad estructural</li>
+        </ul>
+      </div>
+
+      <div class="service-card">
+        <div class="service-icon">✂️</div>
+        <h3>Corte de Tensores con ROV</h3>
+        <p>Realizamos corte controlado de tensores y elementos submarinos utilizando herramientas adaptadas para operación remota.</p>
+        <ul class="service-bullets">
+          <li>Intervenciones seguras</li>
+          <li>Eliminación de elementos dañados</li>
+          <li>Apoyo a maniobras de mantención</li>
+          <li>Reducción de riesgos para el personal</li>
+        </ul>
+      </div>
+
+      <div class="service-card">
+        <div class="service-icon">🐟</div>
+        <h3>Extracción de Mortalidad</h3>
+        <p>Operamos equipos especializados para la recuperación eficiente de mortalidad desde los centros de cultivo.</p>
+        <ul class="service-bullets">
+          <li>Mayor control sanitario</li>
+          <li>Menor tiempo de permanencia</li>
+          <li>Apoyo a protocolos internos</li>
+          <li>Operaciones continuas y seguras</li>
+        </ul>
+      </div>
+
+      <div class="service-card">
+        <div class="service-icon">🔦</div>
+        <h3>Balizado y Recuperación</h3>
+        <p>Realizamos búsqueda, localización y recuperación de elementos perdidos o sumergidos en fondos marinos.</p>
+        <ul class="service-bullets">
+          <li>Localización de elementos perdidos</li>
+          <li>Instalación de sistemas de balizamiento</li>
+          <li>Identificación de estructuras submarinas</li>
+          <li>Recuperación de equipos y herramientas</li>
+        </ul>
+      </div>
+
+      <div class="service-card">
+        <div class="service-icon">⚙️</div>
+        <h3>Apoyo en Alimentación y Oxigenación</h3>
+        <p>Prestamos apoyo operacional en sistemas críticos de producción minimizando tiempos de detención.</p>
+        <ul class="service-bullets">
+          <li>Líneas de alimentación</li>
+          <li>Sistemas de oxigenación</li>
+          <li>Verificaciones submarinas</li>
+          <li>Diagnóstico visual de componentes</li>
+        </ul>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ===== TECNOLOGÍA ===== -->
+<section id="tecnologia">
+  <div class="container">
+    <span class="section-label">Tecnología y equipamiento</span>
+    <div class="section-divider"></div>
+    <h2 class="section-title">Flota ROV y capacidades propias</h2>
+    <p class="section-sub">Contamos con distintas plataformas ROV para adaptarnos a cada necesidad operacional.</p>
+    <div class="tech-grid">
+      <div class="tech-col">
+        <h3>🤖 Nuestra flota ROV</h3>
+        <div class="rov-cards">
+          <div class="rov-card">
+            <div class="rov-img">
+              <img src="foto-dtg3.jpg" alt="Deep Trekker DTG3" onerror="this.style.display='none';this.parentElement.textContent='🤖'" />
+            </div>
+            <div class="rov-info">
+              <h4>Deep Trekker DTG3</h4>
+              <p>ROV principal de inspección. Construido para resistir las duras condiciones del océano con materiales resistentes y propulsor de acoplamiento magnético.</p>
+            </div>
+          </div>
+          <div class="rov-card">
+            <div class="rov-img">
+              <img src="foto-dtg2.jpg" alt="Deep Trekker DTG2" onerror="this.style.display='none';this.parentElement.textContent='🐠'" />
+            </div>
+            <div class="rov-info">
+              <h4>DTG2 Mortalidad</h4>
+              <p>ROV especializado en extracción de mortalidad desde los centros de cultivo, con sistema de succión y recolección.</p>
+            </div>
+          </div>
+          <div class="rov-card">
+            <div class="rov-img">
+              <img src="foto-fifish.jpg" alt="FIFISH E-GO ROV" onerror="this.style.display='none';this.parentElement.textContent='🌊'" />
+            </div>
+            <div class="rov-info">
+              <h4>FIFISH E-GO</h4>
+              <p>ROV polivalente con movimiento OMNI en todas las direcciones y sistema de extensión de montaje para accesorios extra.</p>
+            </div>
+          </div>
+        </div>
+        <div class="tech-quote">
+          "La diversidad de equipos nos permite responder eficientemente a distintos escenarios de trabajo"
+        </div>
+      </div>
+
+      <div class="tech-col">
+        <h3>🛠 Capacidades propias</h3>
+        <div class="tech-feature">
+          <h4><span>⚙️</span> Taller propio y fabricación 3D</h4>
+          <p>Contamos con taller propio para mantención y reparación de equipos. Incorporamos tecnologías de fabricación mediante impresión 3D para producir componentes y soluciones rápidas cuando la operación lo requiere.</p>
+          <ul>
+            <li>Reducir tiempos de espera</li>
+            <li>Minimizar detenciones</li>
+            <li>Mantener disponibilidad operacional</li>
+            <li>Adaptación rápida a contingencias</li>
+          </ul>
+        </div>
+        <div class="tech-feature">
+          <h4><span>📱</span> Transformación Digital — GL App</h4>
+          <p>GL Robótica Submarina cuenta con una aplicación propia para computadores y dispositivos móviles que permite gestionar y monitorear en tiempo real todas las operaciones de la empresa.</p>
+          <img src="foto-app.jpg" alt="GL App - gestión operacional" style="width:100%;border-radius:10px;margin:1rem 0 0.5rem;object-fit:cover;max-height:220px;" />
+          <ul>
+            <li>Estado de equipos ROV en tiempo real</li>
+            <li>Control de herramientas e insumos críticos</li>
+            <li>Gestión de centros y despachos</li>
+            <li>Bitácoras operacionales digitales</li>
+            <li>Entregas de turno y personal operativo</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== EQUIPO ===== -->
+<section id="equipo">
+  <div class="container">
+    <span class="section-label">Nuestro equipo</span>
+    <div class="section-divider"></div>
+    <div class="equipo-grid">
+      <div class="equipo-text">
+        <h2 class="section-title">Las personas son nuestro activo más importante</h2>
+        <p>
+          Creemos firmemente que las personas son el activo más importante de cualquier organización.
+          Seleccionamos a nuestros operadores no solo por sus capacidades técnicas, sino también por
+          sus valores personales y profesionales.
+        </p>
+        <p>
+          Estamos convencidos de que la voluntad, actitud y compromiso de nuestros trabajadores
+          son fundamentales para entregar un servicio de excelencia.
+        </p>
+        <div class="values-grid">
+          <div class="value-item"><div class="value-icon">📚</div><span>Aprendizaje continuo</span></div>
+          <div class="value-item"><div class="value-icon">🚀</div><span>Desarrollo profesional</span></div>
+          <div class="value-item"><div class="value-icon">🎯</div><span>Responsabilidad</span></div>
+          <div class="value-item"><div class="value-icon">💪</div><span>Compromiso</span></div>
+          <div class="value-item"><div class="value-icon">🤝</div><span>Trabajo en equipo</span></div>
+          <div class="value-item"><div class="value-icon">⚡</div><span>Mejora constante</span></div>
+        </div>
+      </div>
+      <div class="equipo-visual">
+        <img src="foto-equipo.jpg" alt="Equipo GL Robótica en terreno" style="width:100%;height:360px;object-fit:cover;border-radius:16px;" />
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== COMPROMISO REGIÓN ===== -->
+<section id="region">
+  <div class="container">
+    <span class="section-label">Compromiso regional</span>
+    <div class="section-divider"></div>
+    <div class="region-grid">
+      <div class="region-text">
+        <h2 class="section-title">Comprometidos con la Región de Aysén</h2>
+        <p style="color:var(--gray); margin-bottom:1.5rem;">Nuestro compromiso con la Región de Aysén es parte fundamental de nuestra identidad.</p>
+        <div class="big-stat">90%</div>
+        <div class="big-label">de nuestros pilotos pertenece a la Región de Aysén</div>
+        <ul class="region-bullets">
+          <li>Generamos empleo local de calidad</li>
+          <li>Impulsamos el desarrollo técnico regional</li>
+          <li>Promovemos oportunidades de crecimiento para nuevos profesionales</li>
+          <li>Capacitamos y certificamos a operadores de la región</li>
+        </ul>
+      </div>
+      <div class="news-card">
+        <div class="news-label">En los medios</div>
+        <div class="news-img" style="padding:0;overflow:hidden;">
+          <img src="foto-exposicion.jpg" alt="GL Robótica en exposición regional" style="width:100%;height:180px;object-fit:cover;" />
+        </div>
+        <div class="news-body">
+          <h4>Operadores robóticos se certifican como mecánico en mantención de equipos ROV</h4>
+          <p>Pilotos de GL Robótica Submarina obtienen certificación técnica, impulsando el desarrollo profesional en la industria acuícola de Aysén.</p>
+          <p class="news-source">El Divisadero · Región de Aysén</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== CLIENTES ===== -->
+<section id="clientes">
+  <div class="container">
+    <div class="clientes-inner">
+      <span class="section-label">Nuestros clientes</span>
+      <div class="section-divider" style="margin: 0.75rem auto 2rem;"></div>
+      <h2 class="section-title">Empresas que han confiado en nosotros</h2>
+      <p class="section-sub" style="margin: 0.5rem auto 0; text-align:center;">
+        Durante nuestra trayectoria hemos prestado servicios a importantes compañías del sector acuícola.
+      </p>
+      <div class="clients-row">
+        <div class="client-badge">Aquachile</div>
+        <div class="client-badge">Cermaq</div>
+        <div class="client-badge">Blumar</div>
+        <div class="client-badge">Granja Marina</div>
+        <div class="client-badge">Aquagestión</div>
+        <div class="client-badge">Litoral Austral</div>
+        <div class="client-badge">Laboratorios INFAs</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== POR QUÉ NOSOTROS ===== -->
+<section id="porque">
+  <div class="container">
+    <span class="section-label">Nuestros diferenciadores</span>
+    <div class="section-divider"></div>
+    <div class="porque-intro">
+      <h2 class="section-title">¿Por qué GL Robótica Submarina?</h2>
+      <p style="color:var(--gray);">8 razones por las que las principales empresas salmoneras del país eligen nuestros servicios.</p>
+    </div>
+    <div class="diferenciadores">
+      <div class="dif-card">
+        <div class="dif-num">01</div>
+        <h4>Más de 8 años de experiencia operacional</h4>
+      </div>
+      <div class="dif-card">
+        <div class="dif-num">02</div>
+        <h4>Base estratégica en Puerto Chacabuco</h4>
+      </div>
+      <div class="dif-card">
+        <div class="dif-num">03</div>
+        <h4>Tecnología ROV especializada y diversa</h4>
+      </div>
+      <div class="dif-card">
+        <div class="dif-num">04</div>
+        <h4>Taller propio y fabricación rápida 3D</h4>
+      </div>
+      <div class="dif-card">
+        <div class="dif-num">05</div>
+        <h4>Aplicación digital de gestión y control</h4>
+      </div>
+      <div class="dif-card">
+        <div class="dif-num">06</div>
+        <h4>Respuesta eficiente ante contingencias</h4>
+      </div>
+      <div class="dif-card">
+        <div class="dif-num">07</div>
+        <h4>Personal altamente comprometido</h4>
+      </div>
+      <div class="dif-card">
+        <div class="dif-num">08</div>
+        <h4>Fuerte vínculo con la Región de Aysén</h4>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== GALERÍA ===== -->
+<section id="galeria">
+  <div class="container">
+    <span class="section-label">Proyectos</span>
+    <div class="section-divider"></div>
+    <h2 class="section-title">Nuestro trabajo en terreno</h2>
+    <p class="section-sub">Operaciones reales en los centros de cultivo de la Patagonia.</p>
+    <div class="galeria-filters">
+      <button class="filter-btn active">Todos</button>
+      <button class="filter-btn">Inspección</button>
+      <button class="filter-btn">Reparación</button>
+      <button class="filter-btn">Extracción</button>
+      <button class="filter-btn">Equipos</button>
+    </div>
+    <div class="gallery-grid">
+      <div class="gallery-item large">
+        <img src="foto-inspeccion-rov.jpg" alt="Inspección ROV submarina" />
+        <div class="gallery-label">Salmones bajo el agua<br /><small>Inspección ROV — 19m prof.</small></div>
+      </div>
+      <div class="gallery-item">
+        <img src="foto-red-costura.jpg" alt="Costura redes submarina" />
+      </div>
+      <div class="gallery-item">
+        <img src="foto-red-inspeccion.jpg" alt="Inspección red submarina" />
+      </div>
+      <div class="gallery-item">
+        <img src="foto-mortalidad.jpg" alt="Extracción de mortalidad" />
+      </div>
+      <div class="gallery-item">
+        <img src="foto-barcaza.jpg" alt="Operaciones en fiordos" />
+      </div>
+      <div class="gallery-item large">
+        <img src="foto-centro-cultivo.jpg" alt="Centro de cultivo Aysén" />
+        <div class="gallery-label">Centro de cultivo<br /><small>Vista aérea Patagonia</small></div>
+      </div>
+      <div class="gallery-item">
+        <img src="foto-equipo.jpg" alt="Equipo GL Robótica en terreno" />
+      </div>
+      <div class="gallery-item">
+        <img src="foto-exposicion.jpg" alt="GL Robótica en exposición" />
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== CONTACTO ===== -->
+<section id="contacto">
+  <div class="container">
+    <span class="section-label">Contacto</span>
+    <div class="section-divider"></div>
+    <div class="contacto-grid">
+      <div>
+        <h2 class="section-title">Solicita una cotización</h2>
+        <p style="color:var(--gray); margin-bottom: 2rem;">Cuéntanos sobre tu centro de cultivo y el servicio que necesitas. Te respondemos a la brevedad.</p>
+        <form>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Nombre</label>
+              <input type="text" placeholder="Tu nombre" />
+            </div>
+            <div class="form-group">
+              <label>Empresa</label>
+              <input type="text" placeholder="Nombre de la empresa" />
+            </div>
+          </div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Teléfono</label>
+              <input type="tel" placeholder="+56 9 XXXX XXXX" />
+            </div>
+            <div class="form-group">
+              <label>Servicio de interés</label>
+              <select>
+                <option value="">Selecciona un servicio</option>
+                <option>Inspección de redes</option>
+                <option>Costura de redes con ROV</option>
+                <option>Corte de tensores</option>
+                <option>Extracción de mortalidad</option>
+                <option>Balizado y recuperación</option>
+                <option>Apoyo en alimentación/oxigenación</option>
+                <option>Otro / Consulta general</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Mensaje</label>
+            <textarea placeholder="Describe brevemente tu requerimiento, ubicación del centro de cultivo y fecha estimada de operación..."></textarea>
+          </div>
+          <button type="submit" class="btn-submit">Enviar solicitud →</button>
+        </form>
+      </div>
+
+      <div class="contact-info">
+        <p class="tagline">
+          "Tecnología, experiencia y compromiso al servicio de la acuicultura."
+        </p>
+
+        <div class="contact-item">
+          <div class="contact-icon">📍</div>
+          <div>
+            <h5>Ubicación</h5>
+            <p>Ensenada Alta S/N<br />Puerto Chacabuco, Región de Aysén</p>
+          </div>
+        </div>
+
+        <div class="contact-item">
+          <div class="contact-icon">👤</div>
+          <div>
+            <h5>Contacto comercial</h5>
+            <p>Mery Leal</p>
+          </div>
+        </div>
+
+        <div class="contact-item">
+          <div class="contact-icon">📞</div>
+          <div>
+            <h5>Teléfono</h5>
+            <a href="tel:+56978281635">+56 9 7828 1635</a>
+          </div>
+        </div>
+
+        <div class="contact-item">
+          <div class="contact-icon">✉️</div>
+          <div>
+            <h5>Correo electrónico</h5>
+            <a href="mailto:mleal@glrobotica.cl">mleal@glrobotica.cl</a>
+          </div>
+        </div>
+
+        <div>
+          <h5 style="font-size:0.78rem; font-weight:700; color:var(--orange); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:0.75rem;">Redes sociales</h5>
+          <div class="social-row">
+            <a href="#" class="social-btn">📸 Instagram</a>
+            <a href="https://www.glrobotica.cl" class="social-btn">🌐 Web</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== FOOTER ===== -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <img src="logo.jpeg" alt="GL Robótica Submarina" />
+      <div>
+        <div class="footer-brand-text">GL Robótica Submarina</div>
+        <div class="footer-brand-sub">Puerto Chacabuco · Región de Aysén · Desde 2019</div>
+      </div>
+    </div>
+    <ul class="footer-links">
+      <li><a href="#nosotros">Nosotros</a></li>
+      <li><a href="#servicios">Servicios</a></li>
+      <li><a href="#tecnologia">Tecnología</a></li>
+      <li><a href="#equipo">Equipo</a></li>
+      <li><a href="#contacto">Contacto</a></li>
+    </ul>
+    <div class="footer-copy">© 2026 GL Robótica Submarina. Todos los derechos reservados.</div>
+  </div>
+</footer>
+
+<script>
+  // Navbar scroll effect
+  const navbar = document.getElementById('navbar');
+  window.addEventListener('scroll', () => {
+    navbar.classList.toggle('scrolled', window.scrollY > 60);
+  });
+
+  // Gallery filter buttons
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    });
+  });
+</script>
+</body>
+</html>
