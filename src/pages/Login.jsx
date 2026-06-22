@@ -23,8 +23,7 @@ export default function Login() {
     setLoading(true); setError(null)
     const { error } = await signIn(email, password)
     if (error) {
-      // Mensaje genérico para todos los errores de credenciales — evita enumeración de usuarios
-      setError('Correo o clave incorrectos. Verifica tus datos e intenta de nuevo.')
+      setError((error.code ?? error.message ?? 'error desconocido'))
     }
     setLoading(false)
   }
