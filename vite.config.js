@@ -40,15 +40,6 @@ export default defineConfig({
             },
           },
           {
-            urlPattern: /^https:\/\/identitytoolkit\.googleapis\.com\//,
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'firebase-auth-cache',
-              networkTimeoutSeconds: 8,
-              cacheableResponse: { statuses: [0, 200] },
-            },
-          },
-          {
             urlPattern: /^https:\/\/fonts\.(googleapis|gstatic)\.com\//,
             handler: 'CacheFirst',
             options: {
