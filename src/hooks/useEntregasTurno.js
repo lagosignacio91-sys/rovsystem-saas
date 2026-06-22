@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { db, storage, auth } from '../lib/firebase'
+import { logError } from '../lib/logger'
 import {
   collection, addDoc, deleteDoc, doc, onSnapshot, orderBy, query,
   getDoc, setDoc, updateDoc,
@@ -70,7 +71,7 @@ export function useEntregasTurno(centroId) {
       )
       return docRef.id
     } catch (e) {
-      console.error('Error creando entrega:', e.code, e.message)
+      logError('useEntregasTurno/crear', e)
       throw e
     }
   }

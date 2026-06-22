@@ -1,3 +1,4 @@
+import { logError } from '../../lib/logger'
 import { useState, useEffect, useRef } from 'react'
 import { X, Camera, XCircle } from 'lucide-react'
 import { t } from '../../theme/tokens'
@@ -71,7 +72,7 @@ export default function ModalDespacho({ isOpen, onClose, solicitud, onDespachar 
       await onDespachar(solicitud.id, itemsDespachados, comentario, urls, transportista)
       onClose()
     } catch (e) {
-      console.error('Error despachando:', e)
+      logError('ModalDespacho/despachar', e)
       alert('Error al despachar: ' + (e?.message ?? 'intenta de nuevo'))
     } finally {
       setCargando(false)

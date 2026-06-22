@@ -1,3 +1,4 @@
+import { logError } from '../../lib/logger'
 import { useState, useEffect } from 'react'
 import { X } from 'lucide-react'
 import { t } from '../../theme/tokens'
@@ -23,7 +24,7 @@ export default function ModalCambiarEstado({ isOpen, onClose, equipo, onCambiar 
       await onCambiar(equipo.modelo, equipo.serial, nuevoEstado, irAConFalla ? detallesFalla.trim() : null)
       onClose()
     } catch (e) {
-      console.error('Error:', e)
+      logError('ModalCambiarEstado', e)
       alert('Error al cambiar estado')
     } finally {
       setCargando(false)

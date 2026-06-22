@@ -1,3 +1,4 @@
+import { logError } from '../../lib/logger'
 import { useState, useEffect } from 'react'
 import { X } from 'lucide-react'
 import { t } from '../../theme/tokens'
@@ -23,7 +24,7 @@ export default function ModalAgregarRepuesto({ isOpen, onClose, onAgregar, model
       await onAgregar(nombre.trim(), modeloEquipo, cant)
       onClose()
     } catch (e) {
-      console.error('Error:', e)
+      logError('ModalAgregarRepuesto', e)
       alert('Error al agregar repuesto')
     } finally {
       setCargando(false)

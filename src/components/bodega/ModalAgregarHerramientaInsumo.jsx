@@ -1,3 +1,4 @@
+import { logError } from '../../lib/logger'
 import { useState, useEffect } from 'react'
 import { X } from 'lucide-react'
 import { t } from '../../theme/tokens'
@@ -24,7 +25,7 @@ export default function ModalAgregarHerramientaInsumo({ isOpen, onClose, onAgreg
       await onAgregar(nombre.trim(), cant, categoria, estado)
       onClose()
     } catch (e) {
-      console.error('Error:', e)
+      logError('ModalAgregarHI', e)
       alert('Error al agregar item')
     } finally {
       setCargando(false)

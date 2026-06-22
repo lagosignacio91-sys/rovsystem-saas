@@ -1,3 +1,4 @@
+import { logError } from '../../lib/logger'
 import { useState } from 'react'
 import { X, ChevronLeft, ChevronRight, Check, Loader2, Download, Share2 } from 'lucide-react'
 import { useAppConfig } from '../../hooks/useAppConfig'
@@ -129,7 +130,7 @@ export default function ModalEntregaTurno({ centro, itemsList, onCerrar, onGuard
 
       setSaved({ ...entregaData, inspeccion: inspFoto, inspeccionBackup: inspBackupFoto })
     } catch (e) {
-      console.error('Error guardando entrega:', e)
+      logError('ModalEntregaTurno/guardar', e)
       if (e.message === '__timeout__') {
         setError('No se pudo guardar (tiempo de espera agotado). Verifica tu conexión.')
       } else {

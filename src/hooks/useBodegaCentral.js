@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { db } from '../lib/firebase'
+import { logError } from '../lib/logger'
 import { collection, onSnapshot, updateDoc, deleteDoc, doc, addDoc, runTransaction, increment } from 'firebase/firestore'
 
 export function useBodegaCentral() {
@@ -46,7 +47,7 @@ export function useBodegaCentral() {
         })
       })
     } catch (e) {
-      console.error('Error agregando equipo:', e)
+      logError('bodega/agregarEquipo', e)
       throw e
     } finally {
       setCargando(false)
@@ -79,7 +80,7 @@ export function useBodegaCentral() {
         })
       })
     } catch (e) {
-      console.error('Error cambiando estado:', e)
+      logError('bodega/cambiarEstado', e)
       throw e
     } finally {
       setCargando(false)
@@ -93,7 +94,7 @@ export function useBodegaCentral() {
       await addDoc(collection(db, 'bodegaCentral', 'almacen', 'repuestos'),
         { nombre, modeloEquipo, cantidad, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() })
     } catch (e) {
-      console.error('Error agregando repuesto:', e)
+      logError('bodega/agregarRepuesto', e)
       throw e
     } finally {
       setCargando(false)
@@ -107,7 +108,7 @@ export function useBodegaCentral() {
         updatedAt: new Date().toISOString(),
       })
     } catch (e) {
-      console.error('Error editando repuesto:', e)
+      logError('bodega/editarRepuesto', e)
     }
   }
 
@@ -118,7 +119,7 @@ export function useBodegaCentral() {
       await addDoc(collection(db, 'bodegaCentral', 'almacen', 'herramientasInsumos'),
         { nombre, cantidad, categoria, estado, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() })
     } catch (e) {
-      console.error('Error agregando herramienta/insumo:', e)
+      logError('bodega/agregarHI', e)
       throw e
     } finally {
       setCargando(false)
@@ -131,7 +132,7 @@ export function useBodegaCentral() {
       if (newEstado !== null) data.estado = newEstado
       await updateDoc(doc(db, 'bodegaCentral', 'almacen', 'herramientasInsumos', itemId), data)
     } catch (e) {
-      console.error('Error editando herramienta/insumo:', e)
+      logError('bodega/editarHI', e)
     }
   }
 
@@ -158,7 +159,7 @@ export function useBodegaCentral() {
         }
       })
     } catch (e) {
-      console.error('Error eliminando unidad:', e)
+      logError('bodega/eliminarUnidad', e)
       throw e
     } finally {
       setCargando(false)
@@ -169,7 +170,7 @@ export function useBodegaCentral() {
     try {
       await deleteDoc(doc(db, 'bodegaCentral', 'almacen', 'repuestos', repuestoId))
     } catch (e) {
-      console.error('Error eliminando repuesto:', e)
+      logError('bodega/eliminarRepuesto', e)
       throw e
     }
   }
@@ -178,7 +179,7 @@ export function useBodegaCentral() {
     try {
       await deleteDoc(doc(db, 'bodegaCentral', 'almacen', 'herramientasInsumos', itemId))
     } catch (e) {
-      console.error('Error eliminando herramienta/insumo:', e)
+      logError('bodega/eliminarHI', e)
       throw e
     }
   }

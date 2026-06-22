@@ -1,3 +1,4 @@
+import { logError } from '../../lib/logger'
 import { useState, useEffect } from 'react'
 import { X } from 'lucide-react'
 import { t } from '../../theme/tokens'
@@ -29,7 +30,7 @@ export default function ModalAgregarEquipo({ isOpen, onClose, onAgregar, modelos
       await onAgregar(modelo, serial.trim(), estado, detallesFalla.trim() || null)
       onClose()
     } catch (e) {
-      console.error('Error:', e)
+      logError('ModalAgregarEquipo', e)
       alert('Error al agregar equipo')
     } finally {
       setCargando(false)

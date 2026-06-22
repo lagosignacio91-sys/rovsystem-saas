@@ -1,0 +1,35 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "despachos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "creadoEn", "order": "DESCENDING" },
+        { "fieldPath": "estado",   "order": "ASCENDING"  }
+      ]
+    },
+    {
+      "collectionGroup": "despachos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "centroId", "order": "ASCENDING"  },
+        { "fieldPath": "estado",   "order": "ASCENDING"  }
+      ]
+    },
+    {
+      "collectionGroup": "hxDocs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "creadoEn", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "hxPagos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "mes",      "order": "DESCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}
