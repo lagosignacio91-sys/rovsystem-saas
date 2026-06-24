@@ -158,9 +158,22 @@ export default function MainLayout() {
           </div>
         )}
 
-        <main className="gl-content">
-          <Outlet context={{ ...centrosState, role, uid: user?.uid, teamId, empresaActiva }} />
-        </main>
+        {empresaActiva?.estado === 'bloqueado' ? (
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16, padding: 32 }}>
+            <div style={{ fontSize: 48 }}>🔒</div>
+            <h2 style={{ color: '#f1f5f9', margin: 0 }}>Cuenta suspendida</h2>
+            <p style={{ color: '#64748b', textAlign: 'center', maxWidth: 360, margin: 0 }}>
+              Tu acceso ha sido suspendido por falta de pago. Contacta a HyperionX para regularizar tu cuenta.
+            </p>
+            <a href="mailto:contacto@hyperionx.tech" style={{ color: '#cc1020', fontSize: 14 }}>
+              contacto@hyperionx.tech
+            </a>
+          </div>
+        ) : (
+          <main className="gl-content">
+            <Outlet context={{ ...centrosState, role, uid: user?.uid, teamId, empresaActiva }} />
+          </main>
+        )}
 
         {/* Bottom nav móvil */}
         <nav className="gl-bottomnav">
