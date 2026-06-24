@@ -23,7 +23,7 @@ export default function Login() {
     setLoading(true); setError(null)
     const { error } = await signIn(email, password)
     if (error) {
-      setError((error.code ?? error.message ?? 'error desconocido'))
+      setError('Correo o clave incorrectos. Verifica tus datos e intenta de nuevo.')
     }
     setLoading(false)
   }
