@@ -34,45 +34,39 @@ export default function Login() {
     <div style={s.wrapper}>
       <div style={{ position: 'absolute', top: 16, right: 16, zIndex: 2 }}><ThemeToggle /></div>
 
-      <div className="gl-glass" style={s.card}>
+      <div style={s.form}>
         <div style={s.head}>
           <div style={s.logoWrap}>
             <img src="/hyperionx-symbol.png" alt="HyperionX" style={s.logo}
               onError={(e) => { e.currentTarget.src = '/logo.png' }} />
           </div>
-          <h1 className="gl-display" style={s.title}>RovSystem</h1>
-          <p className="gl-label" style={s.sub}>Licenciado para {cliente}</p>
+          <h1 style={s.title}>ROVsystem <span style={s.titleSub}>/ HyperionX</span></h1>
+          <p style={s.sub}>Licenciado para GL Robótica</p>
         </div>
 
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <div>
-            <label style={s.label}>Correo electrónico</label>
-            <div style={s.inputBox(false)}>
-              <Mail size={16} color={t.textMuted} />
-              <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="usuario@empresa.cl" required style={s.input} />
-            </div>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={s.inputBox(false)}>
+            <Mail size={16} color="rgba(255,255,255,0.45)" />
+            <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Correo electrónico" required style={s.input} />
           </div>
 
-          <div>
-            <label style={s.label}>Contraseña</label>
-            <div style={s.inputBox(passError)}>
-              <Lock size={16} color={passError ? t.fault : t.textMuted} />
-              <input type={verPass ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" required style={s.input} />
-              <button type="button" onClick={() => setVerPass(v => !v)} className="gl-icon-btn" style={{ padding: 2 }} aria-label={verPass ? 'Ocultar' : 'Mostrar'}>
-                {verPass ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
-            </div>
+          <div style={s.inputBox(passError)}>
+            <Lock size={16} color={passError ? '#ff6b6b' : 'rgba(255,255,255,0.45)'} />
+            <input type={verPass ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} placeholder="Contraseña" required style={s.input} />
+            <button type="button" onClick={() => setVerPass(v => !v)} style={s.eyeBtn} aria-label={verPass ? 'Ocultar' : 'Mostrar'}>
+              {verPass ? <EyeOff size={16} color="rgba(255,255,255,0.45)" /> : <Eye size={16} color="rgba(255,255,255,0.45)" />}
+            </button>
           </div>
 
           {error && (
             <div style={s.errorBox}>
-              <AlertCircle size={16} color={t.fault} style={{ flexShrink: 0 }} />
-              <span style={{ color: t.fault, fontSize: t.textXs }}>{error}</span>
+              <AlertCircle size={14} color="#ff6b6b" style={{ flexShrink: 0 }} />
+              <span style={{ color: '#ff6b6b', fontSize: 12 }}>{error}</span>
             </div>
           )}
 
-          <button type="submit" disabled={loading} className="gl-btn gl-btn--primary gl-btn--lg" style={{ marginTop: 4 }}>
-            {loading ? 'Ingresando...' : <>Ingresar <ArrowRight size={16} /></>}
+          <button type="submit" disabled={loading} style={s.submitBtn}>
+            {loading ? 'Ingresando...' : <>Ingresar <ArrowRight size={15} /></>}
           </button>
         </form>
 
@@ -81,12 +75,12 @@ export default function Login() {
           <div style={s.installWrap}>
             {instalable && (
               <button type="button" onClick={instalar} style={s.installBtn}>
-                <Download size={16} /> Instalar app en este equipo
+                <Download size={15} /> Instalar app en este equipo
               </button>
             )}
             {!instalable && esIOS && (
               <button type="button" onClick={() => setVerAyudaIOS(true)} style={s.installBtn}>
-                <Download size={16} /> Instalar app en el iPhone
+                <Download size={15} /> Instalar app en el iPhone
               </button>
             )}
             <p style={s.installHint}>Quedará como una app, sin abrir el navegador.</p>
@@ -95,7 +89,7 @@ export default function Login() {
 
         {instalada && (
           <div style={s.instaladaBox}>
-            <CheckCircle2 size={15} color={t.ok} /> App instalada en este equipo
+            <CheckCircle2 size={14} color="rgba(255,255,255,0.5)" /> App instalada en este equipo
           </div>
         )}
 
@@ -129,34 +123,54 @@ const s = {
   wrapper: {
     minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
     position: 'relative', overflow: 'hidden', padding: 20,
-    background: `linear-gradient(rgba(3,7,15,0.45), rgba(3,7,15,0.68)), url('/fifish-ego.jpg') center/cover no-repeat, ${t.bgBase}`,
+    background: `url('/fifish-ego.jpg') center/cover no-repeat`,
   },
-  card:    {
-    position: 'relative', zIndex: 1, borderRadius: t.radiusXl, padding: 32, width: '100%', maxWidth: 380,
-    boxShadow: t.shadowLg,
-    // Login translúcido: se ve el E-Go de fondo a través del vidrio esmerilado.
-    background: 'rgba(6,13,26,0.40)',
-    backdropFilter: 'blur(20px) saturate(1.4)',
-    WebkitBackdropFilter: 'blur(20px) saturate(1.4)',
-    border: '1px solid rgba(255,255,255,0.12)',
+  form: {
+    position: 'relative', zIndex: 1, width: '100%', maxWidth: 340,
   },
-  head:    { textAlign: 'center', marginBottom: 24 },
-  logoWrap:{ width: 128, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' },
-  logo:    { width: '100%', height: 'auto', objectFit: 'contain', display: 'block', filter: 'drop-shadow(0 4px 14px rgba(0,0,0,0.55))' },
-  title:   { color: t.textPrimary, fontSize: 30, fontWeight: 700, margin: '0 0 6px' },
-  sub:     { color: t.accentSoft, margin: 0 },
-  label:   { color: t.textSecondary, fontSize: t.textXs, fontWeight: 500, display: 'block', marginBottom: 5 },
-  inputBox: (err) => ({ display: 'flex', alignItems: 'center', gap: 8, background: t.bgInput, border: `1px solid ${err ? t.fault : t.border}`, borderRadius: t.radiusMd, padding: '10px 12px', boxShadow: err ? `0 0 0 3px ${t.faultTint}` : 'none' }),
-  input:   { flex: 1, background: 'transparent', border: 'none', outline: 'none', color: t.textPrimary, fontSize: t.textBase, minWidth: 0 },
-  errorBox:{ display: 'flex', alignItems: 'center', gap: 7, background: t.faultTint, border: `1px solid ${t.fault}`, borderRadius: t.radiusMd, padding: '8px 11px' },
-  installWrap: { marginTop: 18, paddingTop: 16, borderTop: `1px solid ${t.border}`, textAlign: 'center' },
-  installBtn: { width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, background: t.brandTint, border: `1px solid ${t.brandSoft}`, color: t.brandSoft, borderRadius: t.radiusMd, padding: '11px', fontSize: t.textSm, fontWeight: 600, cursor: 'pointer' },
-  installHint: { fontSize: t.textXs, color: t.textMuted, margin: '8px 0 0' },
-  instaladaBox: { marginTop: 18, paddingTop: 16, borderTop: `1px solid ${t.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, fontSize: t.textXs, color: t.textMuted },
+  head:    { textAlign: 'center', marginBottom: 28 },
+  logoWrap:{ width: 96, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' },
+  logo:    {
+    width: '100%', height: 'auto', objectFit: 'contain', display: 'block',
+    filter: [
+      'drop-shadow(0 1px 0px rgba(255,255,255,0.25))',
+      'drop-shadow(0 4px 8px rgba(0,0,0,0.8))',
+      'drop-shadow(0 12px 32px rgba(0,0,0,0.6))',
+      'drop-shadow(0 0 24px rgba(180,30,30,0.35))',
+    ].join(' '),
+    transform: 'perspective(400px) rotateX(6deg) scale(1.05)',
+    transformOrigin: 'center bottom',
+  },
+  title:   { color: 'rgba(255,255,255,0.55)', fontSize: 32, fontWeight: 700, margin: '0 0 4px', textShadow: '0 2px 12px rgba(0,0,0,0.6)', letterSpacing: '-0.5px' },
+  titleSub:{ color: 'rgba(255,255,255,0.55)', fontWeight: 400, fontSize: 22 },
+  sub:     { color: '#000', margin: 0, fontSize: 13, fontWeight: 600 },
+  inputBox: (err) => ({
+    display: 'flex', alignItems: 'center', gap: 10,
+    background: 'rgba(0,0,0,0.35)',
+    border: `1px solid ${err ? '#ff6b6b' : 'rgba(255,255,255,0.18)'}`,
+    borderRadius: 10, padding: '12px 14px',
+    backdropFilter: 'blur(8px)',
+    WebkitBackdropFilter: 'blur(8px)',
+    boxShadow: err ? '0 0 0 2px rgba(255,107,107,0.3)' : 'none',
+  }),
+  input:   { flex: 1, background: 'transparent', border: 'none', outline: 'none', color: '#fff', fontSize: 15, minWidth: 0 },
+  eyeBtn:  { background: 'none', border: 'none', cursor: 'pointer', padding: 2, display: 'flex', alignItems: 'center' },
+  errorBox:{ display: 'flex', alignItems: 'center', gap: 7, background: 'rgba(255,107,107,0.15)', border: '1px solid rgba(255,107,107,0.4)', borderRadius: 8, padding: '8px 11px' },
+  submitBtn: {
+    marginTop: 4, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+    background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)',
+    backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
+    color: '#fff', borderRadius: 10, padding: '13px', fontSize: 15, fontWeight: 600, cursor: 'pointer',
+    transition: 'background 0.2s',
+  },
+  installWrap: { marginTop: 20, textAlign: 'center' },
+  installBtn: { width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', color: 'rgba(255,255,255,0.8)', borderRadius: 10, padding: '11px', fontSize: 13, fontWeight: 600, cursor: 'pointer', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' },
+  installHint: { fontSize: 11, color: 'rgba(255,255,255,0.45)', margin: '8px 0 0' },
+  instaladaBox: { marginTop: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, fontSize: 12, color: 'rgba(255,255,255,0.5)' },
   iosOverlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 9200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 },
   iosCard: { background: t.bgElevated, border: `1px solid ${t.border}`, borderRadius: t.radiusLg, width: '100%', maxWidth: 340, padding: 18 },
   iosHead: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
-  iosList:    { margin: 0, paddingLeft: 20, color: t.textSecondary, fontSize: t.textSm, lineHeight: 1.7 },
-  legalLinks: { marginTop: 16, textAlign: 'center', fontSize: 11, color: t.textMuted },
-  legalLink:  { color: t.textMuted, textDecoration: 'underline', textUnderlineOffset: 2 },
+  iosList: { margin: 0, paddingLeft: 20, color: t.textSecondary, fontSize: t.textSm, lineHeight: 1.7 },
+  legalLinks: { marginTop: 18, textAlign: 'center', fontSize: 11, color: '#000' },
+  legalLink:  { color: '#000', textDecoration: 'underline', textUnderlineOffset: 2 },
 }
