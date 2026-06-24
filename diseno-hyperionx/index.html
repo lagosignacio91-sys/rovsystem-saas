@@ -334,6 +334,9 @@
     font-family: 'Barlow Condensed', sans-serif;
     font-size: 20px; font-weight: 700; color: var(--white);
   }
+  .slide-caption-desc {
+    font-size: 12px; color: rgba(232,234,240,0.6); margin-top: 4px; line-height: 1.4; max-width: 460px;
+  }
   .slide-counter {
     font-family: 'Barlow Condensed', sans-serif;
     font-size: 28px; font-weight: 700;
@@ -408,13 +411,19 @@
   }
   .nosotros-visual-bg {
     position:absolute; inset:0;
-    background:#ffffff; border:1px solid var(--border); overflow:hidden;
+    background: #000 url('espacio-ext-2.jpg') center center / cover no-repeat;
+    border:1px solid var(--border); overflow:hidden;
   }
-  .nosotros-logo-big {
+  .nosotros-visual-overlay {
+    position:absolute; inset:0;
+    background: linear-gradient(to bottom, rgba(10,10,15,0.15) 0%, rgba(10,10,15,0.55) 100%);
+  }
+  .nosotros-tag {
     position:relative; z-index:2;
-    width:78%; max-width:360px;
-    object-fit:contain;
-    filter: drop-shadow(0 8px 32px rgba(0,0,0,0.18));
+    font-family:'Barlow Condensed',sans-serif;
+    font-size:11px; font-weight:600; letter-spacing:0.20em;
+    text-transform:uppercase; color:var(--gold);
+    border:1px solid rgba(184,144,14,0.4); padding:8px 20px;
   }
   .nosotros-corner {
     position:absolute; width:24px; height:24px;
@@ -530,7 +539,6 @@
 
     .nosotros-grid { grid-template-columns:1fr; gap:40px; }
     .nosotros-visual { height:220px; }
-    .nosotros-logo-big { width:80px; }
     .stats-row { grid-template-columns:repeat(3,1fr); gap:12px; }
     .stat-num { font-size:28px; }
 
@@ -549,7 +557,7 @@
 <!-- NAVBAR -->
 <nav class="navbar" id="navbar">
   <a href="#inicio" class="navbar-logo">
-    <img src="olimpo-logo.png" alt="HyperionX" />
+    <img src="../../Logos-y-Marca/hyperionx/HyperionX-Logo/hyperionx-logo-128.png" alt="HyperionX" />
     <span class="navbar-logo-text">HYPERIONX</span>
   </a>
   <ul class="navbar-links">
@@ -742,6 +750,7 @@
               <div>
                 <div class="slide-caption-label">RovSystem</div>
                 <div class="slide-caption-title">Mapa de Centros en Tiempo Real</div>
+                <div class="slide-caption-desc">Visualiza todos tus centros en un mapa interactivo con estado actualizado al instante — operativo, sin operador o en alerta.</div>
               </div>
               <div class="slide-counter">01</div>
             </div>
@@ -831,6 +840,7 @@
               <div>
                 <div class="slide-caption-label">RovSystem</div>
                 <div class="slide-caption-title">Panel de Operadores</div>
+                <div class="slide-caption-desc">Administra tu equipo completo: estado, contacto, turno asignado y centro de faena de cada operador ROV en un solo panel.</div>
               </div>
               <div class="slide-counter">02</div>
             </div>
@@ -910,6 +920,7 @@
               <div>
                 <div class="slide-caption-label">RovSystem</div>
                 <div class="slide-caption-title">Bitácoras de Operación</div>
+                <div class="slide-caption-desc">Registro diario de actividad por centro: operador asignado, novedades del turno y acceso directo por WhatsApp para coordinación en terreno.</div>
               </div>
               <div class="slide-counter">03</div>
             </div>
@@ -974,8 +985,185 @@
               <div>
                 <div class="slide-caption-label">RovSystem</div>
                 <div class="slide-caption-title">Bodega Virtual de Equipos</div>
+                <div class="slide-caption-desc">Control de stock de ROVs, repuestos e insumos con estado en tiempo real — operativo, en reparación o fuera de servicio.</div>
               </div>
               <div class="slide-counter">04</div>
+            </div>
+          </div>
+
+
+          <!-- SLIDE 5: TURNOS -->
+          <div class="slide" style="background:#f0f2f5;">
+            <div style="display:flex;width:100%;height:100%;font-family:'Inter',sans-serif;font-size:11px;">
+              <div style="width:200px;flex-shrink:0;background:#fff;border-right:1px solid #e5e7eb;">
+                <div style="padding:14px 16px;border-bottom:1px solid #e5e7eb;">
+                  <div style="font-weight:700;font-size:13px;color:#111;">RovSystem</div>
+                  <div style="font-size:9px;color:#6b7280;">PATAGONIA · CHILE</div>
+                </div>
+                <nav style="padding:8px 0;">
+                  <div style="padding:8px 16px;color:#6b7280;">🗺 Mapa</div>
+                  <div style="padding:8px 16px;color:#6b7280;">⊞ Centros</div>
+                  <div style="padding:8px 16px;color:#6b7280;">📦 Despachos</div>
+                  <div style="padding:8px 16px;color:#6b7280;">👥 Operadores</div>
+                  <div style="padding:8px 16px;color:#6b7280;">📋 Bitácoras</div>
+                  <div style="padding:8px 16px;background:#eff6ff;border-right:2px solid #3b82f6;color:#2563eb;font-weight:600;">🕐 Turnos</div>
+                  <div style="padding:8px 16px;color:#6b7280;">📦 Bodega</div>
+                  <div style="padding:8px 16px;color:#6b7280;">📊 Reportes</div>
+                </nav>
+              </div>
+              <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
+                <div style="background:#fff;border-bottom:1px solid #e5e7eb;padding:8px 14px;display:flex;align-items:center;gap:10px;">
+                  <div style="font-size:13px;font-weight:600;color:#111;">Gestión de Turnos</div>
+                  <div style="border:1.5px solid #3b82f6;border-radius:999px;padding:3px 10px;font-size:10px;color:#3b82f6;font-weight:600;">Semana 25</div>
+                  <div style="border:1px solid #e5e7eb;border-radius:999px;padding:3px 10px;font-size:10px;color:#6b7280;">MarineOps</div>
+                  <div style="border:1px solid #e5e7eb;border-radius:999px;padding:3px 10px;font-size:10px;color:#6b7280;">AquaPro</div>
+                  <div style="margin-left:auto;font-size:10px;color:#6b7280;">Lun 16 – Dom 22 Jun</div>
+                </div>
+                <div style="flex:1;overflow:hidden;padding:10px 12px;">
+                  <!-- Calendar grid -->
+                  <div style="display:grid;grid-template-columns:80px repeat(7,1fr);gap:1px;background:#e5e7eb;border:1px solid #e5e7eb;border-radius:6px;overflow:hidden;font-size:9px;">
+                    <!-- Header -->
+                    <div style="background:#f9fafb;padding:6px;font-weight:600;color:#374151;"></div>
+                    <div style="background:#f9fafb;padding:6px;text-align:center;font-weight:600;color:#374151;">LUN</div>
+                    <div style="background:#f9fafb;padding:6px;text-align:center;font-weight:600;color:#374151;">MAR</div>
+                    <div style="background:#f9fafb;padding:6px;text-align:center;font-weight:600;color:#374151;">MIÉ</div>
+                    <div style="background:#f9fafb;padding:6px;text-align:center;font-weight:600;color:#374151;">JUE</div>
+                    <div style="background:#f9fafb;padding:6px;text-align:center;font-weight:600;color:#374151;">VIE</div>
+                    <div style="background:#f9fafb;padding:6px;text-align:center;font-weight:600;color:#6b7280;">SÁB</div>
+                    <div style="background:#f9fafb;padding:6px;text-align:center;font-weight:600;color:#6b7280;">DOM</div>
+                    <!-- Row 1 -->
+                    <div style="background:#fff;padding:6px;color:#374151;font-weight:600;">Diego M.</div>
+                    <div style="background:#dcfce7;padding:6px;text-align:center;color:#16a34a;font-weight:600;">● Faena</div>
+                    <div style="background:#dcfce7;padding:6px;text-align:center;color:#16a34a;font-weight:600;">● Faena</div>
+                    <div style="background:#dcfce7;padding:6px;text-align:center;color:#16a34a;font-weight:600;">● Faena</div>
+                    <div style="background:#fff;padding:6px;text-align:center;color:#9ca3af;">—</div>
+                    <div style="background:#fff;padding:6px;text-align:center;color:#9ca3af;">—</div>
+                    <div style="background:#fef9c3;padding:6px;text-align:center;color:#a16207;">● Guardia</div>
+                    <div style="background:#fef9c3;padding:6px;text-align:center;color:#a16207;">● Guardia</div>
+                    <!-- Row 2 -->
+                    <div style="background:#fff;padding:6px;color:#374151;font-weight:600;">Alejandro T.</div>
+                    <div style="background:#fff;padding:6px;text-align:center;color:#9ca3af;">—</div>
+                    <div style="background:#dcfce7;padding:6px;text-align:center;color:#16a34a;font-weight:600;">● Faena</div>
+                    <div style="background:#dcfce7;padding:6px;text-align:center;color:#16a34a;font-weight:600;">● Faena</div>
+                    <div style="background:#dcfce7;padding:6px;text-align:center;color:#16a34a;font-weight:600;">● Faena</div>
+                    <div style="background:#dcfce7;padding:6px;text-align:center;color:#16a34a;font-weight:600;">● Faena</div>
+                    <div style="background:#fff;padding:6px;text-align:center;color:#9ca3af;">—</div>
+                    <div style="background:#fff;padding:6px;text-align:center;color:#9ca3af;">—</div>
+                    <!-- Row 3 -->
+                    <div style="background:#fff;padding:6px;color:#374151;font-weight:600;">Camila R.</div>
+                    <div style="background:#dcfce7;padding:6px;text-align:center;color:#16a34a;font-weight:600;">● Faena</div>
+                    <div style="background:#fff;padding:6px;text-align:center;color:#9ca3af;">—</div>
+                    <div style="background:#fff;padding:6px;text-align:center;color:#9ca3af;">—</div>
+                    <div style="background:#dcfce7;padding:6px;text-align:center;color:#16a34a;font-weight:600;">● Faena</div>
+                    <div style="background:#dcfce7;padding:6px;text-align:center;color:#16a34a;font-weight:600;">● Faena</div>
+                    <div style="background:#fee2e2;padding:6px;text-align:center;color:#dc2626;font-weight:600;">● Licencia</div>
+                    <div style="background:#fee2e2;padding:6px;text-align:center;color:#dc2626;font-weight:600;">● Licencia</div>
+                    <!-- Row 4 -->
+                    <div style="background:#fff;padding:6px;color:#374151;font-weight:600;">Felipe N.</div>
+                    <div style="background:#fff;padding:6px;text-align:center;color:#9ca3af;">—</div>
+                    <div style="background:#fff;padding:6px;text-align:center;color:#9ca3af;">—</div>
+                    <div style="background:#dcfce7;padding:6px;text-align:center;color:#16a34a;font-weight:600;">● Faena</div>
+                    <div style="background:#dcfce7;padding:6px;text-align:center;color:#16a34a;font-weight:600;">● Faena</div>
+                    <div style="background:#dcfce7;padding:6px;text-align:center;color:#16a34a;font-weight:600;">● Faena</div>
+                    <div style="background:#fef9c3;padding:6px;text-align:center;color:#a16207;">● Guardia</div>
+                    <div style="background:#fff;padding:6px;text-align:center;color:#9ca3af;">—</div>
+                  </div>
+                  <!-- Legend -->
+                  <div style="display:flex;gap:16px;margin-top:8px;font-size:9px;color:#6b7280;">
+                    <span style="color:#16a34a;font-weight:600;">● Faena</span>
+                    <span style="color:#a16207;font-weight:600;">● Guardia</span>
+                    <span style="color:#dc2626;font-weight:600;">● Licencia</span>
+                    <span>— Descanso</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="slide-caption">
+              <div>
+                <div class="slide-caption-label">RovSystem</div>
+                <div class="slide-caption-title">Gestión de Turnos Semanal</div>
+                <div class="slide-caption-desc">Planificación visual de turnos por operador y semana: faena, guardia, licencias y descansos en un solo calendario compartido.</div>
+              </div>
+              <div class="slide-counter">05</div>
+            </div>
+          </div>
+
+          <!-- SLIDE 6: REPORTES -->
+          <div class="slide" style="background:#f0f2f5;">
+            <div style="display:flex;width:100%;height:100%;font-family:'Inter',sans-serif;font-size:11px;">
+              <div style="width:200px;flex-shrink:0;background:#fff;border-right:1px solid #e5e7eb;">
+                <div style="padding:14px 16px;border-bottom:1px solid #e5e7eb;">
+                  <div style="font-weight:700;font-size:13px;color:#111;">RovSystem</div>
+                  <div style="font-size:9px;color:#6b7280;">PATAGONIA · CHILE</div>
+                </div>
+                <nav style="padding:8px 0;">
+                  <div style="padding:8px 16px;color:#6b7280;">🗺 Mapa</div>
+                  <div style="padding:8px 16px;color:#6b7280;">⊞ Centros</div>
+                  <div style="padding:8px 16px;color:#6b7280;">📦 Despachos</div>
+                  <div style="padding:8px 16px;color:#6b7280;">👥 Operadores</div>
+                  <div style="padding:8px 16px;color:#6b7280;">📋 Bitácoras</div>
+                  <div style="padding:8px 16px;color:#6b7280;">🕐 Turnos</div>
+                  <div style="padding:8px 16px;color:#6b7280;">📦 Bodega</div>
+                  <div style="padding:8px 16px;background:#eff6ff;border-right:2px solid #3b82f6;color:#2563eb;font-weight:600;">📊 Reportes</div>
+                </nav>
+              </div>
+              <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
+                <div style="background:#fff;border-bottom:1px solid #e5e7eb;padding:8px 14px;display:flex;align-items:center;gap:10px;">
+                  <div style="font-size:13px;font-weight:600;color:#111;">Reportes</div>
+                  <div style="border:1px solid #e5e7eb;border-radius:4px;padding:3px 10px;font-size:10px;color:#6b7280;">Jun 2026</div>
+                  <div style="border:1px solid #e5e7eb;border-radius:4px;padding:3px 10px;font-size:10px;color:#6b7280;">Todas las empresas</div>
+                  <div style="margin-left:auto;border:1px solid #3b82f6;border-radius:4px;padding:3px 10px;font-size:10px;color:#3b82f6;">↓ Exportar PDF</div>
+                </div>
+                <div style="flex:1;overflow:hidden;padding:10px 14px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                  <!-- Actividad por centro -->
+                  <div style="background:#fff;border:1px solid #e5e7eb;border-radius:6px;padding:10px;">
+                    <div style="font-size:10px;font-weight:600;color:#111;margin-bottom:8px;">Actividad por Centro — Junio</div>
+                    <div style="display:flex;flex-direction:column;gap:5px;">
+                      <div style="display:flex;align-items:center;gap:6px;"><div style="font-size:9px;color:#6b7280;width:70px;">Laguna Norte</div><div style="flex:1;background:#e5e7eb;border-radius:2px;height:6px;"><div style="background:#3b82f6;height:6px;border-radius:2px;width:78%;"></div></div><div style="font-size:9px;color:#374151;margin-left:4px;">78%</div></div>
+                      <div style="display:flex;align-items:center;gap:6px;"><div style="font-size:9px;color:#6b7280;width:70px;">Bahía del Sur</div><div style="flex:1;background:#e5e7eb;border-radius:2px;height:6px;"><div style="background:#3b82f6;height:6px;border-radius:2px;width:64%;"></div></div><div style="font-size:9px;color:#374151;margin-left:4px;">64%</div></div>
+                      <div style="display:flex;align-items:center;gap:6px;"><div style="font-size:9px;color:#6b7280;width:70px;">Isla Verde</div><div style="flex:1;background:#e5e7eb;border-radius:2px;height:6px;"><div style="background:#3b82f6;height:6px;border-radius:2px;width:91%;"></div></div><div style="font-size:9px;color:#374151;margin-left:4px;">91%</div></div>
+                      <div style="display:flex;align-items:center;gap:6px;"><div style="font-size:9px;color:#6b7280;width:70px;">Punta Arenas</div><div style="flex:1;background:#e5e7eb;border-radius:2px;height:6px;"><div style="background:#3b82f6;height:6px;border-radius:2px;width:45%;"></div></div><div style="font-size:9px;color:#374151;margin-left:4px;">45%</div></div>
+                      <div style="display:flex;align-items:center;gap:6px;"><div style="font-size:9px;color:#6b7280;width:70px;">Río Serrano</div><div style="flex:1;background:#e5e7eb;border-radius:2px;height:6px;"><div style="background:#22c55e;height:6px;border-radius:2px;width:100%;"></div></div><div style="font-size:9px;color:#374151;margin-left:4px;">100%</div></div>
+                    </div>
+                  </div>
+                  <!-- Resumen mes -->
+                  <div style="background:#fff;border:1px solid #e5e7eb;border-radius:6px;padding:10px;display:flex;flex-direction:column;gap:6px;">
+                    <div style="font-size:10px;font-weight:600;color:#111;margin-bottom:2px;">Resumen Mensual</div>
+                    <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #f3f4f6;"><span style="font-size:9px;color:#6b7280;">Operaciones completadas</span><span style="font-size:9px;font-weight:700;color:#22c55e;">124</span></div>
+                    <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #f3f4f6;"><span style="font-size:9px;color:#6b7280;">Horas de inmersión</span><span style="font-size:9px;font-weight:700;color:#111;">386 h</span></div>
+                    <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #f3f4f6;"><span style="font-size:9px;color:#6b7280;">Incidencias reportadas</span><span style="font-size:9px;font-weight:700;color:#ef4444;">3</span></div>
+                    <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #f3f4f6;"><span style="font-size:9px;color:#6b7280;">Operadores activos</span><span style="font-size:9px;font-weight:700;color:#111;">8</span></div>
+                    <div style="display:flex;justify-content:space-between;padding:5px 0;"><span style="font-size:9px;color:#6b7280;">Disponibilidad promedio</span><span style="font-size:9px;font-weight:700;color:#22c55e;">94.2%</span></div>
+                  </div>
+                  <!-- Horas por operador -->
+                  <div style="background:#fff;border:1px solid #e5e7eb;border-radius:6px;padding:10px;">
+                    <div style="font-size:10px;font-weight:600;color:#111;margin-bottom:8px;">Horas por Operador</div>
+                    <div style="display:flex;flex-direction:column;gap:5px;">
+                      <div style="display:flex;align-items:center;gap:6px;"><div style="font-size:9px;color:#6b7280;width:64px;">Diego M.</div><div style="flex:1;background:#e5e7eb;border-radius:2px;height:6px;"><div style="background:#8b5cf6;height:6px;border-radius:2px;width:82%;"></div></div><div style="font-size:9px;color:#374151;margin-left:4px;">82h</div></div>
+                      <div style="display:flex;align-items:center;gap:6px;"><div style="font-size:9px;color:#6b7280;width:64px;">Alejandro T.</div><div style="flex:1;background:#e5e7eb;border-radius:2px;height:6px;"><div style="background:#8b5cf6;height:6px;border-radius:2px;width:68%;"></div></div><div style="font-size:9px;color:#374151;margin-left:4px;">68h</div></div>
+                      <div style="display:flex;align-items:center;gap:6px;"><div style="font-size:9px;color:#6b7280;width:64px;">Camila R.</div><div style="flex:1;background:#e5e7eb;border-radius:2px;height:6px;"><div style="background:#8b5cf6;height:6px;border-radius:2px;width:55%;"></div></div><div style="font-size:9px;color:#374151;margin-left:4px;">55h</div></div>
+                      <div style="display:flex;align-items:center;gap:6px;"><div style="font-size:9px;color:#6b7280;width:64px;">Felipe N.</div><div style="flex:1;background:#e5e7eb;border-radius:2px;height:6px;"><div style="background:#8b5cf6;height:6px;border-radius:2px;width:74%;"></div></div><div style="font-size:9px;color:#374151;margin-left:4px;">74h</div></div>
+                    </div>
+                  </div>
+                  <!-- Incidencias -->
+                  <div style="background:#fff;border:1px solid #e5e7eb;border-radius:6px;padding:10px;">
+                    <div style="font-size:10px;font-weight:600;color:#111;margin-bottom:8px;">Últimas Incidencias</div>
+                    <div style="display:flex;flex-direction:column;gap:6px;">
+                      <div style="padding:6px;background:#fef2f2;border-left:2px solid #ef4444;border-radius:2px;"><div style="font-size:9px;font-weight:600;color:#dc2626;">Falla cámara ROV-Gamma</div><div style="font-size:8px;color:#9ca3af;">Bahía del Sur · 18 Jun · Resuelta</div></div>
+                      <div style="padding:6px;background:#fef2f2;border-left:2px solid #f97316;border-radius:2px;"><div style="font-size:9px;font-weight:600;color:#ea580c;">Demora en despacho</div><div style="font-size:8px;color:#9ca3af;">Laguna Norte · 14 Jun · Resuelta</div></div>
+                      <div style="padding:6px;background:#fef2f2;border-left:2px solid #f97316;border-radius:2px;"><div style="font-size:9px;font-weight:600;color:#ea580c;">Cable umbilical dañado</div><div style="font-size:8px;color:#9ca3af;">Isla Verde · 10 Jun · En revisión</div></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="slide-caption">
+              <div>
+                <div class="slide-caption-label">RovSystem</div>
+                <div class="slide-caption-title">Reportes y Analítica de Operaciones</div>
+                <div class="slide-caption-desc">Indicadores de actividad por centro, horas por operador e incidencias del mes. Exportación a PDF con un clic para informes a clientes.</div>
+              </div>
+              <div class="slide-counter">06</div>
             </div>
           </div>
 
@@ -988,6 +1176,8 @@
         <button class="slider-dot" onclick="goTo('rovsystem', 1)"></button>
         <button class="slider-dot" onclick="goTo('rovsystem', 2)"></button>
         <button class="slider-dot" onclick="goTo('rovsystem', 3)"></button>
+        <button class="slider-dot" onclick="goTo('rovsystem', 4)"></button>
+        <button class="slider-dot" onclick="goTo('rovsystem', 5)"></button>
       </div>
     </div>
 
@@ -1076,6 +1266,7 @@
               <div>
                 <div class="slide-caption-label" style="color:#96720a;">Olimpo</div>
                 <div class="slide-caption-title" style="color:#111;">Command Center</div>
+                <div class="slide-caption-desc" style="color:rgba(17,17,17,0.55);">Vista ejecutiva con KPIs clave: facturación, clientes activos, gastos y margen neto — todo en tiempo real para tomar decisiones informadas.</div>
               </div>
               <div class="slide-counter" style="color:rgba(0,0,0,0.12);">01</div>
             </div>
@@ -1149,6 +1340,7 @@
               <div>
                 <div class="slide-caption-label" style="color:#96720a;">Olimpo</div>
                 <div class="slide-caption-title" style="color:#111;">Módulo de Finanzas</div>
+                <div class="slide-caption-desc" style="color:rgba(17,17,17,0.55);">Registro de ingresos, egresos y flujo de caja por período. Gráficos de evolución mensual y control de márgenes por cliente o proyecto.</div>
               </div>
               <div class="slide-counter" style="color:rgba(0,0,0,0.12);">02</div>
             </div>
@@ -1207,8 +1399,178 @@
               <div>
                 <div class="slide-caption-label" style="color:#96720a;">Olimpo</div>
                 <div class="slide-caption-title" style="color:#111;">Cartera CRM — Pipeline de Clientes</div>
+                <div class="slide-caption-desc" style="color:rgba(17,17,17,0.55);">Gestión de cartera completa: estado de cada cliente, pipeline de oportunidades, contactos clave y seguimiento de propuestas comerciales.</div>
               </div>
               <div class="slide-counter" style="color:rgba(0,0,0,0.12);">03</div>
+            </div>
+          </div>
+
+
+          <!-- OLIMPO SLIDE 4: AGENDA -->
+          <div class="slide" style="background:#f7f7f5;">
+            <div style="display:flex;width:100%;height:100%;font-family:'Inter',sans-serif;font-size:11px;">
+              <div style="width:190px;flex-shrink:0;background:#fff;border-right:1px solid rgba(0,0,0,0.08);">
+                <div style="padding:14px 16px;border-bottom:1px solid rgba(0,0,0,0.08);">
+                  <div style="font-weight:700;font-size:13px;color:#111;letter-spacing:.04em;">OLIMPO</div>
+                  <div style="font-size:9px;color:#96720a;letter-spacing:.06em;font-weight:600;">HyperionX</div>
+                </div>
+                <nav style="padding:6px 0;">
+                  <div style="padding:7px 14px;color:#6b7280;">⊞ Command</div>
+                  <div style="padding:7px 14px;color:#6b7280;">💰 Finanzas</div>
+                  <div style="padding:7px 14px;color:#6b7280;">👥 Cartera</div>
+                  <div style="padding:7px 14px;color:#96720a;font-weight:600;background:rgba(150,114,10,0.07);border-right:2px solid #96720a;">📅 Agenda</div>
+                  <div style="padding:7px 14px;color:#6b7280;">📂 Documentos</div>
+                  <div style="padding:7px 14px;color:#6b7280;">⚙ Operaciones</div>
+                </nav>
+              </div>
+              <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
+                <div style="background:#fff;border-bottom:1px solid rgba(0,0,0,0.08);padding:8px 16px;display:flex;align-items:center;justify-content:space-between;">
+                  <div style="font-size:13px;font-weight:700;color:#111;">AGENDA — Junio 2026</div>
+                  <div style="border:1px solid rgba(150,114,10,0.3);color:#96720a;padding:3px 10px;border-radius:4px;font-size:10px;font-weight:600;">+ Nuevo Evento</div>
+                </div>
+                <div style="flex:1;overflow:hidden;padding:10px 14px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                  <!-- Mini calendar -->
+                  <div style="background:#fff;border:1px solid rgba(0,0,0,0.08);border-radius:6px;padding:10px;">
+                    <div style="font-size:10px;font-weight:600;color:#111;margin-bottom:8px;text-align:center;">Junio 2026</div>
+                    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center;">
+                      <div style="font-size:8px;color:#9ca3af;font-weight:600;">L</div><div style="font-size:8px;color:#9ca3af;font-weight:600;">M</div><div style="font-size:8px;color:#9ca3af;font-weight:600;">X</div><div style="font-size:8px;color:#9ca3af;font-weight:600;">J</div><div style="font-size:8px;color:#9ca3af;font-weight:600;">V</div><div style="font-size:8px;color:#9ca3af;font-weight:600;">S</div><div style="font-size:8px;color:#9ca3af;font-weight:600;">D</div>
+                      <div style="font-size:9px;color:#9ca3af;padding:2px;"></div><div style="font-size:9px;color:#9ca3af;padding:2px;"></div><div style="font-size:9px;color:#9ca3af;padding:2px;"></div><div style="font-size:9px;color:#9ca3af;padding:2px;"></div><div style="font-size:9px;color:#9ca3af;padding:2px;"></div><div style="font-size:9px;color:#374151;padding:2px;">1</div><div style="font-size:9px;color:#374151;padding:2px;">2</div>
+                      <div style="font-size:9px;color:#374151;padding:2px;">3</div><div style="font-size:9px;color:#374151;padding:2px;">4</div><div style="font-size:9px;color:#374151;padding:2px;">5</div><div style="font-size:9px;color:#374151;padding:2px;">6</div><div style="font-size:9px;color:#374151;padding:2px;">7</div><div style="font-size:9px;color:#374151;padding:2px;">8</div><div style="font-size:9px;color:#374151;padding:2px;">9</div>
+                      <div style="font-size:9px;color:#374151;padding:2px;">10</div><div style="font-size:9px;color:#374151;padding:2px;">11</div><div style="font-size:9px;color:#374151;padding:2px;">12</div><div style="font-size:9px;color:#374151;padding:2px;">13</div><div style="font-size:9px;color:#374151;padding:2px;">14</div><div style="font-size:9px;color:#374151;padding:2px;">15</div><div style="font-size:9px;color:#374151;padding:2px;">16</div>
+                      <div style="font-size:9px;color:#374151;padding:2px;">17</div><div style="font-size:9px;color:#374151;padding:2px;">18</div><div style="font-size:9px;color:#374151;padding:2px;">19</div><div style="font-size:9px;color:#374151;padding:2px;">20</div><div style="font-size:9px;background:#96720a;color:#fff;border-radius:50%;padding:2px;font-weight:700;">21</div><div style="font-size:9px;color:#374151;padding:2px;">22</div><div style="font-size:9px;color:#374151;padding:2px;">23</div>
+                      <div style="font-size:9px;color:#374151;padding:2px;">24</div><div style="font-size:9px;background:rgba(150,114,10,0.15);color:#96720a;border-radius:50%;padding:2px;font-weight:600;">25</div><div style="font-size:9px;color:#374151;padding:2px;">26</div><div style="font-size:9px;color:#374151;padding:2px;">27</div><div style="font-size:9px;color:#374151;padding:2px;">28</div><div style="font-size:9px;color:#374151;padding:2px;">29</div><div style="font-size:9px;color:#374151;padding:2px;">30</div>
+                    </div>
+                  </div>
+                  <!-- Próximos eventos -->
+                  <div style="background:#fff;border:1px solid rgba(0,0,0,0.08);border-radius:6px;padding:10px;display:flex;flex-direction:column;gap:6px;">
+                    <div style="font-size:10px;font-weight:600;color:#111;margin-bottom:2px;">Próximos Eventos</div>
+                    <div style="padding:7px 8px;border-left:2px solid #96720a;background:rgba(150,114,10,0.04);border-radius:0 4px 4px 0;">
+                      <div style="font-size:9px;font-weight:600;color:#111;">Reunión directorio Q2</div>
+                      <div style="font-size:8px;color:#9ca3af;margin-top:2px;">Hoy · 15:00 h · Sala principal</div>
+                    </div>
+                    <div style="padding:7px 8px;border-left:2px solid #3b82f6;background:rgba(59,130,246,0.04);border-radius:0 4px 4px 0;">
+                      <div style="font-size:9px;font-weight:600;color:#111;">Demo RovSystem — MarineOps</div>
+                      <div style="font-size:8px;color:#9ca3af;margin-top:2px;">Miérc 25 · 10:00 h · Videollamada</div>
+                    </div>
+                    <div style="padding:7px 8px;border-left:2px solid #22c55e;background:rgba(34,197,94,0.04);border-radius:0 4px 4px 0;">
+                      <div style="font-size:9px;font-weight:600;color:#111;">Cierre contrato AquaPro</div>
+                      <div style="font-size:8px;color:#9ca3af;margin-top:2px;">Juev 26 · 09:30 h · Presencial</div>
+                    </div>
+                    <div style="padding:7px 8px;border-left:2px solid #f59e0b;background:rgba(245,158,11,0.04);border-radius:0 4px 4px 0;">
+                      <div style="font-size:9px;font-weight:600;color:#111;">Revisión financiera mensual</div>
+                      <div style="font-size:8px;color:#9ca3af;margin-top:2px;">Vier 27 · 11:00 h · Sala reuniones</div>
+                    </div>
+                  </div>
+                  <!-- Tareas pendientes -->
+                  <div style="background:#fff;border:1px solid rgba(0,0,0,0.08);border-radius:6px;padding:10px;grid-column:span 2;">
+                    <div style="font-size:10px;font-weight:600;color:#111;margin-bottom:8px;">Tareas Pendientes</div>
+                    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;">
+                      <div style="display:flex;align-items:center;gap:6px;padding:5px;border:1px solid rgba(0,0,0,0.06);border-radius:4px;"><div style="width:10px;height:10px;border:1px solid #96720a;border-radius:2px;flex-shrink:0;"></div><span style="font-size:9px;color:#374151;">Enviar informe mensual al directorio</span></div>
+                      <div style="display:flex;align-items:center;gap:6px;padding:5px;border:1px solid rgba(0,0,0,0.06);border-radius:4px;"><div style="width:10px;height:10px;border:1px solid #96720a;background:#96720a;border-radius:2px;flex-shrink:0;display:flex;align-items:center;justify-content:center;"><span style="color:#fff;font-size:7px;">✓</span></div><span style="font-size:9px;color:#9ca3af;text-decoration:line-through;">Actualizar datos de facturación</span></div>
+                      <div style="display:flex;align-items:center;gap:6px;padding:5px;border:1px solid rgba(0,0,0,0.06);border-radius:4px;"><div style="width:10px;height:10px;border:1px solid #96720a;border-radius:2px;flex-shrink:0;"></div><span style="font-size:9px;color:#374151;">Preparar propuesta Empresa del Norte</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="slide-caption" style="background:linear-gradient(transparent,rgba(247,247,245,0.95));">
+              <div>
+                <div class="slide-caption-label" style="color:#96720a;">Olimpo</div>
+                <div class="slide-caption-title" style="color:#111;">Agenda y Gestión de Tareas</div>
+                <div class="slide-caption-desc" style="color:rgba(17,17,17,0.55);">Calendario ejecutivo con eventos, reuniones y vencimientos críticos. Tareas pendientes con seguimiento para que nada quede sin resolver.</div>
+              </div>
+              <div class="slide-counter" style="color:rgba(0,0,0,0.12);">04</div>
+            </div>
+          </div>
+
+          <!-- OLIMPO SLIDE 5: OPERACIONES -->
+          <div class="slide" style="background:#f7f7f5;">
+            <div style="display:flex;width:100%;height:100%;font-family:'Inter',sans-serif;font-size:11px;">
+              <div style="width:190px;flex-shrink:0;background:#fff;border-right:1px solid rgba(0,0,0,0.08);">
+                <div style="padding:14px 16px;border-bottom:1px solid rgba(0,0,0,0.08);">
+                  <div style="font-weight:700;font-size:13px;color:#111;letter-spacing:.04em;">OLIMPO</div>
+                  <div style="font-size:9px;color:#96720a;letter-spacing:.06em;font-weight:600;">HyperionX</div>
+                </div>
+                <nav style="padding:6px 0;">
+                  <div style="padding:7px 14px;color:#6b7280;">⊞ Command</div>
+                  <div style="padding:7px 14px;color:#6b7280;">💰 Finanzas</div>
+                  <div style="padding:7px 14px;color:#6b7280;">👥 Cartera</div>
+                  <div style="padding:7px 14px;color:#6b7280;">📅 Agenda</div>
+                  <div style="padding:7px 14px;color:#6b7280;">📂 Documentos</div>
+                  <div style="padding:7px 14px;color:#96720a;font-weight:600;background:rgba(150,114,10,0.07);border-right:2px solid #96720a;">⚙ Operaciones</div>
+                </nav>
+              </div>
+              <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
+                <div style="background:#fff;border-bottom:1px solid rgba(0,0,0,0.08);padding:8px 16px;display:flex;align-items:center;justify-content:space-between;">
+                  <div style="font-size:13px;font-weight:700;color:#111;">OPERACIONES ACTIVAS</div>
+                  <div style="display:flex;gap:8px;">
+                    <div style="border:1px solid rgba(0,0,0,0.1);border-radius:4px;padding:3px 10px;font-size:10px;color:#6b7280;">Filtrar</div>
+                    <div style="border:1px solid rgba(150,114,10,0.3);color:#96720a;padding:3px 10px;border-radius:4px;font-size:10px;font-weight:600;">+ Nueva Op.</div>
+                  </div>
+                </div>
+                <div style="flex:1;overflow:hidden;padding:10px 14px;display:flex;flex-direction:column;gap:6px;">
+                  <!-- KPI row -->
+                  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:4px;">
+                    <div style="background:#fff;border:1px solid rgba(0,0,0,0.08);border-radius:5px;padding:8px;text-align:center;"><div style="font-size:16px;font-weight:700;color:#22c55e;">7</div><div style="font-size:8px;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em;">Activas</div></div>
+                    <div style="background:#fff;border:1px solid rgba(0,0,0,0.08);border-radius:5px;padding:8px;text-align:center;"><div style="font-size:16px;font-weight:700;color:#f59e0b;">3</div><div style="font-size:8px;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em;">En revisión</div></div>
+                    <div style="background:#fff;border:1px solid rgba(0,0,0,0.08);border-radius:5px;padding:8px;text-align:center;"><div style="font-size:16px;font-weight:700;color:#3b82f6;">12</div><div style="font-size:8px;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em;">Completadas</div></div>
+                    <div style="background:#fff;border:1px solid rgba(0,0,0,0.08);border-radius:5px;padding:8px;text-align:center;"><div style="font-size:16px;font-weight:700;color:#111;">$86M</div><div style="font-size:8px;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em;">Facturado</div></div>
+                  </div>
+                  <!-- Table -->
+                  <div style="background:#fff;border:1px solid rgba(0,0,0,0.08);border-radius:6px;overflow:hidden;flex:1;">
+                    <div style="display:grid;grid-template-columns:1.6fr 1fr 0.8fr 0.8fr 0.6fr;padding:6px 12px;background:#f9f9f7;border-bottom:1px solid rgba(0,0,0,0.06);">
+                      <div style="font-size:9px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.08em;">Proyecto</div>
+                      <div style="font-size:9px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.08em;">Cliente</div>
+                      <div style="font-size:9px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.08em;">Inicio</div>
+                      <div style="font-size:9px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.08em;">Valor</div>
+                      <div style="font-size:9px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.08em;">Estado</div>
+                    </div>
+                    <div style="display:grid;grid-template-columns:1.6fr 1fr 0.8fr 0.8fr 0.6fr;padding:7px 12px;border-bottom:1px solid rgba(0,0,0,0.04);align-items:center;">
+                      <div style="font-size:10px;font-weight:600;color:#111;">Monitoreo ROV Trimestral</div>
+                      <div style="font-size:9px;color:#6b7280;">MarineOps</div>
+                      <div style="font-size:9px;color:#6b7280;">01 Jun</div>
+                      <div style="font-size:9px;font-weight:600;color:#111;">$18M</div>
+                      <div><span style="background:#dcfce7;color:#16a34a;font-size:8px;border-radius:3px;padding:2px 6px;font-weight:600;">Activa</span></div>
+                    </div>
+                    <div style="display:grid;grid-template-columns:1.6fr 1fr 0.8fr 0.8fr 0.6fr;padding:7px 12px;border-bottom:1px solid rgba(0,0,0,0.04);align-items:center;">
+                      <div style="font-size:10px;font-weight:600;color:#111;">Implementación RovSystem v2</div>
+                      <div style="font-size:9px;color:#6b7280;">AquaPro</div>
+                      <div style="font-size:9px;color:#6b7280;">15 May</div>
+                      <div style="font-size:9px;font-weight:600;color:#111;">$24M</div>
+                      <div><span style="background:#dcfce7;color:#16a34a;font-size:8px;border-radius:3px;padding:2px 6px;font-weight:600;">Activa</span></div>
+                    </div>
+                    <div style="display:grid;grid-template-columns:1.6fr 1fr 0.8fr 0.8fr 0.6fr;padding:7px 12px;border-bottom:1px solid rgba(0,0,0,0.04);align-items:center;">
+                      <div style="font-size:10px;font-weight:600;color:#111;">Diseño web corporativo</div>
+                      <div style="font-size:9px;color:#6b7280;">OceanTech</div>
+                      <div style="font-size:9px;color:#6b7280;">03 Jun</div>
+                      <div style="font-size:9px;font-weight:600;color:#111;">$6M</div>
+                      <div><span style="background:#fef3c7;color:#b45309;font-size:8px;border-radius:3px;padding:2px 6px;font-weight:600;">Revisión</span></div>
+                    </div>
+                    <div style="display:grid;grid-template-columns:1.6fr 1fr 0.8fr 0.8fr 0.6fr;padding:7px 12px;border-bottom:1px solid rgba(0,0,0,0.04);align-items:center;">
+                      <div style="font-size:10px;font-weight:600;color:#111;">Capacitación operadores</div>
+                      <div style="font-size:9px;color:#6b7280;">BlueSea</div>
+                      <div style="font-size:9px;color:#6b7280;">10 Jun</div>
+                      <div style="font-size:9px;font-weight:600;color:#111;">$4.5M</div>
+                      <div><span style="background:#dcfce7;color:#16a34a;font-size:8px;border-radius:3px;padding:2px 6px;font-weight:600;">Activa</span></div>
+                    </div>
+                    <div style="display:grid;grid-template-columns:1.6fr 1fr 0.8fr 0.8fr 0.6fr;padding:7px 12px;align-items:center;">
+                      <div style="font-size:10px;font-weight:600;color:#111;">Auditoría de sistemas Q2</div>
+                      <div style="font-size:9px;color:#6b7280;">Cermaq</div>
+                      <div style="font-size:9px;color:#6b7280;">20 May</div>
+                      <div style="font-size:9px;font-weight:600;color:#111;">$12M</div>
+                      <div><span style="background:#dbeafe;color:#1d4ed8;font-size:8px;border-radius:3px;padding:2px 6px;font-weight:600;">Completa</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="slide-caption" style="background:linear-gradient(transparent,rgba(247,247,245,0.95));">
+              <div>
+                <div class="slide-caption-label" style="color:#96720a;">Olimpo</div>
+                <div class="slide-caption-title" style="color:#111;">Centro de Operaciones</div>
+                <div class="slide-caption-desc" style="color:rgba(17,17,17,0.55);">Seguimiento de todos los proyectos activos: cliente, valor, fecha de inicio y estado. Control total del negocio desde una sola vista.</div>
+              </div>
+              <div class="slide-counter" style="color:rgba(0,0,0,0.12);">05</div>
             </div>
           </div>
 
@@ -1220,6 +1582,8 @@
         <button class="slider-dot active" onclick="goTo('olimpo', 0)"></button>
         <button class="slider-dot" onclick="goTo('olimpo', 1)"></button>
         <button class="slider-dot" onclick="goTo('olimpo', 2)"></button>
+        <button class="slider-dot" onclick="goTo('olimpo', 3)"></button>
+        <button class="slider-dot" onclick="goTo('olimpo', 4)"></button>
       </div>
     </div>
 
@@ -1236,6 +1600,36 @@
         <div class="gold-line"></div>
         <p class="section-sub">HyperionX es una empresa de tecnología especializada en el desarrollo de soluciones digitales para industrias de alto rendimiento. Diseñamos software que transforma la manera en que las empresas gestionan sus operaciones, desde el fondo del mar hasta la sala de directorio.</p>
         <p class="section-sub" style="margin-top:16px;">Nuestra visión es simple: que cada empresa industrial tenga acceso a herramientas de clase mundial, construidas para resistir las exigencias del mundo real.</p>
+
+        <div style="margin-top:32px;margin-bottom:8px;">
+          <div class="section-label" style="margin-bottom:16px;">Nuestros Servicios</div>
+          <div style="display:flex;flex-direction:column;gap:12px;">
+            <div style="display:flex;align-items:flex-start;gap:14px;padding:14px 16px;border:1px solid var(--border);background:var(--panel);">
+              <div style="width:36px;height:36px;border:1px solid rgba(184,144,14,0.3);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px;">🌊</div>
+              <div>
+                <div style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;letter-spacing:0.06em;color:var(--white);margin-bottom:4px;">Software para Acuicultura</div>
+                <div style="font-size:13px;color:var(--muted);line-height:1.5;">RovSystem: gestión de operaciones ROV, centros, operadores, bodega y reportería en tiempo real.</div>
+              </div>
+            </div>
+            <div style="display:flex;align-items:flex-start;gap:14px;padding:14px 16px;border:1px solid var(--border);background:var(--panel);">
+              <div style="width:36px;height:36px;border:1px solid rgba(184,144,14,0.3);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px;">⚡</div>
+              <div>
+                <div style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;letter-spacing:0.06em;color:var(--white);margin-bottom:4px;">Gestión Empresarial</div>
+                <div style="font-size:13px;color:var(--muted);line-height:1.5;">Olimpo: plataforma de command center, finanzas, cartera de clientes, agenda y operaciones para la dirección estratégica.</div>
+              </div>
+            </div>
+            <div style="display:flex;align-items:flex-start;gap:14px;padding:14px 16px;border:1px solid rgba(184,144,14,0.25);background:var(--panel);position:relative;overflow:hidden;">
+              <div style="position:absolute;inset:0;background:var(--gold-glow);pointer-events:none;"></div>
+              <div style="width:36px;height:36px;border:1px solid rgba(184,144,14,0.5);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px;position:relative;z-index:1;">🌐</div>
+              <div style="position:relative;z-index:1;">
+                <div style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;letter-spacing:0.06em;color:var(--gold);margin-bottom:4px;">Diseño y Desarrollo Web</div>
+                <div style="font-size:13px;color:var(--muted);line-height:1.5;">Creamos sitios web y plataformas digitales a medida — desde landing pages de alto impacto hasta sistemas completos. Amplia variedad de diseños, paletas de colores, animaciones y responsive adaptado a tu industria.</div>
+              </div>
+            </div>
+          </div>
+          <p style="font-size:12px;color:var(--gold);margin-top:16px;letter-spacing:0.04em;">✦ Todos nuestros productos y sitios web son 100% personalizables — módulos, paleta de colores, idioma y flujos de trabajo se adaptan a tu empresa.</p>
+        </div>
+
         <div class="stats-row">
           <div class="stat">
             <div class="stat-num" data-target="5">0</div>
@@ -1253,12 +1647,13 @@
       </div>
       <div class="nosotros-visual reveal from-right">
         <div class="nosotros-visual-bg">
+          <div class="nosotros-visual-overlay"></div>
           <div class="nosotros-corner tl"></div>
           <div class="nosotros-corner tr"></div>
           <div class="nosotros-corner bl"></div>
           <div class="nosotros-corner br"></div>
         </div>
-        <img src="hyperionx-hx.png" alt="HyperionX" class="nosotros-logo-big" />
+        <div class="nosotros-tag">Engineering the Future · Empowering Industry</div>
       </div>
     </div>
   </div>
@@ -1359,7 +1754,7 @@
   <div class="container">
     <div class="footer-inner">
       <div class="footer-brand">
-        <img src="olimpo-logo.png" alt="HyperionX" />
+        <img src="../../Logos-y-Marca/hyperionx/HyperionX-Logo/hyperionx-logo-128.png" alt="HyperionX" />
         <div>
           <div class="footer-brand-text">HYPERIONX</div>
           <div class="footer-tagline">Engineering the Future, Empowering Industry</div>
@@ -1385,8 +1780,8 @@
   function initSlider(id, total) {
     sliderState[id] = { current: 0, total }
   }
-  initSlider('rovsystem', 4)
-  initSlider('olimpo', 3)
+  initSlider('rovsystem', 6)
+  initSlider('olimpo', 5)
 
   function updateSlider(id) {
     const { current } = sliderState[id]
@@ -1414,11 +1809,22 @@
     document.getElementById('galeria-olimpo').style.display   = id === 'olimpo'    ? 'block' : 'none'
   }
 
-  /* Autoplay */
-  setInterval(() => {
-    const activeId = document.getElementById('galeria-olimpo').style.display === 'none' ? 'rovsystem' : 'olimpo'
-    slide(activeId, 1)
-  }, 4000)
+  /* Autoplay — pausa al hover, reanuda al salir */
+  let autoplayTimer = null
+  function startAutoplay() {
+    autoplayTimer = setInterval(() => {
+      const activeId = document.getElementById('galeria-olimpo').style.display === 'none' ? 'rovsystem' : 'olimpo'
+      slide(activeId, 1)
+    }, 4000)
+  }
+  function stopAutoplay() {
+    clearInterval(autoplayTimer)
+  }
+  startAutoplay()
+  document.querySelectorAll('.slider-wrap').forEach(wrap => {
+    wrap.addEventListener('mouseenter', stopAutoplay)
+    wrap.addEventListener('mouseleave', startAutoplay)
+  })
 
   /* Navbar scroll */
   const navbar = document.getElementById('navbar')
