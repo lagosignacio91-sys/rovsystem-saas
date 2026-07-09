@@ -25,7 +25,7 @@ export default function ModalAgregarRepuesto({ isOpen, onClose, onAgregar, model
       onClose()
     } catch (e) {
       logError('ModalAgregarRepuesto', e)
-      alert('Error al agregar repuesto')
+      alert(e.message || 'Error al agregar repuesto')
     } finally {
       setCargando(false)
     }

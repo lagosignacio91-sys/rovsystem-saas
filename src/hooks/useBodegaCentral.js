@@ -3,6 +3,17 @@ import { db } from '../lib/firebase'
 import { logError } from '../lib/logger'
 import { collection, onSnapshot, updateDoc, deleteDoc, doc, addDoc, runTransaction, increment } from 'firebase/firestore'
 
+// Estado de un ítem de herramientas/insumos derivado de su cantidad y su stock mínimo.
+// 0 → agotado; ≤ stockMinimo → bajo_stock; resto → disponible.
+export function estadoPorCantidad(cantidad, stockMinimo = 3) {
+  const n = Number(cantidad) || 0
+  const min = Number(stockMinimo)
+  const umbral = Number.isFinite(min) && min >= 0 ? min : 3
+  if (n <= 0) return 'agotado'
+  if (n <= umbral) return 'bajo_stock'
+  return 'disponible'
+}
+
 export function useBodegaCentral() {
   const [equipos,            setEquipos]            = useState([])
   const [repuestos,          setRepuestos]          = useState([])
@@ -91,6 +102,10 @@ export function useBodegaCentral() {
   const agregarRepuesto = async (nombre, modeloEquipo, cantidad) => {
     setCargando(true)
     try {
+      const nombreNorm = nombre.trim().toLowerCase()
+      if (repuestos.some(r => r.modeloEquipo === modeloEquipo && r.nombre?.trim().toLowerCase() === nombreNorm)) {
+        throw new Error(`Ya existe un repuesto "${nombre.trim()}" para el modelo ${modeloEquipo}`)
+      }
       await addDoc(collection(db, 'bodegaCentral', 'almacen', 'repuestos'),
         { nombre, modeloEquipo, cantidad, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() })
     } catch (e) {
@@ -113,11 +128,15 @@ export function useBodegaCentral() {
   }
 
   // ── HERRAMIENTAS / INSUMOS ───────────────────────────────
-  const agregarHerramientaInsumo = async (nombre, cantidad, categoria, estado = 'disponible') => {
+  const agregarHerramientaInsumo = async (nombre, cantidad, categoria, stockMinimo = 3) => {
     setCargando(true)
     try {
+      const nombreNorm = nombre.trim().toLowerCase()
+      if (herramientasInsumos.some(h => h.nombre?.trim().toLowerCase() === nombreNorm)) {
+        throw new Error(`Ya existe un ítem "${nombre.trim()}" en herramientas/insumos`)
+      }
       await addDoc(collection(db, 'bodegaCentral', 'almacen', 'herramientasInsumos'),
-        { nombre, cantidad, categoria, estado, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() })
+        { nombre, cantidad, categoria, stockMinimo, estado: estadoPorCantidad(cantidad, stockMinimo), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() })
     } catch (e) {
       logError('bodega/agregarHI', e)
       throw e

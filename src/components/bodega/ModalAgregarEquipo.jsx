@@ -31,7 +31,7 @@ export default function ModalAgregarEquipo({ isOpen, onClose, onAgregar, modelos
       onClose()
     } catch (e) {
       logError('ModalAgregarEquipo', e)
-      alert('Error al agregar equipo')
+      alert(e.message || 'Error al agregar equipo')
     } finally {
       setCargando(false)
     }

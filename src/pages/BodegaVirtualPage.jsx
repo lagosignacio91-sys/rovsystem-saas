@@ -4,7 +4,7 @@ import { Button, Modal } from '../components/kit'
 import { useIsMobile } from '../hooks/useIsMobile'
 import { t } from '../theme/tokens'
 import { useAuth } from '../hooks/useAuth'
-import { useBodegaCentral } from '../hooks/useBodegaCentral'
+import { useBodegaCentral, estadoPorCantidad } from '../hooks/useBodegaCentral'
 import { useDespachosGlobal } from '../hooks/useDespachosGlobal'
 import ModalAgregarEquipo from '../components/bodega/ModalAgregarEquipo'
 import ModalCambiarEstado from '../components/bodega/ModalCambiarEstado'
@@ -348,9 +348,9 @@ export default function BodegaVirtualPage() {
                         {est.label}
                       </span>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                        <button onClick={() => editarHerramientaInsumo(item.id, -1)} style={{ width: 40, height: 40, border: `1px solid ${t.border}`, borderRadius: t.radiusSm, background: t.bgElevated, cursor: 'pointer', color: 'var(--gl-fault)', fontWeight: 700, fontSize: 18 }}>−</button>
+                        <button onClick={() => editarHerramientaInsumo(item.id, -1, estadoPorCantidad(item.cantidad - 1, item.stockMinimo))} style={{ width: 40, height: 40, border: `1px solid ${t.border}`, borderRadius: t.radiusSm, background: t.bgElevated, cursor: 'pointer', color: 'var(--gl-fault)', fontWeight: 700, fontSize: 18 }}>−</button>
                         <span style={{ fontWeight: 700, color: t.textPrimary, minWidth: 28, textAlign: 'center', fontSize: t.textBase }}>{item.cantidad}</span>
-                        <button onClick={() => editarHerramientaInsumo(item.id, +1)} style={{ width: 40, height: 40, border: `1px solid ${t.border}`, borderRadius: t.radiusSm, background: t.bgElevated, cursor: 'pointer', color: 'var(--gl-ok)', fontWeight: 700, fontSize: 18 }}>+</button>
+                        <button onClick={() => editarHerramientaInsumo(item.id, +1, estadoPorCantidad(item.cantidad + 1, item.stockMinimo))} style={{ width: 40, height: 40, border: `1px solid ${t.border}`, borderRadius: t.radiusSm, background: t.bgElevated, cursor: 'pointer', color: 'var(--gl-ok)', fontWeight: 700, fontSize: 18 }}>+</button>
                       </div>
                     </div>
                   </div>
@@ -378,9 +378,9 @@ export default function BodegaVirtualPage() {
                         <td style={{ padding: '10px 16px', color: t.textSecondary, fontSize: t.textXs }}>{item.categoria}</td>
                         <td style={{ padding: '10px 16px', textAlign: 'center' }}>
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                            <button onClick={() => editarHerramientaInsumo(item.id, -1)} style={{ width: 22, height: 22, border: `1px solid ${t.border}`, borderRadius: t.radiusSm, background: t.bgElevated, cursor: 'pointer', color: 'var(--gl-fault)', fontWeight: 700 }}>−</button>
+                            <button onClick={() => editarHerramientaInsumo(item.id, -1, estadoPorCantidad(item.cantidad - 1, item.stockMinimo))} style={{ width: 22, height: 22, border: `1px solid ${t.border}`, borderRadius: t.radiusSm, background: t.bgElevated, cursor: 'pointer', color: 'var(--gl-fault)', fontWeight: 700 }}>−</button>
                             <span style={{ fontWeight: 700, color: t.textPrimary, minWidth: 24, textAlign: 'center' }}>{item.cantidad}</span>
-                            <button onClick={() => editarHerramientaInsumo(item.id, +1)} style={{ width: 22, height: 22, border: `1px solid ${t.border}`, borderRadius: t.radiusSm, background: t.bgElevated, cursor: 'pointer', color: 'var(--gl-ok)', fontWeight: 700 }}>+</button>
+                            <button onClick={() => editarHerramientaInsumo(item.id, +1, estadoPorCantidad(item.cantidad + 1, item.stockMinimo))} style={{ width: 22, height: 22, border: `1px solid ${t.border}`, borderRadius: t.radiusSm, background: t.bgElevated, cursor: 'pointer', color: 'var(--gl-ok)', fontWeight: 700 }}>+</button>
                           </div>
                         </td>
                         <td style={{ padding: '10px 16px' }}>

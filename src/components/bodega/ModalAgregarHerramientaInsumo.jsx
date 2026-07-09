@@ -7,11 +7,11 @@ export default function ModalAgregarHerramientaInsumo({ isOpen, onClose, onAgreg
   const [nombre,   setNombre]   = useState('')
   const [cantidad, setCantidad] = useState('1')
   const [categoria, setCategoria] = useState('')
-  const [estado,   setEstado]   = useState('disponible')
+  const [stockMinimo, setStockMinimo] = useState('3')
   const [cargando, setCargando] = useState(false)
 
   useEffect(() => {
-    if (isOpen) { setNombre(''); setCantidad('1'); setCategoria(''); setEstado('disponible') }
+    if (isOpen) { setNombre(''); setCantidad('1'); setCategoria(''); setStockMinimo('3') }
   }, [isOpen])
 
   if (!isOpen) return null
@@ -20,13 +20,15 @@ export default function ModalAgregarHerramientaInsumo({ isOpen, onClose, onAgreg
     if (!nombre.trim() || !categoria) { alert('Nombre y categoría son obligatorios'); return }
     const cant = parseInt(cantidad)
     if (isNaN(cant) || cant < 0) { alert('La cantidad debe ser un número válido'); return }
+    const min = parseInt(stockMinimo)
+    if (isNaN(min) || min < 0) { alert('El stock mínimo debe ser un número válido'); return }
     setCargando(true)
     try {
-      await onAgregar(nombre.trim(), cant, categoria, estado)
+      await onAgregar(nombre.trim(), cant, categoria, min)
       onClose()
     } catch (e) {
       logError('ModalAgregarHI', e)
-      alert('Error al agregar item')
+      alert(e.message || 'Error al agregar item')
     } finally {
       setCargando(false)
     }
@@ -83,12 +85,11 @@ export default function ModalAgregarHerramientaInsumo({ isOpen, onClose, onAgreg
           </div>
 
           <div>
-            <label style={s.label}>Estado inicial</label>
-            <select value={estado} onChange={e => setEstado(e.target.value)} style={s.input}>
-              <option value="disponible">Disponible</option>
-              <option value="bajo_stock">Bajo Stock</option>
-              <option value="agotado">Agotado</option>
-            </select>
+            <label style={s.label}>Stock mínimo (alerta)</label>
+            <input type="number" min="0" value={stockMinimo} onChange={e => setStockMinimo(e.target.value)} style={s.input} />
+            <p style={{ fontSize: t.textXs, color: t.textMuted, marginTop: 4 }}>
+              El estado (Disponible / Bajo stock / Agotado) se calcula solo según la cantidad.
+            </p>
           </div>
 
           <div style={s.footer}>
