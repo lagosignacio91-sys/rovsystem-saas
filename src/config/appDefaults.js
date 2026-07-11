@@ -76,6 +76,24 @@ export const INSPECCION_ROV_DEFAULT = [
   { id: 'caja_herramientas', label: 'Caja de herramientas' },
 ]
 
+// Herramientas básicas que debe tener cada equipo (Principal y Backup) en su
+// juego propio. Lista fija, igual para todos los centros — no editable desde la app.
+export const HERRAMIENTAS_BASICAS_DEFAULT = [
+  { id: 'rost_off',              label: 'Rost-Off' },
+  { id: 'limpia_contactos',      label: 'Limpia contactos' },
+  { id: 'cotones',               label: 'Cotones' },
+  { id: 'amarras_plasticas',     label: 'Amarras plásticas' },
+  { id: 'grasa_dielectrica',     label: 'Grasa dieléctrica' },
+  { id: 'destornillador_cruz',   label: 'Destornillador de cruz' },
+  { id: 'destornillador_paleta', label: 'Destornillador de paleta' },
+  { id: 'corta_cable',           label: 'Corta cable' },
+  { id: 'alicate',               label: 'Alicate' },
+  { id: 'cepillo',               label: 'Cepillo' },
+  { id: 'cable_prueba',          label: 'Cable prueba' },
+  { id: 'cartonero',             label: 'Cartonero' },
+  { id: 'cinta_aislante',        label: 'Cinta aislante' },
+]
+
 export const LISTAS_DEFAULT = {
   inspeccionRov: INSPECCION_ROV_DEFAULT,
 }

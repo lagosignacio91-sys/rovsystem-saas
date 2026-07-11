@@ -7,6 +7,7 @@ const CAMPOS = [
   { key: 'codigoRov',            label: 'Código ROV' },
   { key: 'codigoControl',        label: 'Código Control' },
   { key: 'codigoUmbilical',      label: 'Código Umbilical' },
+  { key: 'sensor',               label: 'Sensor' },
   { key: 'codigoCargadorRov',    label: 'Cargador ROV' },
   { key: 'codigoCargadorControl',label: 'Cargador Control' },
 ]
@@ -42,8 +43,9 @@ function ModalVerFalla({ campo, razon, onCerrar, onLimpiar, puedeEditar }) {
   )
 }
 
-function EquipoCard({ titulo, datos, onGuardar, role }) {
-  const [abierto, setAbierto]         = useState(false)
+function EquipoCard({ titulo, datos, onGuardar, role, fijo = false }) {
+  const [abiertoState, setAbierto]    = useState(false)
+  const abierto = fijo || abiertoState
   const [editando, setEditando]       = useState(false)
   const [form, setForm]               = useState(datos)
   const [modalFalla, setModalFalla]   = useState(null)
@@ -78,7 +80,7 @@ function EquipoCard({ titulo, datos, onGuardar, role }) {
 
   return (
     <div style={styles.card}>
-      <div style={styles.acordeonHeader} onClick={() => setAbierto(!abierto)}>
+      <div style={{ ...styles.acordeonHeader, cursor: fijo ? 'default' : 'pointer' }} onClick={() => !fijo && setAbierto(!abiertoState)}>
         <div style={styles.acordeonIzq}>
           <span style={styles.acordeonTitulo}>{titulo}</span>
           {form.modelo && <span style={styles.acordeonModelo}>{form.modelo}</span>}
@@ -87,7 +89,7 @@ function EquipoCard({ titulo, datos, onGuardar, role }) {
           <span style={{ ...styles.estadoBadge, color: tieneFalla ? 'var(--gl-fault)' : 'var(--gl-ok)', background: tieneFalla ? 'var(--gl-fault-tint)' : 'var(--gl-ok-tint)' }}>
             {tieneFalla ? '⚠️ Falla' : '● Operativo'}
           </span>
-          <span style={styles.chevron}>{abierto ? '▲' : '▼'}</span>
+          {!fijo && <span style={styles.chevron}>{abierto ? '▲' : '▼'}</span>}
         </div>
       </div>
 
@@ -198,7 +200,7 @@ export default function TabROV({ centro, role, sincronizarEstado }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-      <EquipoCard titulo="🤖 Equipo Principal" datos={principal} onGuardar={guardarPrincipal} role={role} />
+      <EquipoCard titulo="🤖 Equipo Principal" datos={principal} onGuardar={guardarPrincipal} role={role} fijo />
       <EquipoCard titulo="🔄 Equipo Backup"    datos={backup}    onGuardar={guardarBackup}    role={role} />
     </div>
   )

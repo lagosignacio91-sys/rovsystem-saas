@@ -37,19 +37,13 @@ export async function calcularEstadoCentro(centroId) {
       }
     }
 
-    // 2. Verificar herramientas e insumos
-    const herSnap = await getDoc(doc(db, 'centros', centroId, 'datos', 'herramientas'))
-    const insSnap = await getDoc(doc(db, 'centros', centroId, 'datos', 'insumos'))
-
-    const herLista = herSnap.exists() ? (herSnap.data().lista ?? []) : []
-    const insLista = insSnap.exists() ? (insSnap.data().lista ?? []) : []
-
-    const hayPendiente = [
-      ...herLista.filter(h => h.cantidad === 0 || h.solicitado),
-      ...insLista.filter(i => i.cantidad === 0 || i.solicitado),
-    ].length > 0
-
-    if (hayPendiente) return 'LOW_STOCK'
+    // 2. Verificar estuches de herramientas (Principal/Backup)
+    const estSnap = await getDoc(doc(db, 'centros', centroId, 'datos', 'estucheHerramientas'))
+    if (estSnap.exists()) {
+      const { principal = {}, backup = {} } = estSnap.data()
+      const hayFalta = [...Object.values(principal), ...Object.values(backup)].some(v => v === 'falta')
+      if (hayFalta) return 'LOW_STOCK'
+    }
 
     return 'OK'
   } catch (e) {
@@ -113,8 +107,8 @@ export function useCentros() {
     try {
       const batch = writeBatch(db)
       batch.delete(doc(db, 'centros', id, 'equipos', 'rov'))
-      batch.delete(doc(db, 'centros', id, 'datos', 'herramientas'))
-      batch.delete(doc(db, 'centros', id, 'datos', 'insumos'))
+      batch.delete(doc(db, 'centros', id, 'datos', 'estucheHerramientas'))
+      batch.delete(doc(db, 'centros', id, 'datos', 'cajaHerramientas'))
       batch.delete(doc(db, 'centros', id, 'datos', 'operadores'))
       batch.delete(doc(db, 'centros', id))
       await batch.commit()
@@ -139,8 +133,8 @@ export function useCentros() {
         const batch = writeBatch(db)
         for (const d of snap.docs) {
           batch.delete(doc(db, 'centros', d.id, 'equipos', 'rov'))
-          batch.delete(doc(db, 'centros', d.id, 'datos', 'herramientas'))
-          batch.delete(doc(db, 'centros', d.id, 'datos', 'insumos'))
+          batch.delete(doc(db, 'centros', d.id, 'datos', 'estucheHerramientas'))
+          batch.delete(doc(db, 'centros', d.id, 'datos', 'cajaHerramientas'))
           batch.delete(doc(db, 'centros', d.id, 'datos', 'operadores'))
           batch.delete(d.ref)
         }

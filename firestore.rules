@@ -76,20 +76,20 @@ service cloud.firestore {
       }
 
       // Datos operativos del centro:
-      //  - herramientas/insumos/operadores: admin, taller y operador
+      //  - estucheHerramientas/cajaHerramientas/operadores: admin, taller y operador
       //  - bitacora: SOLO operador escribe (admin y taller solo leen)
       match /datos/{doc} {
         // La bitácora solo la lee el operador si es de SU propio team (anti cross-tenant).
-        // herramientas/insumos/operadores siguen abiertas a cualquier autenticado (ej. popup
-        // de contacto de centros ajenos en el Mapa).
+        // estucheHerramientas/cajaHerramientas/operadores siguen abiertas a cualquier autenticado
+        // (ej. popup de contacto de centros ajenos en el Mapa).
         allow read:  if signedIn()
           && (doc != 'bitacora' || !isOperador()
               || get(/databases/$(database)/documents/centros/$(centroId)).data.teamAsignado
                  == get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.teamId);
         // El operador solo escribe en centros de SU team (anti cross-tenant).
-        allow write: if (isAdmin()      && doc in ['herramientas', 'insumos', 'operadores'])
-          || (isSupervisor() && doc in ['herramientas', 'insumos', 'operadores'])
-          || (isOperador()   && doc in ['herramientas', 'insumos', 'operadores', 'bitacora']
+        allow write: if (isAdmin()      && doc in ['estucheHerramientas', 'cajaHerramientas', 'operadores'])
+          || (isSupervisor() && doc in ['estucheHerramientas', 'cajaHerramientas', 'operadores'])
+          || (isOperador()   && doc in ['estucheHerramientas', 'cajaHerramientas', 'operadores', 'bitacora']
               && get(/databases/$(database)/documents/centros/$(centroId)).data.teamAsignado
                  == get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.teamId);
       }

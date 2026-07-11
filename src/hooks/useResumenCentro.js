@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { db } from '../lib/firebase'
 import { doc, onSnapshot } from 'firebase/firestore'
+import { HERRAMIENTAS_BASICAS_DEFAULT } from '../config/appDefaults'
 
 export function useResumenCentro(centroId) {
   const [resumen, setResumen] = useState({ fallas: [], solicitudes: [] })
@@ -8,11 +9,8 @@ export function useResumenCentro(centroId) {
   useEffect(() => {
     if (!centroId) return
 
-    const fallas      = []
-    const solicitudes = []
-    let rovData       = null
-    let herData       = null
-    let insData       = null
+    let rovData = null
+    let estData = null
 
     const actualizar = () => {
       const resultado = { fallas: [], solicitudes: [] }
@@ -34,21 +32,19 @@ export function useResumenCentro(centroId) {
         })
       }
 
-      // Solicitudes herramientas
-      if (herData?.lista) {
-        herData.lista.forEach(h => {
-          if (h.cantidad === 0 || h.solicitado) {
-            resultado.solicitudes.push({ tipo: 'Herramienta', nombre: h.nombre, cantidad: h.cantidad })
-          }
-        })
-      }
-
-      // Solicitudes insumos
-      if (insData?.lista) {
-        insData.lista.forEach(i => {
-          if (i.cantidad === 0 || i.solicitado) {
-            resultado.solicitudes.push({ tipo: 'Insumo', nombre: i.nombre, cantidad: i.cantidad })
-          }
+      // Faltantes en estuches de herramientas (Principal/Backup)
+      if (estData) {
+        const equipos = [
+          { nombre: 'Equipo Principal', estado: estData.principal ?? {} },
+          { nombre: 'Equipo Backup',    estado: estData.backup ?? {} },
+        ]
+        equipos.forEach(eq => {
+          Object.entries(eq.estado).forEach(([itemId, valor]) => {
+            if (valor === 'falta') {
+              const label = HERRAMIENTAS_BASICAS_DEFAULT.find(i => i.id === itemId)?.label ?? itemId
+              resultado.fallas.push({ tipo: 'Herramienta', equipo: eq.nombre, campo: label, razon: 'Falta en el estuche' })
+            }
+          })
         })
       }
 
@@ -59,16 +55,12 @@ export function useResumenCentro(centroId) {
       rovData = snap.exists() ? snap.data() : null
       actualizar()
     })
-    const unsubHer = onSnapshot(doc(db, 'centros', centroId, 'datos', 'herramientas'), snap => {
-      herData = snap.exists() ? snap.data() : null
-      actualizar()
-    })
-    const unsubIns = onSnapshot(doc(db, 'centros', centroId, 'datos', 'insumos'), snap => {
-      insData = snap.exists() ? snap.data() : null
+    const unsubEst = onSnapshot(doc(db, 'centros', centroId, 'datos', 'estucheHerramientas'), snap => {
+      estData = snap.exists() ? snap.data() : null
       actualizar()
     })
 
-    return () => { unsubRov(); unsubHer(); unsubIns() }
+    return () => { unsubRov(); unsubEst() }
   }, [centroId])
 
   return resumen
