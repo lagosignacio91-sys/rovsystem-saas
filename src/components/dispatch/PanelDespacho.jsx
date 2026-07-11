@@ -167,8 +167,8 @@ function DespachoCard({ d, role, onMarcarEnviado, onConfirmarRecepcion, onElimin
   )
 }
 
-export default function PanelDespacho({ centro, role, sincronizarEstado }) {
-  const { despachos, itemsPendientes, cargando, crearDespacho, marcarEnviado, confirmarRecepcion, eliminarDespacho } = useDespachos(centro.id)
+export default function PanelDespacho({ centro, role, teamId, sincronizarEstado }) {
+  const { despachos, itemsPendientes, cargando, crearDespacho, marcarEnviado, confirmarRecepcion, eliminarDespacho } = useDespachos(centro.id, teamId)
   const [modalItems, setModalItems] = useState(false)
 
   const handleGenerarDespacho = async (itemsSeleccionados) => {

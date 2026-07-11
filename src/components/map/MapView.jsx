@@ -363,7 +363,9 @@ function MapInner({ centros, onMapClick, onCentroClick, role, userTeamId }) {
     const point = mapRef.current.latLngToContainerPoint([centro.lat, centro.lng])
     setPopupCentro(centro)
     setPopupPos({ x: point.x, y: point.y })
-    setPopupTipo(esAjeno(centro) ? 'ajeno' : 'propio')
+    // El operador siempre ve el popup de contacto (en faena), incluso en su propio centro,
+    // ya que el panel completo de su centro queda fijo a la derecha (ver MapaPage).
+    setPopupTipo(role === 'operador' ? 'ajeno' : 'propio')
   }
   const handleMapClick = (latlng) => {
     setPopupCentro(null); setPopupPos(null)
@@ -409,11 +411,12 @@ function MapInner({ centros, onMapClick, onCentroClick, role, userTeamId }) {
         role={role}
         onCoordsPin={setCoordPin}
         onSelect={(c) => {
-          if (!esAjeno(c)) onCentroClick && onCentroClick(c)
-          else {
+          if (role === 'operador') {
             const point = mapRef.current?.latLngToContainerPoint([c.lat, c.lng])
             if (point) { setPopupCentro(c); setPopupPos({ x: point.x, y: point.y }); setPopupTipo('ajeno') }
+            return
           }
+          onCentroClick && onCentroClick(c)
         }}
       />
       <Leyenda />

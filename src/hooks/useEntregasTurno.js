@@ -5,7 +5,7 @@ import {
   collection, addDoc, deleteDoc, doc, onSnapshot, orderBy, query,
   getDoc, setDoc, updateDoc,
 } from 'firebase/firestore'
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
+import { ref, uploadBytes, getDownloadURL, listAll, deleteObject } from 'firebase/storage'
 
 const ITEMS_DEFAULT = [
   { id: 'grasa_dielectrica', label: 'Grasa dieléctrica' },
@@ -84,5 +84,75 @@ export function useEntregasTurno(centroId) {
     await deleteDoc(doc(db, 'centros', centroId, 'entregas', entregaId))
   }
 
-  return { entregas, itemsList, cargando, crearEntrega, actualizarEntrega, eliminarEntrega, subirFoto, guardarItemsList, ITEMS_DEFAULT }
+  // Sube las fotos de un equipo y devuelve el array de inspección con las fotoUrl ya resueltas (sin file).
+  const subirFotos = async (entregaId, equipo, inspeccionArr) => {
+    const resultado = []
+    for (const sec of inspeccionArr) {
+      const { file, ...limpio } = sec
+      if (file) {
+        try {
+          const storageRef = ref(storage, `entregas/${centroId}/${entregaId}/${equipo}_${sec.id}`)
+          const uid = auth.currentUser?.uid ?? 'unknown'
+          await uploadBytes(storageRef, file, { customMetadata: { uploadedBy: uid } })
+          limpio.fotoUrl = await getDownloadURL(storageRef)
+        } catch (e) {
+          logError('useEntregasTurno/subirFotos', e)
+        }
+      }
+      resultado.push(limpio)
+    }
+    return resultado
+  }
+
+  // Borra las fotos de una entrega en Storage. Fire-and-forget: si Storage no está
+  // habilitado, listAll puede colgarse reintentando, así que NUNCA lo esperamos.
+  const borrarFotosEntrega = (entregaId) => {
+    listAll(ref(storage, `entregas/${centroId}/${entregaId}`))
+      .then(({ items }) => Promise.all(items.map(it => deleteObject(it).catch(() => {}))))
+      .catch(() => {})
+  }
+
+  // Borra una entrega anterior: primero el doc de Firestore (rápido, libera la UI),
+  // luego sus fotos en Storage sin bloquear.
+  const borrarEntregaCompleta = async (entregaId) => {
+    try {
+      await eliminarEntrega(entregaId)
+    } catch (e) {
+      logError('useEntregasTurno/borrarEntregaCompleta', e)
+    }
+    borrarFotosEntrega(entregaId)
+  }
+
+  // Solo se conserva UNA entrega activa por centro: crea la nueva, borra las anteriores
+  // en segundo plano y sube las fotos de inspección sin bloquear el guardado.
+  const guardarEntregaCompleta = async (entregaData, principalArr, backupArr) => {
+    const previas = entregas.map(e => e.id)
+    const id = await crearEntrega(entregaData)
+
+    if (previas.length) {
+      ;(async () => { for (const pid of previas) await borrarEntregaCompleta(pid) })()
+    }
+
+    const hayFotos = [...principalArr, ...backupArr].some(s => s.file)
+    if (hayFotos) {
+      ;(async () => {
+        try {
+          const [insp, inspBackup] = await Promise.all([
+            subirFotos(id, 'principal', principalArr),
+            subirFotos(id, 'backup', backupArr),
+          ])
+          await actualizarEntrega(id, { inspeccion: insp, inspeccionBackup: inspBackup })
+        } catch (e) {
+          logError('useEntregasTurno/guardarEntregaCompleta', e)
+        }
+      })()
+    }
+    return id
+  }
+
+  return {
+    entregas, itemsList, cargando, crearEntrega, actualizarEntrega, eliminarEntrega,
+    subirFoto, guardarItemsList, ITEMS_DEFAULT,
+    guardarEntregaCompleta, borrarEntregaCompleta,
+  }
 }

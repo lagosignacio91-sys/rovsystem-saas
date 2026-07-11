@@ -30,7 +30,7 @@ service cloud.firestore {
       allow update: if (isAdmin() && rolValido(request.resource.data.rol))
         || (request.auth.uid == uid
             && request.resource.data.diff(resource.data).affectedKeys()
-                 .hasOnly(['nombre', 'telefono', 'foto', 'passwordCambiado', 'estado', 'updatedAt', 'updatedBy', 'aceptoTerminos']));
+                 .hasOnly(['nombre', 'telefono', 'foto', 'passwordCambiado', 'estado', 'updatedAt', 'updatedBy', 'aceptoTerminos', 'correoPersonal']));
     }
 
     // ---- Catálogos: cualquiera lee, solo admin escribe ----
@@ -79,7 +79,13 @@ service cloud.firestore {
       //  - herramientas/insumos/operadores: admin, taller y operador
       //  - bitacora: SOLO operador escribe (admin y taller solo leen)
       match /datos/{doc} {
-        allow read:  if signedIn();
+        // La bitácora solo la lee el operador si es de SU propio team (anti cross-tenant).
+        // herramientas/insumos/operadores siguen abiertas a cualquier autenticado (ej. popup
+        // de contacto de centros ajenos en el Mapa).
+        allow read:  if signedIn()
+          && (doc != 'bitacora' || !isOperador()
+              || get(/databases/$(database)/documents/centros/$(centroId)).data.teamAsignado
+                 == get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.teamId);
         // El operador solo escribe en centros de SU team (anti cross-tenant).
         allow write: if (isAdmin()      && doc in ['herramientas', 'insumos', 'operadores'])
           || (isSupervisor() && doc in ['herramientas', 'insumos', 'operadores'])
@@ -92,7 +98,10 @@ service cloud.firestore {
     // ---- Despachos ----
     // Crear/enviar: admin y taller. Confirmar recepción (update): también el operador. Borrar: admin y taller.
     match /despachos/{id} {
-      allow read:          if signedIn();
+      // El operador solo lee despachos de SU propio team (anti cross-tenant).
+      allow read:          if signedIn()
+        && (!isOperador() || resource.data.teamAsignado
+              == get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.teamId);
       allow create:        if isAdmin() || isSupervisor();
       // El operador solo confirma recepción (campos acotados) y SOLO de su propio team.
       allow update:        if isAdmin() || isSupervisor()

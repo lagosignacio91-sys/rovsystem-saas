@@ -33,7 +33,7 @@ function EntregaCard({ entrega, onEliminar, role }) {
             style={{ display: 'flex', alignItems: 'center', gap: 5, background: t.bgInput, border: `1px solid ${t.border}`, color: t.textSecondary, borderRadius: t.radiusMd, padding: '5px 11px', cursor: 'pointer', fontSize: 12 }}>
             <Share2 size={13} /> Compartir
           </button>
-          {role === 'admin' && (
+          {(role === 'admin' || role === 'operador') && (
             <button onClick={() => onEliminar(entrega.id)}
               style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'transparent', border: `1px solid ${t.fault}`, color: t.fault, borderRadius: t.radiusMd, padding: '5px 11px', cursor: 'pointer', fontSize: 12, marginLeft: 'auto' }}>
               <Trash2 size={13} />
@@ -46,8 +46,11 @@ function EntregaCard({ entrega, onEliminar, role }) {
 }
 
 function CentroTurnos({ centro, role }) {
-  const { entregas, itemsList, cargando, crearEntrega, actualizarEntrega, eliminarEntrega, subirFoto, guardarItemsList } = useEntregasTurno(centro.id)
+  const { entregas, itemsList, cargando, eliminarEntrega, guardarEntregaCompleta } = useEntregasTurno(centro.id)
   const [modal, setModal] = useState(false)
+
+  const canCreate    = role === 'operador'
+  const tieneReporte = entregas.length > 0
 
   return (
     <div style={{ marginBottom: 20 }}>
@@ -60,11 +63,16 @@ function CentroTurnos({ centro, role }) {
             </span>
           )}
         </div>
-        {role === 'operador' && (
+        {canCreate && !tieneReporte && (
           <button onClick={() => setModal(true)}
             style={{ display: 'flex', alignItems: 'center', gap: 5, background: t.brand, border: 'none', color: '#fff', borderRadius: t.radiusMd, padding: '6px 13px', cursor: 'pointer', fontSize: t.textSm, fontWeight: 600 }}>
             <Plus size={14} /> Nueva entrega
           </button>
+        )}
+        {canCreate && tieneReporte && (
+          <span style={{ fontSize: 11, color: t.fault, maxWidth: 200, textAlign: 'right', lineHeight: 1.3 }}>
+            Elimina el reporte actual para generar uno nuevo
+          </span>
         )}
       </div>
 
@@ -82,10 +90,7 @@ function CentroTurnos({ centro, role }) {
         <ModalEntregaTurno
           centro={centro}
           itemsList={itemsList}
-          crearEntrega={crearEntrega}
-          actualizarEntrega={actualizarEntrega}
-          subirFoto={subirFoto}
-          guardarItemsList={guardarItemsList}
+          onGuardar={guardarEntregaCompleta}
           onCerrar={() => setModal(false)}
         />
       )}

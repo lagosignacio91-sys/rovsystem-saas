@@ -37,16 +37,15 @@ function FormOperador({ titulo, form, setForm, fotoPreview, fileRef, handleFoto,
 }
 
 function TarjetaOperador({ operador, numero, onEditar, onToggleEstado, onVerFoto, role, campos }) {
-  const [abierto, setAbierto] = useState(false)
   const enFaena = operador.estado === 'faena'
 
   return (
     <div style={{ ...styles.card, borderColor: enFaena ? 'var(--gl-ok)' : 'var(--gl-border)' }}>
-      <div style={styles.acordeonHeader} onClick={() => setAbierto(!abierto)}>
+      <div style={styles.acordeonHeader}>
         <div style={styles.acordeonIzq}>
           <div style={{ position: 'relative', flexShrink: 0 }}>
             {operador.foto
-              ? <img src={operador.foto} alt="foto" style={{ ...styles.miniFoto, border: `2px solid ${enFaena ? 'var(--gl-ok)' : 'var(--gl-border)'}` }} onClick={e => { e.stopPropagation(); onVerFoto(operador.foto) }} />
+              ? <img src={operador.foto} alt="foto" style={{ ...styles.miniFoto, border: `2px solid ${enFaena ? 'var(--gl-ok)' : 'var(--gl-border)'}` }} onClick={() => onVerFoto(operador.foto)} />
               : <div style={{ ...styles.miniFotoVacia, border: `2px solid ${enFaena ? 'var(--gl-ok)' : 'var(--gl-border)'}` }}>👤</div>
             }
             <span style={styles.miniIcono}>{enFaena ? '🎮' : '😴'}</span>
@@ -59,39 +58,34 @@ function TarjetaOperador({ operador, numero, onEditar, onToggleEstado, onVerFoto
             </span>
           </div>
         </div>
-        <div style={styles.acordeonDer}>
-          <span style={styles.chevron}>{abierto ? '▲' : '▼'}</span>
-        </div>
       </div>
 
-      {abierto && (
-        <div style={styles.cardBody}>
-          <div style={styles.accionesHeader}>
-            <button
-              onClick={onToggleEstado}
-              style={{ ...styles.btnEstado, background: enFaena ? 'var(--gl-ok-tint)' : 'var(--gl-border)' }}
-            >
-              {enFaena ? '🎮 En faena' : '😴 En descanso'}
-            </button>
-            {role === 'admin' && (
-              <button onClick={onEditar} style={styles.btnEditar}>Editar</button>
-            )}
-          </div>
-
-          {operador.nombre ? (
-            <>
-              {campos.map((c) => (
-                <div key={c.id} style={styles.campo}>
-                  <span style={styles.campoLabel}>{c.label}</span>
-                  <span style={styles.campoValor}>{operador[c.id] || '—'}</span>
-                </div>
-              ))}
-            </>
-          ) : (
-            <p style={styles.vacio}>Sin operador asignado.</p>
+      <div style={styles.cardBody}>
+        <div style={styles.accionesHeader}>
+          <button
+            onClick={onToggleEstado}
+            style={{ ...styles.btnEstado, background: enFaena ? 'var(--gl-ok-tint)' : 'var(--gl-border)' }}
+          >
+            {enFaena ? '🎮 En faena' : '😴 En descanso'}
+          </button>
+          {role === 'admin' && (
+            <button onClick={onEditar} style={styles.btnEditar}>Editar</button>
           )}
         </div>
-      )}
+
+        {operador.nombre ? (
+          <>
+            {campos.map((c) => (
+              <div key={c.id} style={styles.campo}>
+                <span style={styles.campoLabel}>{c.label}</span>
+                <span style={styles.campoValor}>{operador[c.id] || '—'}</span>
+              </div>
+            ))}
+          </>
+        ) : (
+          <p style={styles.vacio}>Sin operador asignado.</p>
+        )}
+      </div>
     </div>
   )
 }
@@ -222,9 +216,8 @@ export default function TabOperador({ centro, role }) {
 
 const styles = {
   card:            { background: 'var(--gl-bg-input)', border: '1px solid var(--gl-border)', borderRadius: '8px', overflow: 'hidden' },
-  acordeonHeader:  { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', cursor: 'pointer', userSelect: 'none', background: 'var(--gl-bg-elevated)', gap: '10px' },
+  acordeonHeader:  { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: 'var(--gl-bg-elevated)', gap: '10px' },
   acordeonIzq:     { display: 'flex', alignItems: 'center', gap: '10px', flex: 1 },
-  acordeonDer:     { display: 'flex', alignItems: 'center' },
   miniFoto:        { width: '44px', height: '44px', borderRadius: '50%', objectFit: 'cover', display: 'block' },
   miniFotoVacia:   { width: '44px', height: '44px', borderRadius: '50%', background: 'var(--gl-bg-input)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px' },
   miniIcono:       { position: 'absolute', bottom: '-2px', right: '-2px', fontSize: '12px', background: 'var(--gl-bg-elevated)', borderRadius: '50%', width: '16px', height: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' },
@@ -232,7 +225,6 @@ const styles = {
   opNombre:        { color: 'var(--gl-text-primary)', fontSize: '12px', fontWeight: '700', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
   opCorreo:        { color: 'var(--gl-text-muted)', fontSize: '10px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
   opEstado:        { fontSize: '10px', fontWeight: '600' },
-  chevron:         { color: 'var(--gl-text-muted)', fontSize: '10px' },
   cardBody:        { padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: '6px', borderTop: '1px solid var(--gl-border)' },
   accionesHeader:  { display: 'flex', gap: '8px', marginBottom: '4px' },
   btnEstado:       { border: 'none', color: '#fff', borderRadius: '6px', padding: '5px 10px', cursor: 'pointer', fontSize: '11px', fontWeight: '600' },

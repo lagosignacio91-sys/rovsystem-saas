@@ -1,9 +1,15 @@
 import { useState, useEffect } from 'react'
 import { db } from '../lib/firebase'
-import { doc, onSnapshot } from 'firebase/firestore'
+import { doc, onSnapshot, setDoc, arrayUnion } from 'firebase/firestore'
 
-// Para cada centro retorna { centro, bitacora, operadores }
-// bitacora lee de centros/{id}/datos/bitacora
+// Agrega una entrada nueva a la bitácora del centro (nunca sobrescribe el historial).
+export async function guardarBitacora(centroId, entrada) {
+  await setDoc(doc(db, 'centros', centroId, 'datos', 'bitacora'), { lista: arrayUnion(entrada) }, { merge: true })
+}
+
+// Para cada centro retorna { centro, bitacora, ultima, operadores }
+// bitacora lee de centros/{id}/datos/bitacora (doc con { lista: [...] }, una entrada por día)
+// ultima: la entrada más reciente de la lista (para mostrar "estado actual" sin cambiar la vista de admin/supervisor)
 // operadores lee de centros/{id}/datos/operadores
 export function useBitacorasGlobal(centros) {
   const [datos,    setDatos]    = useState([])
@@ -21,11 +27,16 @@ export function useBitacorasGlobal(centros) {
     const unsubs = []
 
     const flush = () => {
-      const lista = centros.map(c => ({
-        centro:     c,
-        bitacora:   state[c.id]?.bitacora   ?? null,
-        operadores: state[c.id]?.operadores ?? null,
-      }))
+      const lista = centros.map(c => {
+        const bitacora = state[c.id]?.bitacora ?? null
+        const entradas = bitacora?.lista ?? []
+        return {
+          centro:     c,
+          bitacora,
+          ultima:     entradas[entradas.length - 1] ?? null,
+          operadores: state[c.id]?.operadores ?? null,
+        }
+      })
       setDatos(lista)
       if (Object.keys(state).length >= centros.length) setCargando(false)
     }

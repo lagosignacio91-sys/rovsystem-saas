@@ -1,5 +1,7 @@
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
+import { db } from './firebase'
+import { doc as fsDoc, getDoc } from 'firebase/firestore'
 
 const LOGO_PATH = '/logo.png'
 
@@ -318,7 +320,7 @@ export async function generarPDFEntrega(entrega) {
   return doc
 }
 
-export async function descargarPDFBitacora(bitacora, centro) {
+async function construirPDFBitacora(bitacora, centro) {
   const { jsPDF } = await import('jspdf')
   const doc   = new jsPDF({ unit: 'mm', format: 'a4' })
   const W     = doc.internal.pageSize.getWidth()
@@ -358,6 +360,52 @@ export async function descargarPDFBitacora(bitacora, centro) {
     y += lines.length * 5 + 2
   }
 
+  // Equipos (estado actual, en vivo) al final de la bitácora.
+  let rov = null
+  try {
+    const snapRov = await getDoc(fsDoc(db, 'centros', centro.id, 'equipos', 'rov'))
+    if (snapRov.exists()) rov = snapRov.data()
+  } catch { /* sin permiso o sin datos: se omite la sección */ }
+
+  if (rov) {
+    y += 4
+    doc.setFontSize(11)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(30)
+    doc.text('Equipos', margin, y)
+    y += 6
+
+    const bloqueEquipo = (titulo, eq) => {
+      if (!eq) return
+      doc.setFontSize(9)
+      doc.setFont('helvetica', 'bold')
+      doc.text(titulo, margin, y)
+      y += 5
+      const filas = [
+        ['Modelo',            eq.modelo],
+        ['Código ROV',        eq.codigoRov],
+        ['Código Control',    eq.codigoControl],
+        ['Código Umbilical',  eq.codigoUmbilical],
+        ['Cargador ROV',      eq.codigoCargadorRov],
+        ['Cargador Control',  eq.codigoCargadorControl],
+        ['Observación',       eq.observacion || 'Operativo'],
+      ].filter(([, v]) => v)
+      for (const [label, valor] of filas) {
+        doc.setFontSize(9)
+        doc.setFont('helvetica', 'bold')
+        doc.text(`${label}:`, margin + 4, y)
+        doc.setFont('helvetica', 'normal')
+        const lines = doc.splitTextToSize(String(valor), W - margin * 2 - 45)
+        doc.text(lines, margin + 42, y)
+        y += lines.length * 5 + 1
+      }
+      y += 3
+    }
+
+    bloqueEquipo('Equipo Principal', rov.principal)
+    bloqueEquipo('Equipo Backup', rov.backup)
+  }
+
   // Pie de marca de la plataforma
   const H = doc.internal.pageSize.getHeight()
   doc.setDrawColor(200, 215, 230)
@@ -366,8 +414,33 @@ export async function descargarPDFBitacora(bitacora, centro) {
   doc.setTextColor(150, 170, 190)
   doc.text(`Generado con RovSystem · HyperionX · ${new Date().toLocaleString('es-CL')}`, margin, H - 4)
 
-  const nombre = `Bitacora-${centro.nombre}-${bitacora.fecha?.replace(/\//g, '-') ?? 'GL'}.pdf`
-  doc.save(nombre)
+  return doc
+}
+
+function nombreBitacora(bitacora, centro) {
+  return `Bitacora-${centro.nombre}-${bitacora.fecha?.replace(/\//g, '-') ?? 'GL'}.pdf`
+}
+
+export async function descargarPDFBitacora(bitacora, centro) {
+  const doc = await construirPDFBitacora(bitacora, centro)
+  doc.save(nombreBitacora(bitacora, centro))
+}
+
+export async function compartirPDFBitacora(bitacora, centro) {
+  const doc = await construirPDFBitacora(bitacora, centro)
+  const nombre = nombreBitacora(bitacora, centro)
+  const blob = doc.output('blob')
+  const file = new File([blob], nombre, { type: 'application/pdf' })
+
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    await navigator.share({
+      files: [file],
+      title: `Bitácora diaria — ${centro.nombre}`,
+      text:  `Bitácora diaria · ${centro.nombre} · ${bitacora.fecha}`,
+    })
+  } else {
+    doc.save(nombre)
+  }
 }
 
 export async function descargarPDF(entrega) {

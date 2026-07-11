@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { db, auth } from '../lib/firebase'
-import { collection, onSnapshot, updateDoc, doc, arrayUnion } from 'firebase/firestore'
+import { collection, onSnapshot, updateDoc, doc, arrayUnion, query, where } from 'firebase/firestore'
 import { aplicarRecepcionStock } from '../lib/recepcion'
 
 // Escucha los despachos. Si se pasa role='operador' y teamId, filtra solo los del propio team.
@@ -11,7 +11,15 @@ export function useDespachosGlobal({ role, teamId, onNuevaSolicitud, onDespachoC
   const prevIds = useRef(null)
 
   useEffect(() => {
-    const unsub = onSnapshot(collection(db, 'despachos'), (snap) => {
+    // Operador: esperar a que cargue el team antes de suscribirse (evita un query sin
+    // el `where` que la regla de Firestore exige para poder listar).
+    if (role === 'operador' && !teamId) { setCargando(true); return }
+
+    const ref = (role === 'operador' && teamId)
+      ? query(collection(db, 'despachos'), where('teamAsignado', '==', teamId))
+      : collection(db, 'despachos')
+
+    const unsub = onSnapshot(ref, (snap) => {
       let data = snap.docs
         .map(d => ({ id: d.id, ...d.data() }))
         .filter(d => !d.eliminado)

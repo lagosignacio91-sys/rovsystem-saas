@@ -6,7 +6,10 @@ import {
 } from 'firebase/firestore'
 import { aplicarRecepcionStock } from '../lib/recepcion'
 
-export function useDespachos(centroId) {
+// `teamId`: opcional. Cuando viene presente (operador con team propio), se agrega como
+// filtro extra de la query — la regla de Firestore exige que el `where` lo demuestre
+// para poder listar. Admin/supervisor no tienen `teamId` propio, así que no se ven afectados.
+export function useDespachos(centroId, teamId) {
   const [despachos, setDespachos]       = useState([])
   const [itemsPendientes, setItemsPendientes] = useState([])
   const [cargando, setCargando]         = useState(true)
@@ -14,14 +17,16 @@ export function useDespachos(centroId) {
   // Escuchar despachos en tiempo real
   useEffect(() => {
     if (!centroId) return
-    const q     = query(collection(db, 'despachos'), where('centroId', '==', centroId))
+    const filtros = [where('centroId', '==', centroId)]
+    if (teamId) filtros.push(where('teamAsignado', '==', teamId))
+    const q     = query(collection(db, 'despachos'), ...filtros)
     const unsub = onSnapshot(q, (snap) => {
       const data = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(d => !d.eliminado)
       setDespachos(data.sort((a, b) => b.creadoEn?.localeCompare(a.creadoEn)))
       setCargando(false)
     })
     return () => unsub()
-  }, [centroId])
+  }, [centroId, teamId])
 
   // Escuchar herramientas e insumos solicitados en tiempo real
   useEffect(() => {

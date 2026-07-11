@@ -3,9 +3,6 @@ import { ClipboardCheck, Plus, Download, Share2, Trash2, Settings, GripVertical,
 import { useEntregasTurno } from '../../hooks/useEntregasTurno'
 import { descargarPDF, compartirPDF } from '../../lib/generatePDF'
 import ModalEntregaTurno from '../turno/ModalEntregaTurno'
-import { storage } from '../../lib/firebase'
-import { ref, uploadBytes, getDownloadURL, listAll, deleteObject } from 'firebase/storage'
-import { auth } from '../../lib/firebase'
 
 function formatFecha(iso) {
   if (!iso) return ''
@@ -92,82 +89,13 @@ const ms = {
 }
 
 export default function TabEntregaTurno({ centro, role, uid }) {
-  const { entregas, itemsList, cargando, crearEntrega, actualizarEntrega, eliminarEntrega, guardarItemsList } = useEntregasTurno(centro.id)
+  const { entregas, itemsList, cargando, eliminarEntrega, guardarItemsList, guardarEntregaCompleta } = useEntregasTurno(centro.id)
   const [modalNueva,    setModalNueva]    = useState(false)
   const [modalInventario, setModalInv]   = useState(false)
   const [confirmDel,    setConfirmDel]   = useState(null)
 
   const canCreate    = role === 'operador'
   const tieneReporte = entregas.length > 0
-
-  // Sube las fotos de un equipo y devuelve el array de inspección con las fotoUrl ya resueltas (sin file).
-  const subirFotos = async (id, equipo, inspeccionArr) => {
-    const resultado = []
-    for (const sec of inspeccionArr) {
-      const { file, ...limpio } = sec
-      if (file) {
-        try {
-          const storageRef = ref(storage, `entregas/${centro.id}/${id}/${equipo}_${sec.id}`)
-          const uid = auth.currentUser?.uid ?? 'unknown'
-          await uploadBytes(storageRef, file, { customMetadata: { uploadedBy: uid } })
-          limpio.fotoUrl = await getDownloadURL(storageRef)
-        } catch (e) {
-          console.warn('No se pudo subir foto', equipo, sec.id, e)
-        }
-      }
-      resultado.push(limpio)
-    }
-    return resultado
-  }
-
-  // Borra las fotos de una entrega en Storage. Fire-and-forget: si Storage no está
-  // habilitado, listAll puede colgarse reintentando, así que NUNCA lo esperamos.
-  const borrarFotosEntrega = (entregaId) => {
-    listAll(ref(storage, `entregas/${centro.id}/${entregaId}`))
-      .then(({ items }) => Promise.all(items.map(it => deleteObject(it).catch(() => {}))))
-      .catch(() => {})
-  }
-
-  // Borra una entrega anterior: primero el doc de Firestore (rápido, libera la UI),
-  // luego sus fotos en Storage sin bloquear.
-  const borrarEntregaCompleta = async (entregaId) => {
-    try {
-      await eliminarEntrega(entregaId)
-    } catch (e) {
-      console.warn('No se pudo borrar entrega previa', entregaId, e)
-    }
-    borrarFotosEntrega(entregaId)
-  }
-
-  const handleGuardar = async (entregaData, principalArr, backupArr) => {
-    // Snapshot de las entregas previas ANTES de crear la nueva (la nueva aún no está en la lista).
-    const previas = entregas.map(e => e.id)
-    const id = await crearEntrega(entregaData)
-
-    // Solo se conserva la última entrega: borramos todas las anteriores en segundo plano.
-    if (previas.length) {
-      ;(async () => {
-        for (const pid of previas) await borrarEntregaCompleta(pid)
-      })()
-    }
-
-    // Subida de fotos en segundo plano (para el historial del admin cuando Storage esté activo).
-    const hayFotos = [...principalArr, ...backupArr].some(s => s.file)
-    if (hayFotos) {
-      ;(async () => {
-        try {
-          const [insp, inspBackup] = await Promise.all([
-            subirFotos(id, 'principal', principalArr),
-            subirFotos(id, 'backup', backupArr),
-          ])
-          await actualizarEntrega(id, { inspeccion: insp, inspeccionBackup: inspBackup })
-        } catch (e) {
-          console.warn('No se pudieron persistir las fotos de la entrega', id, e)
-        }
-      })()
-    }
-    return id
-  }
 
   if (cargando) return <p style={{ color: 'var(--gl-text-muted)', fontSize: 13 }}>Cargando...</p>
 
@@ -256,7 +184,7 @@ export default function TabEntregaTurno({ centro, role, uid }) {
           centro={centro}
           itemsList={itemsList}
           onCerrar={() => setModalNueva(false)}
-          onGuardar={handleGuardar}
+          onGuardar={guardarEntregaCompleta}
         />
       )}
     </div>

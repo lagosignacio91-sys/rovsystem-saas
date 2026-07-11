@@ -6,7 +6,7 @@ import {
   signOut as firebaseSignOut,
   onAuthStateChanged
 } from 'firebase/auth'
-import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore'
+import { doc, getDoc, updateDoc, serverTimestamp, collection, query, where, getDocs } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 
 export function useAuth() {
@@ -17,6 +17,7 @@ export function useAuth() {
   const [nombre,     setNombre]     = useState(null)
   const [movilHabilitado, setMovilHabilitado] = useState(false)
   const [aceptoTerminos,  setAceptoTerminos]  = useState(false)
+  const [correoPersonal,  setCorreoPersonal]  = useState(null)
   const [loading,    setLoading]    = useState(true)
   const [authError,  setAuthError]  = useState(null)
 
@@ -32,6 +33,7 @@ export function useAuth() {
             // Cuenta de Auth sin perfil (huérfana): NO asignar rol por defecto.
             setAuthError('Tu cuenta no tiene un perfil asignado. Contacta al administrador.')
             setRole(null); setTeamId(null); setEmpresaId(null); setNombre(null); setMovilHabilitado(false)
+            setCorreoPersonal(null)
             setLoading(false)
             return
           }
@@ -42,6 +44,7 @@ export function useAuth() {
           setNombre(data.nombre || null)
           setMovilHabilitado(data.movilHabilitado === true)
           setAceptoTerminos(!!data.aceptoTerminos?.fecha)
+          setCorreoPersonal(data.correoPersonal || null)
         } catch (e) {
           // No asignar rol por defecto ante error de red — mostrar error y pedir re-login.
           logError('useAuth/perfil', e)
@@ -50,6 +53,7 @@ export function useAuth() {
           setTeamId(null)
           setEmpresaId(null)
           setNombre(null)
+          setCorreoPersonal(null)
         }
       } else {
         setUser(null)
@@ -59,6 +63,7 @@ export function useAuth() {
         setNombre(null)
         setMovilHabilitado(false)
         setAceptoTerminos(false)
+        setCorreoPersonal(null)
         setAuthError(null)
       }
       setLoading(false)
@@ -88,5 +93,33 @@ export function useAuth() {
     setAceptoTerminos(true)
   }
 
-  return { user, role, teamId, empresaId, nombre, movilHabilitado, aceptoTerminos, isOwner: role === 'owner', isVentas: role === 'ventas', loading, authError, signIn, signOut, aceptarTerminos }
+  const guardarCorreoPersonal = async (correo) => {
+    if (!auth.currentUser) return
+    const uid = auth.currentUser.uid
+    await updateDoc(doc(db, 'usuarios', uid), { correoPersonal: correo })
+    setCorreoPersonal(correo)
+
+    // Refleja el correo también en la ficha del centro (centros/{id}/datos/operadores),
+    // para no depender de que un admin apriete "Sincronizar operadores" en Centros.
+    if (teamId) {
+      try {
+        const centrosSnap = await getDocs(query(collection(db, 'centros'), where('teamAsignado', '==', teamId)))
+        for (const centroDoc of centrosSnap.docs) {
+          const ref = doc(db, 'centros', centroDoc.id, 'datos', 'operadores')
+          const opsSnap = await getDoc(ref)
+          if (!opsSnap.exists()) continue
+          const lista = opsSnap.data().lista ?? []
+          const idx = lista.findIndex(op => op?.uid === uid)
+          if (idx === -1) continue
+          const nuevaLista = [...lista]
+          nuevaLista[idx] = { ...nuevaLista[idx], correoPersonal: correo }
+          await updateDoc(ref, { lista: nuevaLista })
+        }
+      } catch (e) {
+        logError('useAuth/guardarCorreoPersonal', e)
+      }
+    }
+  }
+
+  return { user, role, teamId, empresaId, nombre, movilHabilitado, aceptoTerminos, correoPersonal, isOwner: role === 'owner', isVentas: role === 'ventas', loading, authError, signIn, signOut, aceptarTerminos, guardarCorreoPersonal }
 }

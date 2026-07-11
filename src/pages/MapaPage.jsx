@@ -16,11 +16,16 @@ export default function MapaPage() {
   const handleEliminar = async (id) => { await eliminarCentro(id); setCentroActivo(null) }
 
   const handleCentroClick = (c) => {
+    if (role === 'operador') return // el operador ya ve el popup de contacto (ver MapView); el panel queda siempre fijo a la derecha
     if (role === 'admin' || role === 'supervisor') { setCentroActivo(c); return }
-    if (role === 'operador' && c.teamAsignado === teamId) setCentroActivo(c)
   }
 
-  const centroVivo = centroActivo ? centros.find(c => c.id === centroActivo.id) ?? centroActivo : null
+  // Operador: el panel de su propio centro queda siempre visible, no depende de click.
+  const miCentro = role === 'operador' ? centros.find(c => c.teamAsignado === teamId) : null
+
+  const centroVivo = role === 'operador'
+    ? miCentro
+    : (centroActivo ? centros.find(c => c.id === centroActivo.id) ?? centroActivo : null)
 
   return (
     <div style={{ width: '100%', height: '100%', position: 'relative' }}>
@@ -32,9 +37,10 @@ export default function MapaPage() {
             centro={centroVivo}
             role={role}
             uid={uid}
+            teamId={teamId}
             sincronizarEstado={sincronizarEstado}
             actualizarCentro={actualizarCentro}
-            onCerrar={() => setCentroActivo(null)}
+            onCerrar={role === 'operador' ? null : () => setCentroActivo(null)}
             onEliminar={handleEliminar}
           />
         </div>

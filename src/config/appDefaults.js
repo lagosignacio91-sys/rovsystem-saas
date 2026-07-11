@@ -88,14 +88,12 @@ export const CAMPOS_OPERADOR_DEFAULT = [
   { id: 'telefono',       label: 'Teléfono' },
   { id: 'correoPersonal', label: 'Correo personal' },
   { id: 'correoCorp',     label: 'Correo corporativo' },
-  { id: 'ingresoTurno',   label: 'Ingreso a turno' },
-  { id: 'salidaTurno',    label: 'Salida de turno' },
 ]
 
 // Tipo de input por campo (no serializable; vive en código).
 export const TIPOS_OPERADOR = {
   rut: 'text', telefono: 'text', correoPersonal: 'email',
-  correoCorp: 'email', ingresoTurno: 'date', salidaTurno: 'date',
+  correoCorp: 'email',
 }
 
 // ---- Permisos por pestaña y rol (Fase 5) ----

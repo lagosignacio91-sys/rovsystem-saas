@@ -1,10 +1,14 @@
 import { useState, useEffect } from 'react'
-import { db } from '../../lib/firebase'
-import { doc, setDoc, getDoc, onSnapshot } from 'firebase/firestore'
-import { Send, FileText, ChevronDown, ChevronUp } from 'lucide-react'
+import { db, auth } from '../../lib/firebase'
+import { doc, setDoc, getDoc, onSnapshot, arrayUnion } from 'firebase/firestore'
+import { Send, FileText, ChevronDown, ChevronUp, History } from 'lucide-react'
 
 function hoy() {
   return new Date().toISOString().slice(0, 10)
+}
+
+function mesActual() {
+  return hoy().slice(0, 7)
 }
 
 function formatFecha(iso) {
@@ -64,10 +68,12 @@ export default function TabBitacora({ centro, role }) {
     fecha: hoy(), estadoPuerto: '',
     jornadaAm: '', jornadaPm: '', observaciones: '',
   })
+  const [historial, setHistorial] = useState([])
   const [rov, setRov]           = useState({})
   const [cargando, setCargando] = useState(true)
   const [guardando, setGuardando] = useState(false)
   const [mostrarVista, setMostrarVista] = useState(false)
+  const [mostrarHistorial, setMostrarHistorial] = useState(false)
 
   const puedEditar = role === 'operador'
 
@@ -78,7 +84,13 @@ export default function TabBitacora({ centro, role }) {
         getDoc(doc(db, 'centros', centro.id, 'equipos', 'rov')),
         getDoc(doc(db, 'centros', centro.id, 'datos', 'operadores')),
       ])
-      if (snapBit.exists()) setDatos(d => ({ ...d, ...snapBit.data() }))
+      if (snapBit.exists()) {
+        const lista = snapBit.data().lista ?? []
+        setHistorial(lista)
+        const ultima = lista[lista.length - 1]
+        // Continuidad: piloto/team/área se prellenan de la última entrada; lo diario queda en blanco.
+        if (ultima) setDatos(d => ({ ...d, piloto: ultima.piloto || d.piloto, team: ultima.team || '', area: ultima.area || '' }))
+      }
       if (snapRov.exists()) setRov(snapRov.data())
       // Auto-piloto: siempre usa el operador en faena si existe
       if (snapOps.exists()) {
@@ -103,10 +115,20 @@ export default function TabBitacora({ centro, role }) {
 
   const set = (campo, valor) => setDatos(d => ({ ...d, [campo]: valor }))
 
+  const historialMes = historial
+    .filter(b => (b.fecha ?? '').slice(0, 7) === mesActual())
+    .slice()
+    .reverse()
+
   const guardar = async () => {
     setGuardando(true)
     try {
-      await setDoc(doc(db, 'centros', centro.id, 'datos', 'bitacora'), datos)
+      const uid = auth.currentUser?.uid ?? null
+      const entrada = { ...datos, creadoPor: uid, creadoEn: new Date().toISOString() }
+      await setDoc(doc(db, 'centros', centro.id, 'datos', 'bitacora'), { lista: arrayUnion(entrada) }, { merge: true })
+      setHistorial(h => [...h, entrada])
+      // Limpia los campos diarios; piloto/team/área se conservan (son de configuración, no diarios).
+      setDatos(d => ({ ...d, fecha: hoy(), estadoPuerto: '', jornadaAm: '', jornadaPm: '', observaciones: '' }))
     } finally {
       setGuardando(false)
     }
@@ -192,6 +214,30 @@ export default function TabBitacora({ centro, role }) {
       {mostrarVista && (
         <pre style={s.vistaPrevia}>{textoGenerado}</pre>
       )}
+
+      {/* ---- Historial de este mes ---- */}
+      <div style={s.divider} />
+      <button style={s.btnVista} onClick={() => setMostrarHistorial(v => !v)}>
+        <History size={13} />
+        {mostrarHistorial ? 'Ocultar historial del mes' : `Historial de este mes (${historialMes.length})`}
+        {mostrarHistorial ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+      </button>
+      {mostrarHistorial && (
+        <div style={s.historial}>
+          {historialMes.length === 0 && (
+            <p style={{ color: 'var(--gl-text-muted)', fontSize: 12, margin: 0 }}>Sin entradas este mes.</p>
+          )}
+          {historialMes.map((b, i) => (
+            <div key={i} style={s.historialItem}>
+              <div style={s.historialFecha}>{formatFecha(b.fecha)} — {b.piloto || 'Sin piloto'}</div>
+              {b.estadoPuerto && <div style={s.historialLinea}><b>Puerto:</b> {b.estadoPuerto}</div>}
+              {b.jornadaAm && <div style={s.historialLinea}><b>AM:</b> {b.jornadaAm}</div>}
+              {b.jornadaPm && <div style={s.historialLinea}><b>PM:</b> {b.jornadaPm}</div>}
+              {b.observaciones && <div style={s.historialLinea}><b>Obs:</b> {b.observaciones}</div>}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
@@ -269,4 +315,8 @@ const s = {
   btnWpp:     { flex: 2, background: '#25D366', border: 'none', color: '#fff', borderRadius: 8, padding: '9px 12px', cursor: 'pointer', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 },
   btnVista:   { display: 'flex', alignItems: 'center', gap: 5, background: 'none', border: '1px solid var(--gl-border)', borderRadius: 7, color: 'var(--gl-text-secondary)', fontSize: 11, padding: '6px 10px', cursor: 'pointer', fontFamily: 'inherit' },
   vistaPrevia:{ background: 'var(--gl-bg-input)', border: '1px solid var(--gl-border)', borderRadius: 8, padding: 12, fontSize: 11, color: 'var(--gl-text-primary)', lineHeight: 1.6, whiteSpace: 'pre-wrap', wordBreak: 'break-word', overflowX: 'auto', margin: 0 },
+  historial:      { display: 'flex', flexDirection: 'column', gap: 8 },
+  historialItem:  { background: 'var(--gl-bg-input)', border: '1px solid var(--gl-border)', borderRadius: 8, padding: '8px 10px' },
+  historialFecha: { fontSize: 12, fontWeight: 700, color: 'var(--gl-text-primary)', marginBottom: 4 },
+  historialLinea: { fontSize: 11, color: 'var(--gl-text-secondary)', lineHeight: 1.5 },
 }

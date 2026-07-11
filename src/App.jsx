@@ -15,6 +15,7 @@ import BodegaAdminPage   from './pages/BodegaAdminPage'
 import ReportesPage      from './pages/ReportesPage'
 import TerminosPage      from './pages/TerminosPage'
 import PrivacidadPage    from './pages/PrivacidadPage'
+import CompletarPerfilPage from './pages/CompletarPerfilPage'
 
 function PantallaCarga({ error, onRelogin }) {
   return (
@@ -39,12 +40,13 @@ const carga = {
   btnRelogin: { marginTop: 10, padding: '8px 20px', background: t.brand, color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600 },
 }
 
-function PrivateRoute({ children, user, role, loading, authError, signOut, aceptoTerminos }) {
+function PrivateRoute({ children, user, role, loading, authError, signOut, aceptoTerminos, correoPersonal }) {
   if (loading) return <PantallaCarga />
   if (authError) return <PantallaCarga error={authError} onRelogin={signOut} />
   if (!user) return <Navigate to="/login" replace />
   if (!role) return <PantallaCarga error="No se pudo verificar tu rol. Contacta al administrador." onRelogin={signOut} />
   if (!aceptoTerminos) return <Navigate to="/terminos" replace />
+  if (role === 'operador' && !correoPersonal) return <Navigate to="/completar-perfil" replace />
   return children
 }
 
@@ -61,7 +63,7 @@ function RoleRoute({ roles, role, loading, children }) {
 }
 
 function AnimatedRoutes() {
-  const { user, role, loading, authError, signOut, aceptoTerminos, aceptarTerminos } = useAuth()
+  const { user, role, loading, authError, signOut, aceptoTerminos, aceptarTerminos, correoPersonal, guardarCorreoPersonal } = useAuth()
   return (
     <Routes>
       <Route path="/login" element={
@@ -75,8 +77,13 @@ function AnimatedRoutes() {
           ? <TerminosPage onAceptar={aceptarTerminos} />
           : <Navigate to="/" replace />
       } />
+      <Route path="/completar-perfil" element={
+        !loading && user && role === 'operador' && !correoPersonal
+          ? <CompletarPerfilPage onGuardar={guardarCorreoPersonal} />
+          : <Navigate to="/" replace />
+      } />
 
-      <Route path="/" element={<PrivateRoute user={user} role={role} loading={loading} authError={authError} signOut={signOut} aceptoTerminos={aceptoTerminos}><MainLayout /></PrivateRoute>}>
+      <Route path="/" element={<PrivateRoute user={user} role={role} loading={loading} authError={authError} signOut={signOut} aceptoTerminos={aceptoTerminos} correoPersonal={correoPersonal}><MainLayout /></PrivateRoute>}>
         <Route index element={<MapaPage />} />
         <Route path="centros"    element={<RoleRoute roles={['admin', 'supervisor']} role={role} loading={loading}><CentrosPage /></RoleRoute>} />
         <Route path="despachos"  element={<DespachosPage />} />

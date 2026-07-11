@@ -1,13 +1,25 @@
 import { useState } from 'react'
 import { useOutletContext } from 'react-router-dom'
-import { FileDown, ExternalLink, MessageCircle, NotebookText, Phone, Trash2 } from 'lucide-react'
+import { FileDown, ExternalLink, MessageCircle, NotebookText, Phone, Trash2, Plus } from 'lucide-react'
 import { t } from '../theme/tokens'
 import { useBitacorasGlobal } from '../hooks/useBitacorasGlobal'
 import { descargarPDFBitacora } from '../lib/generatePDF'
+import { generarTextoBitacora } from '../lib/bitacoraTexto'
 import PanelCentro from '../components/ui/PanelCentro'
+import ModalGenerarBitacora from '../components/bitacora/ModalGenerarBitacora'
 import { Modal, Button } from '../components/kit'
 import { db } from '../lib/firebase'
-import { deleteDoc, doc } from 'firebase/firestore'
+import { doc, getDoc, updateDoc, arrayRemove } from 'firebase/firestore'
+
+function formatFecha(iso) {
+  if (!iso) return ''
+  const [y, m, d] = iso.split('-')
+  return `${d}/${m}/${String(y).slice(2)}`
+}
+
+function mesActual() {
+  return new Date().toISOString().slice(0, 7)
+}
 
 function Campo({ label, valor }) {
   if (!valor) return null
@@ -48,26 +60,44 @@ function OpRow({ op, centroNombre }) {
 }
 
 export default function BitacorasPage() {
-  const { centros, role, uid, sincronizarEstado, actualizarCentro, empresaActiva } = useOutletContext()
-  const base = empresaActiva ? centros.filter(c => c.empresaId === empresaActiva.id) : centros
+  const { centros, role, uid, teamId, sincronizarEstado, actualizarCentro, empresaActiva } = useOutletContext()
+  const base = role === 'operador'
+    ? centros.filter(c => c.teamAsignado === teamId)
+    : (empresaActiva ? centros.filter(c => c.empresaId === empresaActiva.id) : centros)
   const { datos, cargando } = useBitacorasGlobal(base)
   const [centroActivo, setCentroActivo]   = useState(null)
   const [descargando, setDescargando]     = useState(null)
-  const [aEliminar, setAEliminar]         = useState(null) // { centro }
+  const [aEliminar, setAEliminar]         = useState(null) // { centro, entrada }
   const [eliminando, setEliminando]       = useState(false)
+  const [generarPara, setGenerarPara]     = useState(null) // { centro, ultima }
 
   const centroVivo = centroActivo ? centros.find(c => c.id === centroActivo.id) ?? centroActivo : null
 
-  const handleDescargar = async (bitacora, centro) => {
-    setDescargando(centro.id)
-    try { await descargarPDFBitacora(bitacora, centro) } finally { setDescargando(null) }
+  const handleDescargar = async (entrada, centro, key = centro.id) => {
+    setDescargando(key)
+    try { await descargarPDFBitacora(entrada, centro) } finally { setDescargando(null) }
   }
 
+  const handleEnviarWhatsApp = async (entrada, centro, key) => {
+    setDescargando(key)
+    try {
+      const snapRov = await getDoc(doc(db, 'centros', centro.id, 'equipos', 'rov'))
+      const rov = snapRov.exists() ? snapRov.data() : null
+      const texto = generarTextoBitacora(centro, entrada, rov)
+      window.location.href = `whatsapp://send?text=${encodeURIComponent(texto)}`
+    } finally {
+      setDescargando(null)
+    }
+  }
+
+  // Borra solo la entrada puntual (no todo el historial del centro).
   const handleEliminarBitacora = async () => {
     if (!aEliminar) return
     setEliminando(true)
     try {
-      await deleteDoc(doc(db, 'centros', aEliminar.centro.id, 'datos', 'bitacora'))
+      await updateDoc(doc(db, 'centros', aEliminar.centro.id, 'datos', 'bitacora'), {
+        lista: arrayRemove(aEliminar.entrada),
+      })
     } finally {
       setEliminando(false)
       setAEliminar(null)
@@ -87,7 +117,13 @@ export default function BitacorasPage() {
         )}
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {datos.map(({ centro, bitacora, operadores }) => (
+          {datos.map(({ centro, bitacora, ultima, operadores }) => {
+            const entradasMes = (bitacora?.lista ?? [])
+              .filter(b => (b.fecha ?? '').slice(0, 7) === mesActual())
+              .slice()
+              .reverse()
+
+            return (
             <div key={centro.id} style={{ background: t.bgElevated, border: `1px solid ${t.border}`, borderRadius: t.radiusLg, padding: 15 }}>
               {/* Header */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, gap: 8 }}>
@@ -96,6 +132,14 @@ export default function BitacorasPage() {
                   <div style={{ fontSize: 10, color: t.textMuted }}>{centro.empresaNombre ?? ''}</div>
                 </div>
                 <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                  {role === 'operador' && (
+                    <button
+                      onClick={() => setGenerarPara({ centro, ultima })}
+                      title="Generar bitácora diaria"
+                      style={{ display: 'flex', alignItems: 'center', gap: 4, background: t.brand, color: '#fff', border: 'none', borderRadius: t.radiusMd, padding: '5px 9px', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
+                      <Plus size={13} /> Generar bitácora diaria
+                    </button>
+                  )}
                   {(role === 'admin' || role === 'supervisor') && (
                     <button
                       onClick={() => setCentroActivo(centro)}
@@ -104,19 +148,19 @@ export default function BitacorasPage() {
                       <ExternalLink size={13} /> Panel
                     </button>
                   )}
-                  {bitacora && (
+                  {(role === 'admin' || role === 'supervisor') && ultima && (
                     <button
-                      onClick={() => handleDescargar(bitacora, centro)}
+                      onClick={() => handleDescargar(ultima, centro)}
                       disabled={descargando === centro.id}
-                      title="Descargar PDF de bitácora"
+                      title="Descargar PDF de la última bitácora"
                       style={{ display: 'flex', alignItems: 'center', gap: 4, background: t.bgInput, color: t.textPrimary, border: `1px solid ${t.border}`, borderRadius: t.radiusMd, padding: '5px 9px', fontSize: 11, fontWeight: 600, cursor: 'pointer', opacity: descargando === centro.id ? 0.6 : 1 }}>
                       <FileDown size={13} /> {descargando === centro.id ? '…' : 'PDF'}
                     </button>
                   )}
-                  {role === 'admin' && bitacora && (
+                  {role === 'admin' && ultima && (
                     <button
-                      onClick={() => setAEliminar({ centro })}
-                      title="Eliminar bitácora"
+                      onClick={() => setAEliminar({ centro, entrada: ultima })}
+                      title="Eliminar la última entrada"
                       style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: t.faultTint, color: t.fault, border: `1px solid ${t.fault}40`, borderRadius: t.radiusMd, padding: '5px 8px', cursor: 'pointer' }}>
                       <Trash2 size={13} />
                     </button>
@@ -124,27 +168,64 @@ export default function BitacorasPage() {
                 </div>
               </div>
 
-              {/* Datos bitácora */}
-              {bitacora ? (
+              {/* Operador: listado del mes en curso, solo su propio centro */}
+              {role === 'operador' ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 10 }}>
+                  {entradasMes.length === 0 && (
+                    <div style={{ fontSize: t.textXs, color: t.textMuted, fontStyle: 'italic' }}>Sin bitácoras este mes.</div>
+                  )}
+                  {entradasMes.map((b, i) => {
+                    const key = `${centro.id}-${b.creadoEn ?? i}`
+                    return (
+                    <div key={i} style={{ background: t.bgInput, border: `1px solid ${t.border}`, borderRadius: t.radiusMd, padding: '8px 10px', display: 'flex', flexDirection: 'column', gap: 3 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                        <div style={{ fontSize: t.textXs, fontWeight: 700, color: t.textPrimary }}>{formatFecha(b.fecha)} — {b.piloto || 'Sin piloto'}</div>
+                        <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                          <button onClick={() => handleEnviarWhatsApp(b, centro, key)} disabled={descargando === key}
+                            title="Enviar por WhatsApp"
+                            style={{ display: 'flex', alignItems: 'center', gap: 4, background: '#22c55e18', border: '1px solid #22c55e40', color: '#16a34a', borderRadius: t.radiusMd, padding: '4px 9px', fontSize: 11, fontWeight: 600, cursor: 'pointer', opacity: descargando === key ? 0.6 : 1 }}>
+                            <MessageCircle size={12} /> {descargando === key ? '…' : 'Enviar por WhatsApp'}
+                          </button>
+                          <button onClick={() => setAEliminar({ centro, entrada: b })}
+                            title="Eliminar esta bitácora"
+                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: t.faultTint, color: t.fault, border: `1px solid ${t.fault}40`, borderRadius: t.radiusMd, padding: '4px 8px', cursor: 'pointer' }}>
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
+                      </div>
+                      <Campo label="Estado puerto" valor={b.estadoPuerto} />
+                      <Campo label="Jornada AM"    valor={b.jornadaAm} />
+                      <Campo label="Jornada PM"    valor={b.jornadaPm} />
+                      <Campo label="Observaciones" valor={b.observaciones} />
+                    </div>
+                    )
+                  })}
+                </div>
+              ) : ultima ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 10 }}>
-                  <Campo label="Fecha"         valor={bitacora.fecha} />
-                  <Campo label="Piloto"        valor={bitacora.piloto} />
-                  <Campo label="Team"          valor={bitacora.team} />
-                  <Campo label="Área"          valor={bitacora.area} />
-                  <Campo label="Estado puerto" valor={bitacora.estadoPuerto} />
-                  <Campo label="Jornada AM"    valor={bitacora.jornadaAm} />
-                  <Campo label="Jornada PM"    valor={bitacora.jornadaPm} />
-                  <Campo label="Observaciones" valor={bitacora.observaciones} />
+                  <Campo label="Fecha"         valor={ultima.fecha} />
+                  <Campo label="Piloto"        valor={ultima.piloto} />
+                  <Campo label="Team"          valor={ultima.team} />
+                  <Campo label="Área"          valor={ultima.area} />
+                  <Campo label="Estado puerto" valor={ultima.estadoPuerto} />
+                  <Campo label="Jornada AM"    valor={ultima.jornadaAm} />
+                  <Campo label="Jornada PM"    valor={ultima.jornadaPm} />
+                  <Campo label="Observaciones" valor={ultima.observaciones} />
                 </div>
               ) : (
                 <div style={{ fontSize: t.textXs, color: t.textMuted, fontStyle: 'italic', marginBottom: 10 }}>Sin bitácora registrada.</div>
               )}
 
-              {/* Operadores */}
-              <OpRow op={operadores?.op1} />
-              <OpRow op={operadores?.op2} />
+              {/* Operadores: "solicitar bitácora" es una acción de admin/supervisor hacia el operador, no algo que el operador vea de sí mismo */}
+              {role !== 'operador' && (
+                <>
+                  <OpRow op={operadores?.op1} />
+                  <OpRow op={operadores?.op2} />
+                </>
+              )}
             </div>
-          ))}
+            )
+          })}
         </div>
       </div>
 
@@ -171,9 +252,17 @@ export default function BitacorasPage() {
             </Button>
           </>}>
           <p style={{ color: t.textSecondary, fontSize: t.textSm, margin: 0, lineHeight: 1.5 }}>
-            ¿Eliminar la bitácora de <b style={{ color: t.textPrimary }}>{aEliminar.centro.nombre}</b>? Los datos del formulario se borrarán permanentemente.
+            ¿Eliminar la entrada del {formatFecha(aEliminar.entrada?.fecha)} de <b style={{ color: t.textPrimary }}>{aEliminar.centro.nombre}</b>? El resto del historial se conserva.
           </p>
         </Modal>
+      )}
+
+      {generarPara && (
+        <ModalGenerarBitacora
+          centro={generarPara.centro}
+          ultima={generarPara.ultima}
+          onCerrar={() => setGenerarPara(null)}
+        />
       )}
     </div>
   )

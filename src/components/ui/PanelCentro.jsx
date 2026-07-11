@@ -24,10 +24,15 @@ const TAB_COMPONENTES = {
   bitacora:   (p) => <TabBitacora {...p} />,
 }
 
-export default memo(function PanelCentro({ centro, onCerrar, onEliminar, sincronizarEstado, actualizarCentro, role, uid }) {
+// El operador gestiona despacho/turno/bitácora desde las páginas del menú lateral, no desde
+// este panel — se saca de raíz (no depende de la configuración de permisos por pestaña).
+const OCULTAS_OPERADOR = ['despacho', 'turno', 'bitacora']
+
+export default memo(function PanelCentro({ centro, onCerrar, onEliminar, sincronizarEstado, actualizarCentro, role, uid, teamId }) {
   const { tabs, permiso } = useAppConfig()
   const tabsVisibles = tabs.filter(
-    (tb) => !tb.hidden && TAB_COMPONENTES[tb.id] && permiso(tb.id, role) !== 'hidden',
+    (tb) => !tb.hidden && TAB_COMPONENTES[tb.id] && permiso(tb.id, role) !== 'hidden'
+      && !(role === 'operador' && OCULTAS_OPERADOR.includes(tb.id)),
   )
   const [tabActiva, setTabActiva]   = useState(tabsVisibles[0]?.id ?? 'operator')
   // En modo "solo ver", pasamos un rol sin permisos de edición a la pestaña:
@@ -117,7 +122,9 @@ export default memo(function PanelCentro({ centro, onCerrar, onEliminar, sincron
               <button className="gl-icon-btn" onClick={() => setAEliminar(true)} aria-label="Eliminar centro" style={{ color: t.fault }}><Trash2 size={17} /></button>
             </>
           )}
-          <button className="gl-icon-btn" onClick={onCerrar} aria-label="Cerrar"><X size={18} /></button>
+          {onCerrar && (
+            <button className="gl-icon-btn" onClick={onCerrar} aria-label="Cerrar"><X size={18} /></button>
+          )}
         </div>
       </div>
 
@@ -157,7 +164,7 @@ export default memo(function PanelCentro({ centro, onCerrar, onEliminar, sincron
           transition={{ duration: 0.18, ease: [0.4, 0, 0.2, 1] }}
           style={styles.contenido}
         >
-          {TAB_COMPONENTES[tabActiva]?.({ centro, role: rolEfectivo, uid, sincronizarEstado })}
+          {TAB_COMPONENTES[tabActiva]?.({ centro, role: rolEfectivo, uid, teamId, sincronizarEstado })}
         </motion.div>
       </AnimatePresence>
 

@@ -40,7 +40,7 @@ export default function PopupCentroContactos({ centro, onCerrar }) {
 
   // Compatibilidad: la sincronización guarda en `lista` (array); formato antiguo usa op1/op2.
   const lista    = ops.lista ?? [ops.op1, ops.op2].filter(Boolean)
-  const tieneOps = lista.some(op => op?.nombre)
+  const opEnFaena = lista.find(op => op?.estado === 'faena' && op?.nombre)
 
   return (
     <div className="gl-glass" style={s.card}>
@@ -58,12 +58,12 @@ export default function PopupCentroContactos({ centro, onCerrar }) {
 
       <div style={s.divider} />
 
-      {tieneOps ? (
+      {opEnFaena ? (
         <div style={s.ops}>
-          {lista.map((op, i) => <OpCard key={i} op={op} />)}
+          <OpCard op={opEnFaena} />
         </div>
       ) : (
-        <p style={s.sinOps}>Sin operadores asignados</p>
+        <p style={s.sinOps}>Nadie en faena en este centro</p>
       )}
     </div>
   )
