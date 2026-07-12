@@ -37,14 +37,9 @@ export async function calcularEstadoCentro(centroId) {
       }
     }
 
-    // 2. Verificar estuches de herramientas (Principal/Backup)
-    const estSnap = await getDoc(doc(db, 'centros', centroId, 'datos', 'estucheHerramientas'))
-    if (estSnap.exists()) {
-      const { principal = {}, backup = {} } = estSnap.data()
-      const hayFalta = [...Object.values(principal), ...Object.values(backup)].some(v => v === 'falta')
-      if (hayFalta) return 'LOW_STOCK'
-    }
-
+    // La falta de stock (estuche/caja de herramientas) ya no compite por el color base:
+    // se muestra como punto amarillo independiente (ver useFaltantesGlobal.js) para que
+    // no tape una falla de equipo simultánea.
     return 'OK'
   } catch (e) {
     logError('useCentros/calcularEstado', e)

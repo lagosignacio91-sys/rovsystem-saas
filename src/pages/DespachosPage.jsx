@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { useOutletContext } from 'react-router-dom'
-import { Clock, Truck, CircleCheck, Trash2, Package, Send, ChevronDown, ChevronRight } from 'lucide-react'
+import { Clock, Truck, CircleCheck, Trash2, Package, Send, ChevronDown, ChevronRight, Wrench, AlertOctagon } from 'lucide-react'
 import { t } from '../theme/tokens'
 import { Button, Modal } from '../components/kit'
 import { useDespachosGlobal } from '../hooks/useDespachosGlobal'
+import { useEquipoTicketsGlobal } from '../hooks/useEquipoTicketsGlobal'
 import { claveItem, normalizarItemsLegacy } from '../lib/despachos'
+import { TICKET_ESTADO_LABEL } from '../lib/equipoTickets'
 
 const ESTADO_INFO = {
   pendiente: { label: 'Pendiente',  color: t.low,      tint: t.lowTint,      icon: Clock },
@@ -42,6 +44,8 @@ function DespachoCard({ d, role, marcarEnviado, enviarItemsPendientes, onAbrirRe
   const recibido = d.estado === 'recibido'
   const items = normalizarItemsLegacy(d)
   const pendientesItems = items.filter(i => i.estadoItem === 'pendiente')
+  // Evita que un doble clic dispare "Marcar enviado" dos veces para el mismo despacho.
+  const [enviando, setEnviando] = useState(false)
 
   const enviarWhatsApp = () => {
     const msg = `*Solicitud de despacho*\nCentro: ${d.centroNombre}\nÍtems:\n${(d.items ?? []).map(i => `• ${i.nombre}${i.cantidadSolicitada ? ` ×${i.cantidadSolicitada}` : ''}`).join('\n')}`
@@ -50,11 +54,20 @@ function DespachoCard({ d, role, marcarEnviado, enviarItemsPendientes, onAbrirRe
 
   // Los despachos del flujo "falta → despacho" (origen: 'centro') marcan sus ítems
   // pendientes como enviados uno a uno; los de Bodega Central siguen usando marcarEnviado.
-  const handleMarcarEnviado = () => {
-    if (d.origen === 'centro') {
-      enviarItemsPendientes(d.id, pendientesItems.map(claveItem))
-    } else {
-      marcarEnviado(d.id, (d.items ?? []).map(i => ({ ...i, cantidadDespachada: i.cantidadEnviada ?? i.cantidadSolicitada ?? i.cantidad ?? 1 })))
+  const handleMarcarEnviado = async () => {
+    if (enviando) return
+    setEnviando(true)
+    try {
+      if (d.origen === 'centro') {
+        await enviarItemsPendientes(d.id, pendientesItems.map(claveItem))
+      } else {
+        await marcarEnviado(d.id, (d.items ?? []).map(i => ({ ...i, cantidadDespachada: i.cantidadEnviada ?? i.cantidadSolicitada ?? i.cantidad ?? 1 })))
+      }
+    } catch (e) {
+      console.error('[DespachosPage/marcarEnviado]', e)
+      alert('No se pudo marcar como enviado. Intenta de nuevo.')
+    } finally {
+      setEnviando(false)
     }
   }
 
@@ -95,7 +108,9 @@ function DespachoCard({ d, role, marcarEnviado, enviarItemsPendientes, onAbrirRe
           {(role === 'admin' || role === 'supervisor') && d.estado === 'pendiente' && (
             <>
               <Button size="sm" icon={Send} onClick={enviarWhatsApp} style={{ background: '#22c55e', color: '#06240f' }}>WhatsApp</Button>
-              <Button size="sm" variant="secondary" icon={Truck} onClick={handleMarcarEnviado}>Marcar enviado</Button>
+              <Button size="sm" variant="secondary" icon={Truck} onClick={handleMarcarEnviado} disabled={enviando}>
+                {enviando ? 'Enviando...' : 'Marcar enviado'}
+              </Button>
             </>
           )}
           {(role === 'admin' || role === 'operador') && (d.estado === 'enviado' || d.estado === 'parcial') && (
@@ -138,15 +153,151 @@ function GrupoCentro({ nombre, despachos, role, marcarEnviado, enviarItemsPendie
   )
 }
 
+function equipoLabel(equipo) { return equipo === 'backup' ? 'Backup' : 'Principal' }
+
+function EquipoTicketCard({ ticket, role, teamId, bloqueado, onDespachar, onEnviarReemplazo, onAbrirRecepcion, onEliminar }) {
+  const recibido = ticket.estado === 'recibido'
+  const esMiTeam = !!teamId && ticket.teamAsignado === teamId
+  const puedeDespachar       = ticket.estado === 'solicitado'        && (role === 'admin' || (role === 'operador' && esMiTeam)) && !bloqueado
+  const puedeEnviarReemplazo = ticket.estado === 'despachado_taller' && (role === 'admin' || role === 'supervisor')            && !bloqueado
+  const puedeConfirmar       = ticket.estado === 'reemplazo_enviado' && (role === 'admin' || (role === 'operador' && esMiTeam)) && !bloqueado
+  const puedeEliminar        = (role === 'admin' || role === 'supervisor') && !bloqueado
+
+  return (
+    <div style={{ background: recibido ? t.bgInput : t.faultTint, border: `1px solid ${t.fault}`, borderRadius: t.radiusMd, padding: '11px 13px', opacity: recibido ? 0.8 : 1 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
+        <div style={{ display: 'flex', gap: 9, minWidth: 0 }}>
+          <div style={{ width: 32, height: 32, borderRadius: t.radiusMd, background: t.bgElevated, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <AlertOctagon size={16} color={t.fault} />
+          </div>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: t.textSm, color: t.textPrimary, fontWeight: 600 }}>{equipoLabel(ticket.equipo)} — {ticket.campoLabel}</div>
+            {ticket.fallaMotivo && <div style={{ fontSize: t.textXs, color: t.textMuted, marginTop: 2 }}>{ticket.fallaMotivo}</div>}
+            {ticket.creadoEn && <div style={{ fontSize: 10, color: t.textMuted, marginTop: 2, opacity: 0.7 }}>{fechaRelativa(ticket.creadoEn)}</div>}
+          </div>
+        </div>
+        <span style={{ fontSize: 10, color: t.fault, background: t.bgElevated, padding: '3px 9px', borderRadius: t.radiusFull, fontWeight: 500, whiteSpace: 'nowrap', flexShrink: 0 }}>
+          {TICKET_ESTADO_LABEL[ticket.estado] ?? ticket.estado}
+        </span>
+      </div>
+
+      {ticket.reemplazoDetalle && (
+        <div style={{ marginTop: 8, fontSize: t.textXs, color: t.textSecondary }}>📦 {ticket.reemplazoDetalle}</div>
+      )}
+      {ticket.recepcionObservacion && (
+        <div style={{ marginTop: 4, fontSize: t.textXs, color: t.textMuted }}>📝 {ticket.recepcionObservacion}</div>
+      )}
+
+      {!recibido && (
+        <div style={{ display: 'flex', gap: 7, marginTop: 10, paddingTop: 9, borderTop: `1px solid ${t.fault}`, flexWrap: 'wrap' }}>
+          {puedeDespachar && (
+            <Button size="sm" variant="secondary" icon={Truck} onClick={() => onDespachar(ticket.id)}>Despachar a taller</Button>
+          )}
+          {puedeEnviarReemplazo && (
+            <Button size="sm" variant="secondary" icon={Package} onClick={() => onEnviarReemplazo(ticket)}>Enviar reemplazo</Button>
+          )}
+          {puedeConfirmar && (
+            <Button size="sm" variant="secondary" icon={CircleCheck} onClick={() => onAbrirRecepcion(ticket)} style={{ borderColor: t.ok, color: t.ok }}>Confirmar recepción</Button>
+          )}
+          {puedeEliminar && (
+            <Button size="sm" variant="danger" icon={Trash2} onClick={() => onEliminar(ticket)} style={{ marginLeft: 'auto' }} aria-label="Eliminar" />
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function GrupoCentroEquipos({ nombre, tickets, role, teamId, bloqueado, onDespachar, onEnviarReemplazo, onAbrirRecepcion, onEliminar }) {
+  const [abierto, setAbierto] = useState(true)
+  const abiertos = tickets.filter(t => t.estado !== 'recibido').length
+  return (
+    <div style={{ marginBottom: 14 }}>
+      <button onClick={() => setAbierto(v => !v)}
+        style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, background: t.bgInput, border: `1px solid ${t.border}`, borderRadius: t.radiusMd, padding: '9px 12px', cursor: 'pointer', textAlign: 'left' }}>
+        {abierto ? <ChevronDown size={15} color={t.textMuted} /> : <ChevronRight size={15} color={t.textMuted} />}
+        <span style={{ fontSize: t.textSm, fontWeight: 600, color: t.textPrimary, flex: 1 }}>{nombre}</span>
+        {abiertos > 0 && (
+          <span style={{ fontSize: 10, background: t.faultTint, color: t.fault, borderRadius: t.radiusFull, padding: '2px 8px', fontWeight: 600 }}>{abiertos} en curso</span>
+        )}
+        <span style={{ fontSize: t.textXs, color: t.textMuted }}>{tickets.length}</span>
+      </button>
+      {abierto && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 7, marginTop: 7, paddingLeft: 8 }}>
+          {tickets.map(ticket => (
+            <EquipoTicketCard key={ticket.id} ticket={ticket} role={role} teamId={teamId} bloqueado={bloqueado}
+              onDespachar={onDespachar} onEnviarReemplazo={onEnviarReemplazo}
+              onAbrirRecepcion={onAbrirRecepcion} onEliminar={onEliminar} />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function DespachosPage() {
   const { role, centros, empresaActiva, teamId } = useOutletContext()
   const { despachos, cargando, marcarEnviado, enviarItemsPendientes, confirmarRecepcion, eliminarDespacho } = useDespachosGlobal({ role, teamId })
+  const {
+    tickets: equipoTickets, cargando: cargandoEquipos,
+    marcarDespachadoTaller, marcarReemplazoEnviado, confirmarRecepcion: confirmarRecepcionEquipo, eliminarTicket,
+  } = useEquipoTicketsGlobal({ role, teamId })
   const [filtro,          setFiltro]          = useState('todos')
   const [aEliminar,       setAEliminar]       = useState(null)
   const [despachoRecibir, setDespachoRecibir] = useState(null)
   const [obsRecepcion,    setObsRecepcion]    = useState('')
   const [itemsRecibir,    setItemsRecibir]    = useState({}) // clave item -> boolean
   const [guardandoRec,    setGuardandoRec]    = useState(false)
+  const [guardandoElim,   setGuardandoElim]   = useState(false)
+
+  // ---- Equipos (tickets de falla → baja → reemplazo) ----
+  const [ticketReemplazo, setTicketReemplazo] = useState(null)
+  const [detalleReemplazo, setDetalleReemplazo] = useState('')
+  const [ticketRecibir,   setTicketRecibir]   = useState(null)
+  const [obsRecepcionEq,  setObsRecepcionEq]  = useState('')
+  const [ticketEliminar,  setTicketEliminar]  = useState(null)
+  const [guardandoEq,     setGuardandoEq]     = useState(false)
+
+  const handleDespachar = async (id) => {
+    if (guardandoEq) return
+    setGuardandoEq(true)
+    try {
+      await marcarDespachadoTaller(id)
+    } catch (e) {
+      console.error('[DespachosPage/despacharEquipo]', e)
+      alert('No se pudo marcar como despachado. Intenta de nuevo.')
+    } finally {
+      setGuardandoEq(false)
+    }
+  }
+
+  const handleConfirmarReemplazo = async () => {
+    if (!ticketReemplazo || guardandoEq) return
+    setGuardandoEq(true)
+    try {
+      await marcarReemplazoEnviado(ticketReemplazo.id, { detalle: detalleReemplazo })
+      setTicketReemplazo(null)
+    } catch (e) {
+      console.error('[DespachosPage/enviarReemplazo]', e)
+      alert('No se pudo marcar el reemplazo. Intenta de nuevo.')
+    } finally {
+      setGuardandoEq(false)
+    }
+  }
+
+  const handleConfirmarRecepcionEquipo = async () => {
+    if (!ticketRecibir || guardandoEq) return
+    setGuardandoEq(true)
+    try {
+      await confirmarRecepcionEquipo(ticketRecibir.id, { observacion: obsRecepcionEq })
+      setTicketRecibir(null)
+    } catch (e) {
+      console.error('[DespachosPage/confirmarRecepcionEquipo]', e)
+      alert('No se pudo confirmar la recepción. Intenta de nuevo.')
+    } finally {
+      setGuardandoEq(false)
+    }
+  }
 
   const abrirRecepcion = (d) => {
     const enviados = normalizarItemsLegacy(d).filter(i => i.estadoItem === 'enviado')
@@ -154,6 +305,9 @@ export default function DespachosPage() {
     setObsRecepcion('')
     setItemsRecibir(enviados.reduce((acc, i) => ({ ...acc, [claveItem(i)]: true }), {}))
   }
+
+  const abrirReemplazo = (ticket) => { setTicketReemplazo(ticket); setDetalleReemplazo('') }
+  const abrirRecepcionEquipo = (ticket) => { setTicketRecibir(ticket); setObsRecepcionEq('') }
 
   const toggleItemRecibir = (key) => setItemsRecibir(prev => ({ ...prev, [key]: !prev[key] }))
 
@@ -179,6 +333,16 @@ export default function DespachosPage() {
   const despachosFiltrados = empresaActiva
     ? despachos.filter(d => centroIds.has(d.centroId))
     : despachos
+
+  const equipoTicketsFiltrados = empresaActiva
+    ? equipoTickets.filter(t => centroIds.has(t.centroId))
+    : equipoTickets
+  const porCentroEquipos = equipoTicketsFiltrados.reduce((acc, t) => {
+    const nombre = t.centroNombre ?? 'Sin centro'
+    ;(acc[nombre] = acc[nombre] ?? []).push(t)
+    return acc
+  }, {})
+  const centrosOrdenadosEquipos = Object.keys(porCentroEquipos).sort((a, b) => a.localeCompare(b))
 
   const conteo = {
     pendiente: despachosFiltrados.filter(d => d.estado === 'pendiente').length,
@@ -231,6 +395,27 @@ export default function DespachosPage() {
             onAbrirRecepcion={abrirRecepcion}
             onEliminar={setAEliminar} />
         ))}
+
+        {/* ---- Sección Equipos (tickets de falla → baja → reemplazo) ---- */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '24px 0 12px' }}>
+          <Wrench size={16} color={t.fault} />
+          <span style={{ fontSize: t.textSm, fontWeight: 700, color: t.textPrimary }}>Equipos</span>
+        </div>
+
+        {cargandoEquipos && <p style={{ color: t.textMuted, fontSize: t.textSm }}>Cargando…</p>}
+
+        {!cargandoEquipos && centrosOrdenadosEquipos.length === 0 && (
+          <div style={{ textAlign: 'center', color: t.textMuted, padding: '24px 0', fontSize: t.textSm }}>
+            <Wrench size={28} style={{ opacity: 0.5, marginBottom: 8 }} /><div>Sin tickets de equipo registrados.</div>
+          </div>
+        )}
+
+        {centrosOrdenadosEquipos.map(nombre => (
+          <GrupoCentroEquipos key={nombre} nombre={nombre} tickets={porCentroEquipos[nombre]}
+            role={role} teamId={teamId} bloqueado={guardandoEq}
+            onDespachar={handleDespachar} onEnviarReemplazo={abrirReemplazo}
+            onAbrirRecepcion={abrirRecepcionEquipo} onEliminar={setTicketEliminar} />
+        ))}
       </div>
 
       {/* Modal confirmar recepción */}
@@ -270,12 +455,91 @@ export default function DespachosPage() {
 
       {/* Modal eliminar */}
       {aEliminar && (
-        <Modal open title="Eliminar despacho" onClose={() => setAEliminar(null)} maxWidth={340}
+        <Modal open title="Eliminar despacho" onClose={() => !guardandoElim && setAEliminar(null)} maxWidth={340}
           footer={<>
-            <Button variant="secondary" size="lg" onClick={() => setAEliminar(null)}>Cancelar</Button>
-            <Button variant="primary" size="lg" style={{ background: t.fault }} onClick={async () => { await eliminarDespacho(aEliminar.id); setAEliminar(null) }}>Eliminar</Button>
+            <Button variant="secondary" size="lg" onClick={() => setAEliminar(null)} disabled={guardandoElim}>Cancelar</Button>
+            <Button variant="primary" size="lg" style={{ background: t.fault }} disabled={guardandoElim}
+              onClick={async () => {
+                if (guardandoElim) return
+                setGuardandoElim(true)
+                try { await eliminarDespacho(aEliminar.id); setAEliminar(null) } finally { setGuardandoElim(false) }
+              }}>
+              {guardandoElim ? 'Eliminando...' : 'Eliminar'}
+            </Button>
           </>}>
           <p style={{ color: t.textSecondary, fontSize: t.textSm, margin: 0 }}>¿Eliminar el despacho de <b style={{ color: t.textPrimary }}>{aEliminar.centroNombre}</b>?</p>
+        </Modal>
+      )}
+
+      {/* Modal enviar reemplazo de equipo */}
+      {ticketReemplazo && (
+        <Modal open title="Enviar reemplazo" onClose={() => setTicketReemplazo(null)} maxWidth={360}
+          footer={<>
+            <Button variant="secondary" size="lg" onClick={() => setTicketReemplazo(null)} disabled={guardandoEq}>Cancelar</Button>
+            <Button size="lg" style={{ background: t.fault, color: '#fff' }} onClick={handleConfirmarReemplazo} disabled={guardandoEq}>
+              {guardandoEq ? 'Guardando...' : 'Enviar reemplazo'}
+            </Button>
+          </>}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <p style={{ color: t.textSecondary, fontSize: t.textSm, margin: 0 }}>
+              {equipoLabel(ticketReemplazo.equipo)} — <b style={{ color: t.textPrimary }}>{ticketReemplazo.campoLabel}</b>, centro <b style={{ color: t.textPrimary }}>{ticketReemplazo.centroNombre}</b>
+            </p>
+            <div>
+              <label style={{ display: 'block', fontSize: t.textSm, fontWeight: 600, color: t.textSecondary, marginBottom: 4 }}>Detalle (opcional)</label>
+              <textarea
+                value={detalleReemplazo}
+                onChange={e => setDetalleReemplazo(e.target.value)}
+                placeholder="Ej: se envía unidad de repuesto N°..."
+                rows={3}
+                style={{ width: '100%', padding: '8px 10px', background: t.bgInput, border: `1px solid ${t.border}`, borderRadius: t.radiusMd, color: t.textPrimary, fontSize: t.textSm, resize: 'vertical', boxSizing: 'border-box' }}
+              />
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Modal confirmar recepción de equipo */}
+      {ticketRecibir && (
+        <Modal open title="Confirmar Recepción" onClose={() => setTicketRecibir(null)} maxWidth={360}
+          footer={<>
+            <Button variant="secondary" size="lg" onClick={() => setTicketRecibir(null)} disabled={guardandoEq}>Cancelar</Button>
+            <Button size="lg" style={{ background: t.ok, color: '#fff' }} onClick={handleConfirmarRecepcionEquipo} disabled={guardandoEq}>
+              {guardandoEq ? 'Guardando...' : 'Confirmar'}
+            </Button>
+          </>}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <p style={{ color: t.textSecondary, fontSize: t.textSm, margin: 0 }}>
+              {equipoLabel(ticketRecibir.equipo)} — <b style={{ color: t.textPrimary }}>{ticketRecibir.campoLabel}</b>, centro <b style={{ color: t.textPrimary }}>{ticketRecibir.centroNombre}</b>
+            </p>
+            <div>
+              <label style={{ display: 'block', fontSize: t.textSm, fontWeight: 600, color: t.textSecondary, marginBottom: 4 }}>Observación</label>
+              <textarea
+                value={obsRecepcionEq}
+                onChange={e => setObsRecepcionEq(e.target.value)}
+                placeholder="Ej: llegó en buen estado..."
+                rows={3}
+                style={{ width: '100%', padding: '8px 10px', background: t.bgInput, border: `1px solid ${t.border}`, borderRadius: t.radiusMd, color: t.textPrimary, fontSize: t.textSm, resize: 'vertical', boxSizing: 'border-box' }}
+              />
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Modal eliminar ticket de equipo */}
+      {ticketEliminar && (
+        <Modal open title="Eliminar ticket" onClose={() => !guardandoEq && setTicketEliminar(null)} maxWidth={340}
+          footer={<>
+            <Button variant="secondary" size="lg" onClick={() => setTicketEliminar(null)} disabled={guardandoEq}>Cancelar</Button>
+            <Button variant="primary" size="lg" style={{ background: t.fault }} disabled={guardandoEq}
+              onClick={async () => {
+                if (guardandoEq) return
+                setGuardandoEq(true)
+                try { await eliminarTicket(ticketEliminar.id); setTicketEliminar(null) } finally { setGuardandoEq(false) }
+              }}>
+              {guardandoEq ? 'Eliminando...' : 'Eliminar'}
+            </Button>
+          </>}>
+          <p style={{ color: t.textSecondary, fontSize: t.textSm, margin: 0 }}>¿Eliminar el ticket de <b style={{ color: t.textPrimary }}>{ticketEliminar.campoLabel}</b> ({ticketEliminar.centroNombre})?</p>
         </Modal>
       )}
     </div>

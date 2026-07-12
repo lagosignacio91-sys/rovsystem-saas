@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { db } from '../../lib/firebase'
 import { doc, setDoc, getDoc } from 'firebase/firestore'
 
-const CAMPOS = [
+export const CAMPOS = [
   { key: 'modelo',               label: 'Modelo',             sinFalla: true },
   { key: 'codigoRov',            label: 'Código ROV' },
   { key: 'codigoControl',        label: 'Código Control' },

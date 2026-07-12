@@ -3,7 +3,7 @@ import { useResumenCentro } from '../../hooks/useResumenCentro'
 import { t } from '../../theme/tokens'
 import { EstadoBadge } from '../kit'
 
-export default function PopupCentro({ centro, onAbrir, onCerrar }) {
+export default function PopupCentro({ centro, centrosConFaltantes, onAbrir, onCerrar }) {
   const { fallas, solicitudes } = useResumenCentro(centro.id)
 
   return (
@@ -11,7 +11,7 @@ export default function PopupCentro({ centro, onAbrir, onCerrar }) {
       <div style={s.header}>
         <div style={{ minWidth: 0 }}>
           <div style={s.nombre}>{centro.nombre}</div>
-          <div style={{ marginTop: 5 }}><EstadoBadge estado={centro.estado} /></div>
+          <div style={{ marginTop: 5 }}><EstadoBadge estado={centro.estado} tieneFaltante={centrosConFaltantes?.has(centro.id)} /></div>
         </div>
         <button onClick={e => { e.stopPropagation(); onCerrar() }} className="gl-icon-btn" style={{ padding: 4 }} aria-label="Cerrar"><X size={15} /></button>
       </div>

@@ -119,6 +119,35 @@ service cloud.firestore {
       allow delete:        if isAdmin() || isSupervisor();
     }
 
+    // ---- Tickets de equipo (falla -> baja -> reemplazo) ----
+    // Independiente de `despachos`. Admin y taller controlan el ciclo completo
+    // (crear, marcar reemplazo enviado, borrar). El operador solo hace dos
+    // transiciones puntuales de SU propio team, con campos acotados por paso.
+    match /equipoTickets/{id} {
+      allow read: if signedIn()
+        && (!isOperador() || resource.data.teamAsignado
+              == get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.teamId);
+
+      allow create: if isAdmin() || isSupervisor();
+
+      allow update: if isAdmin() || isSupervisor()
+        || (isOperador()
+            && resource.data.teamAsignado
+                 == get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.teamId
+            && (
+                 (resource.data.estado == 'solicitado'
+                   && request.resource.data.estado == 'despachado_taller'
+                   && request.resource.data.diff(resource.data).affectedKeys()
+                        .hasOnly(['estado', 'despachadoTallerEn', 'despachadoTallerPor', 'historial']))
+              || (resource.data.estado == 'reemplazo_enviado'
+                   && request.resource.data.estado == 'recibido'
+                   && request.resource.data.diff(resource.data).affectedKeys()
+                        .hasOnly(['estado', 'recibidoEn', 'recibidoPor', 'recepcionObservacion', 'historial']))
+               ));
+
+      allow delete: if isAdmin() || isSupervisor();
+    }
+
     // ---- Panel HyperionX Olimpo ----
     // Owner: acceso total. Ventas: solo lectura en clientes/pagos/productos + cartera completa.
     match /hxOlimpo/{doc} {

@@ -23,7 +23,7 @@ const SVG = {
   NO_OPERATOR:     '<circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4"/><line x1="17" y1="8" x2="22" y2="13"/><line x1="22" y1="8" x2="17" y2="13"/>',
 }
 
-const ESTADOS_ORDEN = ['OK', 'LOW_STOCK', 'EQUIPMENT_FAULT', 'DISPATCH_ONWAY', 'NO_OPERATOR']
+const ESTADOS_ORDEN = ['OK', 'EQUIPMENT_FAULT', 'DISPATCH_ONWAY', 'NO_OPERATOR']
 
 // El tamaño del marcador escala con el zoom: lejos = pequeño, cerca = grande.
 function tamPorZoom(zoom) {
@@ -33,7 +33,7 @@ function tamPorZoom(zoom) {
 function crearIcono(estado, size = 26, tieneFaltante = false) {
   const meta  = ESTADO_META[estado] ?? ESTADO_META.NO_OPERATOR
   const color = meta.dot
-  const alerta = estado === 'LOW_STOCK' || estado === 'EQUIPMENT_FAULT'
+  const alerta = estado === 'EQUIPMENT_FAULT'
   const grande = size >= 22
   const borde  = Math.max(1.5, size * 0.085).toFixed(1)
   // Halo de estado siempre presente (instrumento); pulso solo en alertas grandes.
@@ -432,7 +432,7 @@ function MapInner({ centros, onMapClick, onCentroClick, role, userTeamId, centro
       {popupCentro && popupPos && popupTipo === 'propio' && (
         <div style={{ position: 'absolute', left: Math.min(Math.max(8, popupPos.x + 16), window.innerWidth - 240), top: Math.max(8, popupPos.y - 30), zIndex: 1000 }}
           onClick={e => e.stopPropagation()} onMouseDown={e => e.stopPropagation()}>
-          <PopupCentro centro={popupCentro}
+          <PopupCentro centro={popupCentro} centrosConFaltantes={centrosConFaltantes}
             onAbrir={(c) => { cerrarPopup(); onCentroClick && onCentroClick(c) }}
             onCerrar={cerrarPopup} />
         </div>

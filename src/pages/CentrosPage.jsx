@@ -14,14 +14,13 @@ import PanelCentro from '../components/ui/PanelCentro'
 const ESTADOS_FILTRO = [
   { key: null,               label: 'Todos',         dot: null },
   { key: 'OK',               label: 'Operativo',     dot: '#22c55e' },
-  { key: 'LOW_STOCK',        label: 'Stock bajo',    dot: '#eab308' },
   { key: 'EQUIPMENT_FAULT',  label: 'Falla equipo',  dot: '#ef4444' },
   { key: 'DISPATCH_ONWAY',   label: 'En camino',     dot: '#3b82f6' },
   { key: 'NO_OPERATOR',      label: 'Sin operador',  dot: '#6b7280' },
 ]
 
 export default function CentrosPage() {
-  const { centros, eliminarCentro, sincronizarEstado, actualizarCentro, inicializarCentrosGL, sincronizarOperadoresCentros, role, uid, empresaActiva } = useOutletContext()
+  const { centros, eliminarCentro, sincronizarEstado, actualizarCentro, inicializarCentrosGL, sincronizarOperadoresCentros, role, uid, empresaActiva, centrosConFaltantes } = useOutletContext()
   const { empresas }                    = useEmpresas()
   const [busca, setBusca]               = useState('')
   const [filtroEstado, setFiltroEstado] = useState(null)
@@ -188,7 +187,7 @@ export default function CentrosPage() {
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontSize: t.textSm, fontWeight: 600, color: t.textPrimary }}>{c.nombre}</div>
                         </div>
-                        <EstadoBadge estado={c.estado} />
+                        <EstadoBadge estado={c.estado} tieneFaltante={centrosConFaltantes?.has(c.id)} />
                         <ChevronRight size={16} color={t.textMuted} style={{ flexShrink: 0 }} />
                       </div>
                       {/* Fila secundaria: team + op en faena */}

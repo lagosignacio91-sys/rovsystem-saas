@@ -1,13 +1,14 @@
 import { useState } from 'react'
 import { useDespachos } from '../../hooks/useDespachos'
 import { claveItem, normalizarItemsLegacy } from '../../lib/despachos'
+import PanelEquipoTickets from './PanelEquipoTickets'
 
 function origenLabel(i) {
   if (i.origen === 'estuche') return i.equipo === 'backup' ? 'Estuche · Backup' : 'Estuche · Principal'
   return 'Caja'
 }
 
-function ModalSeleccionItems({ items, onConfirmar, onCerrar }) {
+function ModalSeleccionItems({ items, procesando, onConfirmar, onCerrar }) {
   const [seleccionados, setSeleccionados] = useState(
     items.reduce((acc, i) => ({
       ...acc,
@@ -85,15 +86,17 @@ function ModalSeleccionItems({ items, onConfirmar, onCerrar }) {
           })}
         </div>
         <div style={styles.modalBtns}>
-          <button onClick={onCerrar}        style={styles.btnCancelar}>Cancelar</button>
-          <button onClick={handleConfirmar} style={styles.btnConfirmar}>Generar despacho</button>
+          <button onClick={onCerrar}        disabled={procesando} style={styles.btnCancelar}>Cancelar</button>
+          <button onClick={handleConfirmar} disabled={procesando} style={{ ...styles.btnConfirmar, opacity: procesando ? 0.6 : 1 }}>
+            {procesando ? 'Generando...' : 'Generar despacho'}
+          </button>
         </div>
       </div>
     </div>
   )
 }
 
-function ModalRecepcion({ items, onConfirmar, onCerrar }) {
+function ModalRecepcion({ items, procesando, onConfirmar, onCerrar }) {
   const [observacion, setObservacion] = useState('')
   const [marcados, setMarcados] = useState(() =>
     items.reduce((acc, i) => ({ ...acc, [claveItem(i)]: true }), {})
@@ -135,8 +138,10 @@ function ModalRecepcion({ items, onConfirmar, onCerrar }) {
         <textarea style={styles.textarea} value={observacion} onChange={e => setObservacion(e.target.value)}
           placeholder="Ej: Se recibió todo, faltó 1..." rows={3} />
         <div style={styles.modalBtns}>
-          <button onClick={onCerrar}        style={styles.btnCancelar}>Cancelar</button>
-          <button onClick={handleConfirmar} style={styles.btnConfirmar}>Confirmar</button>
+          <button onClick={onCerrar}        disabled={procesando} style={styles.btnCancelar}>Cancelar</button>
+          <button onClick={handleConfirmar} disabled={procesando} style={{ ...styles.btnConfirmar, opacity: procesando ? 0.6 : 1 }}>
+            {procesando ? 'Guardando...' : 'Confirmar'}
+          </button>
         </div>
       </div>
     </div>
@@ -145,7 +150,7 @@ function ModalRecepcion({ items, onConfirmar, onCerrar }) {
 
 const ESTADO_ITEM_LABEL = { pendiente: '⏳ Pendiente', enviado: '🚚 En camino', recibido: '✅ Recibido' }
 
-function DespachoCard({ d, role, onEnviarPendientes, onConfirmarRecepcion, onEliminar, onCopiarWhatsapp }) {
+function DespachoCard({ d, role, bloqueado, onEnviarPendientes, onConfirmarRecepcion, onEliminar, onCopiarWhatsapp }) {
   const [abierto, setAbierto]   = useState(true)
   const [modalRec, setModalRec] = useState(false)
 
@@ -199,17 +204,17 @@ function DespachoCard({ d, role, onEnviarPendientes, onConfirmarRecepcion, onEli
 
           <div style={styles.dAcciones}>
             <button onClick={() => onCopiarWhatsapp(d)} style={styles.btnWhatsapp}>📋 WhatsApp</button>
-            {(role === 'admin' || role === 'supervisor') && pendientesItems.length > 0 && (
+            {(role === 'admin' || role === 'supervisor') && !bloqueado && pendientesItems.length > 0 && (
               <button onClick={() => onEnviarPendientes(d.id, pendientesItems.map(claveItem))} style={styles.btnEnviado}>
                 🚚 Enviar pendientes ({pendientesItems.length})
               </button>
             )}
-            {(role === 'admin' || role === 'operador') && enviadosItems.length > 0 && (
+            {(role === 'admin' || role === 'operador') && !bloqueado && enviadosItems.length > 0 && (
               <button onClick={() => setModalRec(true)} style={styles.btnRecibido}>
                 ✅ Confirmar recepción ({enviadosItems.length})
               </button>
             )}
-            {(role === 'admin' || role === 'supervisor') && (
+            {(role === 'admin' || role === 'supervisor') && !bloqueado && (
               <button onClick={() => onEliminar(d.id)} style={styles.btnEliminar}>🗑️</button>
             )}
           </div>
@@ -219,8 +224,9 @@ function DespachoCard({ d, role, onEnviarPendientes, onConfirmarRecepcion, onEli
       {modalRec && (
         <ModalRecepcion
           items={enviadosItems}
+          procesando={bloqueado}
           onConfirmar={async (itemKeys, obs) => { await onConfirmarRecepcion(d.id, itemKeys, obs); setModalRec(false) }}
-          onCerrar={() => setModalRec(false)}
+          onCerrar={() => !bloqueado && setModalRec(false)}
         />
       )}
     </div>
@@ -230,34 +236,62 @@ function DespachoCard({ d, role, onEnviarPendientes, onConfirmarRecepcion, onEli
 export default function PanelDespacho({ centro, role, teamId, sincronizarEstado }) {
   const { despachos, itemsPendientes, cargando, crearDespacho, enviarItemsPendientes, confirmarRecepcion, eliminarDespacho } = useDespachos(centro.id, teamId)
   const [modalItems, setModalItems] = useState(false)
+  // Bloquea las acciones del panel mientras una escritura está en curso, para que un
+  // doble clic no pueda generar dos despachos o repetir la misma acción.
+  const [procesando, setProcesando] = useState(false)
 
   const handleGenerarDespacho = async (itemsSeleccionados) => {
-    await crearDespacho({ centroId: centro.id, centroNombre: centro.nombre, items: itemsSeleccionados, teamAsignado: centro.teamAsignado ?? null })
-    setModalItems(false)
+    if (procesando) return
+    setProcesando(true)
+    try {
+      await crearDespacho({ centroId: centro.id, centroNombre: centro.nombre, items: itemsSeleccionados, teamAsignado: centro.teamAsignado ?? null })
+      setModalItems(false)
+    } catch (e) {
+      console.error('[PanelDespacho/generarDespacho]', e)
+      alert('No se pudo generar el despacho. Intenta de nuevo.')
+    } finally {
+      setProcesando(false)
+    }
   }
 
   const handleEnviarPendientes = async (id, itemKeys) => {
+    if (procesando) return
+    setProcesando(true)
     try {
       await enviarItemsPendientes(id, itemKeys)
       if (sincronizarEstado) await sincronizarEstado(centro.id)
     } catch (e) {
       console.error('[PanelDespacho/enviarPendientes]', e)
       alert('No se pudo marcar como enviado. Intenta de nuevo.')
+    } finally {
+      setProcesando(false)
     }
   }
 
   const handleConfirmarRecepcion = async (id, itemKeys, observacion) => {
+    if (procesando) return
+    setProcesando(true)
     try {
       await confirmarRecepcion(id, itemKeys, observacion)
       if (sincronizarEstado) await sincronizarEstado(centro.id)
     } catch (e) {
       console.error('[PanelDespacho/confirmarRecepcion]', e)
       alert('No se pudo confirmar la recepción. Intenta de nuevo.')
+    } finally {
+      setProcesando(false)
     }
   }
 
   const handleEliminar = async (id) => {
-    if (window.confirm('¿Eliminar este despacho?')) await eliminarDespacho(id)
+    if (procesando) return
+    if (window.confirm('¿Eliminar este despacho?')) {
+      setProcesando(true)
+      try {
+        await eliminarDespacho(id)
+      } finally {
+        setProcesando(false)
+      }
+    }
   }
 
   const copiarWhatsapp = (d) => {
@@ -277,10 +311,12 @@ export default function PanelDespacho({ centro, role, teamId, sincronizarEstado 
         {(role === 'admin' || role === 'supervisor') && (
           <button
             onClick={() => {
+              if (procesando) return
               if (itemsPendientes.length === 0) { alert('No hay herramientas marcadas como falta en este centro.'); return }
               setModalItems(true)
             }}
-            style={styles.btnGenerar}
+            disabled={procesando}
+            style={{ ...styles.btnGenerar, opacity: procesando ? 0.6 : 1 }}
           >
             + Generar despacho
           </button>
@@ -309,7 +345,7 @@ export default function PanelDespacho({ centro, role, teamId, sincronizarEstado 
           <div style={styles.lista}>
             {despachos.map(d => (
               <DespachoCard
-                key={d.id} d={d} role={role}
+                key={d.id} d={d} role={role} bloqueado={procesando}
                 onEnviarPendientes={handleEnviarPendientes}
                 onConfirmarRecepcion={handleConfirmarRecepcion}
                 onEliminar={handleEliminar}
@@ -323,10 +359,15 @@ export default function PanelDespacho({ centro, role, teamId, sincronizarEstado 
       {modalItems && (
         <ModalSeleccionItems
           items={itemsPendientes}
+          procesando={procesando}
           onConfirmar={handleGenerarDespacho}
-          onCerrar={() => setModalItems(false)}
+          onCerrar={() => !procesando && setModalItems(false)}
         />
       )}
+
+      <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--gl-border)' }}>
+        <PanelEquipoTickets centro={centro} role={role} teamId={teamId} sincronizarEstado={sincronizarEstado} />
+      </div>
     </div>
   )
 }
