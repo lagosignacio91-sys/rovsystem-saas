@@ -1,64 +1,81 @@
 // ============================================================
-// Cierre del ciclo taller↔operador al confirmar recepción de un despacho.
-// Suma al stock del centro lo recibido y limpia las flags `solicitado`/
-// `cantidadSolicitada` de los ítems despachados, luego recalcula el estado
-// del centro. Idempotencia: el llamador debe evitar aplicarlo dos veces
-// (flag `stockAplicado` en el doc del despacho).
-// Atomicidad: toda la operación (stock + estado) ocurre en una sola transacción.
+// Cierre del ciclo taller↔operador al confirmar recepción de ítems de un despacho.
+// Por cada ítem confirmado: si venía del estuche de herramientas, ese equipo
+// (principal/backup) vuelve a 'ok'; si venía de la caja de herramientas, se suma
+// la cantidad recibida y se le quita el flag `falta`. Todo en una transacción
+// atómica (despacho + estucheHerramientas + cajaHerramientas del centro).
+// Idempotencia: solo se aplica a ítems cuyo estadoItem sea 'enviado' (evita
+// reaplicar el efecto si se confirma dos veces).
 // ============================================================
-import { db } from './firebase'
-import { doc, runTransaction } from 'firebase/firestore'
+import { db, auth } from './firebase'
+import { doc, runTransaction, arrayUnion, updateDoc } from 'firebase/firestore'
 import { logError } from './logger'
 import { calcularEstadoCentro } from '../hooks/useCentros'
+import { calcularEstadoDespacho, claveItem, normalizarItemsLegacy } from './despachos'
 
-export async function aplicarRecepcionStock(centroId, items) {
-  if (!centroId || !Array.isArray(items) || items.length === 0) return
+export async function confirmarRecepcionItems(despachoId, itemKeys, { observacion } = {}) {
+  const uid = auth.currentUser?.uid ?? null
+  const ts  = new Date().toISOString()
+  const despRef = doc(db, 'despachos', despachoId)
+  let centroId = null
 
-  const grupos = { herramientas: [], insumos: [] }
-  for (const it of items) {
-    const col = (it.tipo || '').toLowerCase().startsWith('insumo') ? 'insumos' : 'herramientas'
-    grupos[col].push(it)
-  }
+  await runTransaction(db, async (tx) => {
+    const despSnap = await tx.get(despRef)
+    if (!despSnap.exists()) throw new Error('Despacho no existe')
+    const desp = despSnap.data()
+    centroId = desp.centroId
+    const estRef  = doc(db, 'centros', centroId, 'datos', 'estucheHerramientas')
+    const cajaRef = doc(db, 'centros', centroId, 'datos', 'cajaHerramientas')
+    const [estSnap, cajaSnap] = await Promise.all([tx.get(estRef), tx.get(cajaRef)])
 
-  // Refs que necesitamos leer y escribir
-  const refs = {
-    herramientas: doc(db, 'centros', centroId, 'datos', 'herramientas'),
-    insumos:      doc(db, 'centros', centroId, 'datos', 'insumos'),
-    centro:       doc(db, 'centros', centroId),
-  }
+    const estData = estSnap.exists() ? { principal: {}, backup: {}, ...estSnap.data() } : { principal: {}, backup: {} }
+    const cajaMap = new Map((cajaSnap.exists() ? (cajaSnap.data().lista ?? []) : []).map(i => [String(i.id), { ...i }]))
+    let estChanged = false
+    let cajaChanged = false
 
-  await runTransaction(db, async (transaction) => {
-    // 1. Leer todo primero (las lecturas deben ir antes de escrituras en Firestore transactions)
-    const [snapH, snapI] = await Promise.all([
-      transaction.get(refs.herramientas),
-      transaction.get(refs.insumos),
-    ])
+    const nuevosItems = normalizarItemsLegacy(desp).map(item => {
+      if (!itemKeys.includes(claveItem(item))) return item
+      if (item.estadoItem !== 'enviado') return item // idempotencia: solo enviado → recibido
 
-    const snaps = { herramientas: snapH, insumos: snapI }
+      if (item.origen === 'estuche') {
+        const equipo = item.equipo === 'backup' ? 'backup' : 'principal'
+        estData[equipo] = { ...estData[equipo], [item.itemId]: 'ok' }
+        estChanged = true
+      } else if (item.origen === 'caja') {
+        const actual = cajaMap.get(String(item.itemId))
+        if (actual) {
+          cajaMap.set(String(item.itemId), {
+            ...actual,
+            cantidad: Math.max(0, (Number(actual.cantidad) || 0) + (Number(item.cantidad) || 0)),
+            falta: false,
+          })
+          cajaChanged = true
+        } else {
+          logError('recepcion/itemCajaNoEncontrado', new Error(`itemId=${item.itemId} centro=${centroId}`))
+        }
+      }
+      return { ...item, estadoItem: 'recibido', recibidoEn: ts, recibidoPor: uid }
+    })
 
-    // 2. Calcular nuevas listas
-    for (const col of ['herramientas', 'insumos']) {
-      const recibidos = grupos[col]
-      if (recibidos.length === 0 || !snaps[col].exists()) continue
+    if (estChanged)  tx.set(estRef,  estData, { merge: true })
+    if (cajaChanged) tx.set(cajaRef, { lista: Array.from(cajaMap.values()) }, { merge: true })
 
-      const lista = snaps[col].data().lista ?? []
-      const nueva = lista.map(item => {
-        const rec = recibidos.find(r => String(r.id) === String(item.id))
-        if (!rec) return item
-        const qty = Math.max(0, Number(rec.cantidadEnviada ?? rec.cantidadDespachada ?? rec.cantidadSolicitada ?? 0) || 0)
-        return { ...item, cantidad: Math.max(0, (Number(item.cantidad) || 0) + qty), solicitado: false, cantidadSolicitada: 0 }
-      })
-      transaction.set(refs[col], { lista: nueva }, { merge: true })
-    }
+    tx.update(despRef, {
+      items: nuevosItems,
+      estado: calcularEstadoDespacho(nuevosItems),
+      observacion: observacion ?? desp.observacion ?? '',
+      recibidoEn: ts,
+      recibidoPor: uid,
+      historial: arrayUnion({ tipo: 'recibido_items', uid, ts, itemKeys }),
+    })
   })
 
-  // Recalcular semáforo fuera de la transacción (usa getDoc internamente)
-  try {
-    const estado = await calcularEstadoCentro(centroId)
-    await runTransaction(db, async (transaction) => {
-      transaction.update(refs.centro, { estado })
-    })
-  } catch (e) {
-    logError('recepcion/recalcularEstado', e)
+  if (centroId) {
+    try {
+      const estado = await calcularEstadoCentro(centroId)
+      await updateDoc(doc(db, 'centros', centroId), { estado })
+    } catch (e) {
+      logError('recepcion/recalcularEstado', e)
+    }
   }
 }

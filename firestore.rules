@@ -80,12 +80,15 @@ service cloud.firestore {
       //  - bitacora: SOLO operador escribe (admin y taller solo leen)
       match /datos/{doc} {
         // La bitácora solo la lee el operador si es de SU propio team (anti cross-tenant).
+        // El taller (supervisor) no debe ver bitácoras diarias, ni siquiera vía lectura directa.
         // estucheHerramientas/cajaHerramientas/operadores siguen abiertas a cualquier autenticado
         // (ej. popup de contacto de centros ajenos en el Mapa).
         allow read:  if signedIn()
-          && (doc != 'bitacora' || !isOperador()
-              || get(/databases/$(database)/documents/centros/$(centroId)).data.teamAsignado
-                 == get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.teamId);
+          && (doc != 'bitacora'
+              || (!isOperador() && !isSupervisor())
+              || (isOperador()
+                  && get(/databases/$(database)/documents/centros/$(centroId)).data.teamAsignado
+                     == get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.teamId));
         // El operador solo escribe en centros de SU team (anti cross-tenant).
         allow write: if (isAdmin()      && doc in ['estucheHerramientas', 'cajaHerramientas', 'operadores'])
           || (isSupervisor() && doc in ['estucheHerramientas', 'cajaHerramientas', 'operadores'])
@@ -104,10 +107,13 @@ service cloud.firestore {
               == get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.teamId);
       allow create:        if isAdmin() || isSupervisor();
       // El operador solo confirma recepción (campos acotados) y SOLO de su propio team.
+      // `items` se incluye para que pueda marcar sus ítems como recibidos (ciclo "falta →
+      // despacho"), pero `items.size()` sin cambios evita que agregue/quite ítems del array.
       allow update:        if isAdmin() || isSupervisor()
         || (isOperador()
             && request.resource.data.diff(resource.data).affectedKeys()
-                 .hasOnly(['estado', 'observacion', 'recibidoEn', 'recibidoPor', 'historial', 'stockAplicado'])
+                 .hasOnly(['estado', 'observacion', 'recibidoEn', 'recibidoPor', 'historial', 'stockAplicado', 'items'])
+            && request.resource.data.items.size() == resource.data.items.size()
             && resource.data.teamAsignado
                == get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.teamId);
       allow delete:        if isAdmin() || isSupervisor();

@@ -162,7 +162,9 @@ export default function BodegaVirtualPage() {
   } = useBodegaCentral()
 
   const { pendientes: _despachosPendientes, marcarEnviado: marcarDespachoEnviado } = useDespachosGlobal()
-  const despachosPendientes = _despachosPendientes.filter(d => d.estado === 'pendiente')
+  // Excluye los despachos del flujo "falta → despacho" (origen: 'centro'): esos se gestionan
+  // desde el panel del centro y no descuentan stock de Bodega Central (por ahora).
+  const despachosPendientes = _despachosPendientes.filter(d => d.estado === 'pendiente' && d.origen !== 'centro')
 
   const [modalAgregarEquipo,    setModalAgregarEquipo]    = useState(false)
   const [modeloPre,             setModeloPre]             = useState(null)

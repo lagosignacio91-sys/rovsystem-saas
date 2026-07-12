@@ -27,12 +27,16 @@ const TAB_COMPONENTES = {
 // El operador gestiona despacho/turno/bitácora desde las páginas del menú lateral, no desde
 // este panel — se saca de raíz (no depende de la configuración de permisos por pestaña).
 const OCULTAS_OPERADOR = ['despacho', 'turno', 'bitacora']
+// El taller (supervisor) no debe ver bitácoras diarias ni turno (ya se entiende por el panel izquierdo);
+// solo ve operador, rov, inventario y despacho.
+const OCULTAS_SUPERVISOR = ['bitacora', 'turno']
 
 export default memo(function PanelCentro({ centro, onCerrar, onEliminar, sincronizarEstado, actualizarCentro, role, uid, teamId }) {
   const { tabs, permiso } = useAppConfig()
   const tabsVisibles = tabs.filter(
     (tb) => !tb.hidden && TAB_COMPONENTES[tb.id] && permiso(tb.id, role) !== 'hidden'
-      && !(role === 'operador' && OCULTAS_OPERADOR.includes(tb.id)),
+      && !(role === 'operador' && OCULTAS_OPERADOR.includes(tb.id))
+      && !(role === 'supervisor' && OCULTAS_SUPERVISOR.includes(tb.id)),
   )
   const [tabActiva, setTabActiva]   = useState(tabsVisibles[0]?.id ?? 'operator')
   // En modo "solo ver", pasamos un rol sin permisos de edición a la pestaña:

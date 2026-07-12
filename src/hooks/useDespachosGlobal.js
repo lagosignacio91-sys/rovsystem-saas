@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { db, auth } from '../lib/firebase'
 import { collection, onSnapshot, updateDoc, doc, arrayUnion, query, where } from 'firebase/firestore'
-import { aplicarRecepcionStock } from '../lib/recepcion'
+import { confirmarRecepcionItems } from '../lib/recepcion'
+import { calcularEstadoDespacho, claveItem, normalizarItemsLegacy } from '../lib/despachos'
 
 // Escucha los despachos. Si se pasa role='operador' y teamId, filtra solo los del propio team.
 // onNuevaSolicitud(d): callback opcional llamado cuando llega un despacho nuevo (para toasts).
@@ -56,6 +57,8 @@ export function useDespachosGlobal({ role, teamId, onNuevaSolicitud, onDespachoC
     return () => unsub()
   }, [role, teamId])
 
+  // Sin cambios: único punto de acoplamiento con Bodega Virtual (marca todo el despacho
+  // enviado + descuenta stock central). No tocar firma ni comportamiento.
   const marcarEnviado = async (id, itemsEnviados, extras = {}) => {
     const uid = auth.currentUser?.uid ?? null
     const ts  = new Date().toISOString()
@@ -65,27 +68,29 @@ export function useDespachosGlobal({ role, teamId, onNuevaSolicitud, onDespachoC
       ...extras,
     })
   }
-  const confirmarRecepcion = async (id, observacion = '', completo = true) => {
+
+  // Pasa ítems puntuales de 'pendiente' a 'enviado' dentro del mismo despacho.
+  const enviarItemsPendientes = async (id, itemKeys) => {
     const uid  = auth.currentUser?.uid ?? null
     const ts   = new Date().toISOString()
     const desp = despachos.find(d => d.id === id)
-    const aplicar = desp && !desp.stockAplicado
-
-    if (aplicar) {
-      // Primero aplicar stock; solo si tiene éxito setear stockAplicado=true
-      await aplicarRecepcionStock(desp.centroId, desp.itemsEnviados ?? desp.items ?? [])
-      await updateDoc(doc(db, 'despachos', id), {
-        estado: completo ? 'recibido' : 'parcial', recibidoEn: ts, recibidoPor: uid, observacion,
-        historial: arrayUnion({ tipo: completo ? 'recibido' : 'parcial', uid, ts }),
-        stockAplicado: true,
-      })
-    } else {
-      await updateDoc(doc(db, 'despachos', id), {
-        estado: completo ? 'recibido' : 'parcial', recibidoEn: ts, recibidoPor: uid, observacion,
-        historial: arrayUnion({ tipo: completo ? 'recibido' : 'parcial', uid, ts }),
-      })
-    }
+    if (!desp) return
+    const items = normalizarItemsLegacy(desp).map(it =>
+      itemKeys.includes(claveItem(it)) && it.estadoItem === 'pendiente'
+        ? { ...it, estadoItem: 'enviado', enviadoEn: ts, enviadoPor: uid }
+        : it
+    )
+    await updateDoc(doc(db, 'despachos', id), {
+      items,
+      estado:    calcularEstadoDespacho(items),
+      historial: arrayUnion({ tipo: 'enviado_items', uid, ts, itemKeys }),
+    })
   }
+
+  const confirmarRecepcion = async (id, itemKeys, observacion = '') => {
+    await confirmarRecepcionItems(id, itemKeys, { observacion })
+  }
+
   // Soft-delete: conserva la evidencia para auditoría.
   const eliminarDespacho = async (id) => {
     await updateDoc(doc(db, 'despachos', id), {
@@ -98,5 +103,5 @@ export function useDespachosGlobal({ role, teamId, onNuevaSolicitud, onDespachoC
     [despachos]
   )
 
-  return { despachos, pendientes, cargando, marcarEnviado, confirmarRecepcion, eliminarDespacho }
+  return { despachos, pendientes, cargando, marcarEnviado, enviarItemsPendientes, confirmarRecepcion, eliminarDespacho }
 }

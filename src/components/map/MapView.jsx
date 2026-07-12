@@ -30,7 +30,7 @@ function tamPorZoom(zoom) {
   return Math.round(Math.max(16, Math.min(34, (zoom - 3) * 3)))
 }
 
-function crearIcono(estado, size = 26) {
+function crearIcono(estado, size = 26, tieneFaltante = false) {
   const meta  = ESTADO_META[estado] ?? ESTADO_META.NO_OPERATOR
   const color = meta.dot
   const alerta = estado === 'LOW_STOCK' || estado === 'EQUIPMENT_FAULT'
@@ -42,11 +42,18 @@ function crearIcono(estado, size = 26) {
   const iconHtml = grande
     ? `<svg xmlns="http://www.w3.org/2000/svg" width="${Math.round(size * 0.5)}" height="${Math.round(size * 0.5)}" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">${SVG[estado] ?? SVG.NO_OPERATOR}</svg>`
     : ''
+  // Badge independiente del color base: marca "tiene faltantes" aunque otro estado
+  // (NO_OPERATOR/EQUIPMENT_FAULT) tenga prioridad visual sobre el color principal.
+  const faltanteSize = Math.max(8, Math.round(size * 0.4))
+  const overlay = tieneFaltante
+    ? `<span style="position:absolute;top:-2px;right:-2px;width:${faltanteSize}px;height:${faltanteSize}px;background:var(--gl-low, #eab308);border:1.5px solid #fff;border-radius:50%;box-shadow:0 0 4px rgba(0,0,0,0.5);"></span>`
+    : ''
   // Anillo exterior fino + núcleo de color = lectura "instrumentada" a distancia.
   return L.divIcon({
     className: '',
-    html: `<div style="width:${size}px;height:${size}px;display:flex;align-items:center;justify-content:center;border-radius:50%;color:${color};box-shadow:${glow};${pulso}">
+    html: `<div style="position:relative;width:${size}px;height:${size}px;display:flex;align-items:center;justify-content:center;border-radius:50%;color:${color};box-shadow:${glow};${pulso}">
       <div style="width:${size}px;height:${size}px;background:${color};border:${borde}px solid rgba(255,255,255,0.92);border-radius:50%;display:flex;align-items:center;justify-content:center;">${iconHtml}</div>
+      ${overlay}
     </div>`,
     iconSize: [size, size],
     iconAnchor: [size / 2, size / 2],
@@ -345,7 +352,7 @@ function splitCoordenadas(texto) {
 }
 
 
-function MapInner({ centros, onMapClick, onCentroClick, role, userTeamId }) {
+function MapInner({ centros, onMapClick, onCentroClick, role, userTeamId, centrosConFaltantes }) {
   const [popupCentro, setPopupCentro] = useState(null)
   const [popupPos, setPopupPos]       = useState(null)
   const [popupTipo, setPopupTipo]     = useState('propio') // 'propio' | 'ajeno'
@@ -384,7 +391,7 @@ function MapInner({ centros, onMapClick, onCentroClick, role, userTeamId }) {
         <FitCentros centros={centros} />
         {centros.map(c => (
           <Marker key={c.id} position={[c.lat, c.lng]}
-            icon={esAjeno(c) ? crearIconoAzul(size) : crearIcono(c.estado, size)}
+            icon={esAjeno(c) ? crearIconoAzul(size) : crearIcono(c.estado, size, centrosConFaltantes?.has(c.id))}
             eventHandlers={{ click: (e) => handleMarkerClick(e, c) }} />
         ))}
         {/* Pin temporal de coordenadas: clic para agregar centro ahí exactamente */}
@@ -441,8 +448,8 @@ function MapInner({ centros, onMapClick, onCentroClick, role, userTeamId }) {
   )
 }
 
-export default memo(function MapView({ centros = [], onMapClick, onCentroClick, role, userTeamId }) {
-  return <MapInner centros={centros} onMapClick={onMapClick} onCentroClick={onCentroClick} role={role} userTeamId={userTeamId} />
+export default memo(function MapView({ centros = [], onMapClick, onCentroClick, role, userTeamId, centrosConFaltantes }) {
+  return <MapInner centros={centros} onMapClick={onMapClick} onCentroClick={onCentroClick} role={role} userTeamId={userTeamId} centrosConFaltantes={centrosConFaltantes} />
 })
 
 const buscador = {

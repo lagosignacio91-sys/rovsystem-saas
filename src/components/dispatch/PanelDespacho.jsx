@@ -1,26 +1,38 @@
 import { useState } from 'react'
 import { useDespachos } from '../../hooks/useDespachos'
+import { claveItem, normalizarItemsLegacy } from '../../lib/despachos'
+
+function origenLabel(i) {
+  if (i.origen === 'estuche') return i.equipo === 'backup' ? 'Estuche · Backup' : 'Estuche · Principal'
+  return 'Caja'
+}
 
 function ModalSeleccionItems({ items, onConfirmar, onCerrar }) {
   const [seleccionados, setSeleccionados] = useState(
     items.reduce((acc, i) => ({
       ...acc,
-      [i.id]: { checked: true, cantidad: i.cantidad === 0 ? 1 : i.cantidadSolicitada ?? i.cantidad }
+      [claveItem(i)]: { checked: true, cantidad: 1, enviarAhora: true },
     }), {})
   )
 
-  const toggleItem = (id) => {
-    setSeleccionados(prev => ({ ...prev, [id]: { ...prev[id], checked: !prev[id].checked } }))
+  const toggleItem = (key) => {
+    setSeleccionados(prev => ({ ...prev, [key]: { ...prev[key], checked: !prev[key].checked } }))
   }
-
-  const setCantidad = (id, val) => {
-    setSeleccionados(prev => ({ ...prev, [id]: { ...prev[id], cantidad: Number(val) } }))
+  const setCantidad = (key, val) => {
+    setSeleccionados(prev => ({ ...prev, [key]: { ...prev[key], cantidad: Number(val) } }))
+  }
+  const toggleEnviarAhora = (key) => {
+    setSeleccionados(prev => ({ ...prev, [key]: { ...prev[key], enviarAhora: !prev[key].enviarAhora } }))
   }
 
   const handleConfirmar = () => {
     const itemsSeleccionados = items
-      .filter(i => seleccionados[i.id]?.checked)
-      .map(i => ({ ...i, cantidadEnviada: seleccionados[i.id]?.cantidad ?? 1 }))
+      .filter(i => seleccionados[claveItem(i)]?.checked)
+      .map(i => ({
+        ...i,
+        cantidad: seleccionados[claveItem(i)]?.cantidad ?? 1,
+        estadoItem: seleccionados[claveItem(i)]?.enviarAhora ? 'enviado' : 'pendiente',
+      }))
     if (itemsSeleccionados.length === 0) { alert('Selecciona al menos un ítem.'); return }
     onConfirmar(itemsSeleccionados)
   }
@@ -29,36 +41,48 @@ function ModalSeleccionItems({ items, onConfirmar, onCerrar }) {
     <div style={styles.modalOverlay}>
       <div style={styles.modal}>
         <h3 style={styles.modalTitulo}>📦 Generar Despacho</h3>
-        <p style={styles.modalSubtitulo}>Selecciona qué se va a despachar y ajusta las cantidades.</p>
+        <p style={styles.modalSubtitulo}>Elige qué enviar, la cantidad, y si va ahora o queda pendiente.</p>
         <div style={styles.itemsLista}>
-          {items.map(i => (
-            <div key={i.id} style={{ ...styles.itemRow, opacity: seleccionados[i.id]?.checked ? 1 : 0.4 }}>
-              <input
-                type="checkbox"
-                checked={seleccionados[i.id]?.checked ?? true}
-                onChange={() => toggleItem(i.id)}
-                style={{ cursor: 'pointer', flexShrink: 0 }}
-              />
-              <div style={styles.itemInfo}>
-                <span style={styles.itemTipoBadge}>{i.tipo}</span>
-                <span style={styles.itemNombre}>{i.nombre}</span>
-                {i.cantidad === 0
-                  ? <span style={styles.itemSinStock}>⚠️ Sin stock</span>
-                  : <span style={styles.itemSolicitudExtra}>Solicitud extra</span>
-                }
-              </div>
-              <div style={styles.itemCantBox}>
-                <span style={styles.itemCantLabel}>Cant.</span>
+          {items.map(i => {
+            const key = claveItem(i)
+            const sel = seleccionados[key]
+            return (
+              <div key={key} style={{ ...styles.itemRow, opacity: sel?.checked ? 1 : 0.4 }}>
                 <input
-                  type="number" min={1}
-                  value={seleccionados[i.id]?.cantidad ?? 1}
-                  onChange={e => setCantidad(i.id, e.target.value)}
-                  style={styles.inputCant}
-                  disabled={!seleccionados[i.id]?.checked}
+                  type="checkbox"
+                  checked={sel?.checked ?? true}
+                  onChange={() => toggleItem(key)}
+                  style={{ cursor: 'pointer', flexShrink: 0 }}
                 />
+                <div style={styles.itemInfo}>
+                  <span style={styles.itemTipoBadge}>{origenLabel(i)}</span>
+                  <span style={styles.itemNombre}>{i.nombre}</span>
+                </div>
+                <div style={styles.itemCantBox}>
+                  <span style={styles.itemCantLabel}>Cant.</span>
+                  <input
+                    type="number" min={1}
+                    value={sel?.cantidad ?? 1}
+                    onChange={e => setCantidad(key, e.target.value)}
+                    style={styles.inputCant}
+                    disabled={!sel?.checked}
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => toggleEnviarAhora(key)}
+                  disabled={!sel?.checked}
+                  style={{
+                    ...styles.btnToggleEnvio,
+                    color: sel?.enviarAhora ? 'var(--gl-ok)' : 'var(--gl-low)',
+                    background: sel?.enviarAhora ? 'var(--gl-ok-tint)' : 'var(--gl-low-tint)',
+                  }}
+                >
+                  {sel?.enviarAhora ? '🚚 Ahora' : '⏳ Pendiente'}
+                </button>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
         <div style={styles.modalBtns}>
           <button onClick={onCerrar}        style={styles.btnCancelar}>Cancelar</button>
@@ -69,33 +93,65 @@ function ModalSeleccionItems({ items, onConfirmar, onCerrar }) {
   )
 }
 
-function ModalRecepcion({ onConfirmar, onCerrar }) {
+function ModalRecepcion({ items, onConfirmar, onCerrar }) {
   const [observacion, setObservacion] = useState('')
-  const [completo, setCompleto]       = useState(true)
+  const [marcados, setMarcados] = useState(() =>
+    items.reduce((acc, i) => ({ ...acc, [claveItem(i)]: true }), {})
+  )
+
+  const toggle = (key) => setMarcados(prev => ({ ...prev, [key]: !prev[key] }))
+
+  const handleConfirmar = () => {
+    const keys = items.filter(i => marcados[claveItem(i)]).map(claveItem)
+    if (keys.length === 0) { alert('Selecciona al menos un ítem recibido.'); return }
+    onConfirmar(keys, observacion)
+  }
 
   return (
     <div style={styles.modalOverlay}>
       <div style={styles.modal}>
         <h3 style={styles.modalTitulo}>✅ Confirmar Recepción</h3>
-        <label style={styles.label}>Observación</label>
-        <textarea style={styles.textarea} value={observacion} onChange={e => setObservacion(e.target.value)} placeholder="Ej: Se recibió todo, faltó 1 fusible..." rows={3} autoFocus />
-        <div style={styles.checkRow}>
-          <input type="checkbox" id="completo" checked={completo} onChange={e => setCompleto(e.target.checked)} style={{ cursor: 'pointer' }} />
-          <label htmlFor="completo" style={styles.checkLabel}>Recepción completa</label>
+        <p style={styles.modalSubtitulo}>Marca los ítems que llegaron.</p>
+        <div style={styles.itemsLista}>
+          {items.map(i => {
+            const key = claveItem(i)
+            return (
+              <label key={key} style={{ ...styles.itemRow, cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={marcados[key] ?? true}
+                  onChange={() => toggle(key)}
+                  style={{ cursor: 'pointer', flexShrink: 0 }}
+                />
+                <div style={styles.itemInfo}>
+                  <span style={styles.itemTipoBadge}>{origenLabel(i)}</span>
+                  <span style={styles.itemNombre}>{i.nombre} ×{i.cantidad}</span>
+                </div>
+              </label>
+            )
+          })}
         </div>
-        <p style={styles.checkHint}>{completo ? '🟢 El centro quedará en estado OK' : '🟡 El centro seguirá en amarillo'}</p>
+        <label style={styles.label}>Observación</label>
+        <textarea style={styles.textarea} value={observacion} onChange={e => setObservacion(e.target.value)}
+          placeholder="Ej: Se recibió todo, faltó 1..." rows={3} />
         <div style={styles.modalBtns}>
-          <button onClick={onCerrar}                                style={styles.btnCancelar}>Cancelar</button>
-          <button onClick={() => onConfirmar(observacion, completo)} style={styles.btnConfirmar}>Confirmar</button>
+          <button onClick={onCerrar}        style={styles.btnCancelar}>Cancelar</button>
+          <button onClick={handleConfirmar} style={styles.btnConfirmar}>Confirmar</button>
         </div>
       </div>
     </div>
   )
 }
 
-function DespachoCard({ d, role, onMarcarEnviado, onConfirmarRecepcion, onEliminar, onCopiarWhatsapp }) {
+const ESTADO_ITEM_LABEL = { pendiente: '⏳ Pendiente', enviado: '🚚 En camino', recibido: '✅ Recibido' }
+
+function DespachoCard({ d, role, onEnviarPendientes, onConfirmarRecepcion, onEliminar, onCopiarWhatsapp }) {
   const [abierto, setAbierto]   = useState(true)
   const [modalRec, setModalRec] = useState(false)
+
+  const items = normalizarItemsLegacy(d)
+  const pendientesItems = items.filter(i => i.estadoItem === 'pendiente')
+  const enviadosItems   = items.filter(i => i.estadoItem === 'enviado')
 
   const BADGE = {
     pendiente: { label: '🟡 Pendiente',        color: 'var(--gl-low)', bg: 'var(--gl-low-tint)' },
@@ -117,14 +173,14 @@ function DespachoCard({ d, role, onMarcarEnviado, onConfirmarRecepcion, onElimin
 
       {abierto && (
         <div style={styles.dBody}>
-          {d.items?.length > 0 && (
+          {items.length > 0 && (
             <div style={styles.seccion}>
-              <div style={styles.seccionTitulo}>📋 Ítems solicitados</div>
-              {d.items.map((item, i) => (
+              <div style={styles.seccionTitulo}>📋 Ítems</div>
+              {items.map((item, i) => (
                 <div key={i} style={styles.dItem}>
-                  <span style={{ ...styles.dItemTipo, color: item.tipo === 'Herramienta' ? 'var(--gl-brand-soft)' : '#86efac' }}>{item.tipo}</span>
+                  <span style={styles.dItemTipo}>{ESTADO_ITEM_LABEL[item.estadoItem] ?? item.estadoItem}</span>
                   <span style={styles.dItemNombre}>{item.nombre}</span>
-                  <span style={styles.dItemCant}>×{item.cantidadEnviada ?? item.cantidad}</span>
+                  <span style={styles.dItemCant}>×{item.cantidad}</span>
                 </div>
               ))}
             </div>
@@ -138,17 +194,20 @@ function DespachoCard({ d, role, onMarcarEnviado, onConfirmarRecepcion, onElimin
           )}
 
           <div style={styles.fechasBox}>
-            {d.enviadoEn  && <span style={styles.fechaItem}>🚚 Enviado: {new Date(d.enviadoEn).toLocaleDateString('es-CL')}</span>}
-            {d.recibidoEn && <span style={styles.fechaItem}>✅ Recibido: {new Date(d.recibidoEn).toLocaleDateString('es-CL')}</span>}
+            {d.recibidoEn && <span style={styles.fechaItem}>✅ Última recepción: {new Date(d.recibidoEn).toLocaleDateString('es-CL')}</span>}
           </div>
 
           <div style={styles.dAcciones}>
             <button onClick={() => onCopiarWhatsapp(d)} style={styles.btnWhatsapp}>📋 WhatsApp</button>
-            {(role === 'admin' || role === 'supervisor') && d.estado === 'pendiente' && (
-              <button onClick={() => onMarcarEnviado(d.id, d.items)} style={styles.btnEnviado}>🚚 Marcar enviado</button>
+            {(role === 'admin' || role === 'supervisor') && pendientesItems.length > 0 && (
+              <button onClick={() => onEnviarPendientes(d.id, pendientesItems.map(claveItem))} style={styles.btnEnviado}>
+                🚚 Enviar pendientes ({pendientesItems.length})
+              </button>
             )}
-            {(d.estado === 'enviado' || d.estado === 'parcial') && (
-              <button onClick={() => setModalRec(true)} style={styles.btnRecibido}>✅ Recibido</button>
+            {(role === 'admin' || role === 'operador') && enviadosItems.length > 0 && (
+              <button onClick={() => setModalRec(true)} style={styles.btnRecibido}>
+                ✅ Confirmar recepción ({enviadosItems.length})
+              </button>
             )}
             {(role === 'admin' || role === 'supervisor') && (
               <button onClick={() => onEliminar(d.id)} style={styles.btnEliminar}>🗑️</button>
@@ -159,7 +218,8 @@ function DespachoCard({ d, role, onMarcarEnviado, onConfirmarRecepcion, onElimin
 
       {modalRec && (
         <ModalRecepcion
-          onConfirmar={(obs, comp) => { onConfirmarRecepcion(d.id, obs, comp); setModalRec(false) }}
+          items={enviadosItems}
+          onConfirmar={async (itemKeys, obs) => { await onConfirmarRecepcion(d.id, itemKeys, obs); setModalRec(false) }}
           onCerrar={() => setModalRec(false)}
         />
       )}
@@ -168,7 +228,7 @@ function DespachoCard({ d, role, onMarcarEnviado, onConfirmarRecepcion, onElimin
 }
 
 export default function PanelDespacho({ centro, role, teamId, sincronizarEstado }) {
-  const { despachos, itemsPendientes, cargando, crearDespacho, marcarEnviado, confirmarRecepcion, eliminarDespacho } = useDespachos(centro.id, teamId)
+  const { despachos, itemsPendientes, cargando, crearDespacho, enviarItemsPendientes, confirmarRecepcion, eliminarDespacho } = useDespachos(centro.id, teamId)
   const [modalItems, setModalItems] = useState(false)
 
   const handleGenerarDespacho = async (itemsSeleccionados) => {
@@ -176,14 +236,24 @@ export default function PanelDespacho({ centro, role, teamId, sincronizarEstado 
     setModalItems(false)
   }
 
-  const handleMarcarEnviado = async (id, items) => {
-    await marcarEnviado(id, items)
-    if (sincronizarEstado) await sincronizarEstado(centro.id)
+  const handleEnviarPendientes = async (id, itemKeys) => {
+    try {
+      await enviarItemsPendientes(id, itemKeys)
+      if (sincronizarEstado) await sincronizarEstado(centro.id)
+    } catch (e) {
+      console.error('[PanelDespacho/enviarPendientes]', e)
+      alert('No se pudo marcar como enviado. Intenta de nuevo.')
+    }
   }
 
-  const handleConfirmarRecepcion = async (id, observacion, completo) => {
-    await confirmarRecepcion(id, observacion, completo)
-    if (sincronizarEstado) await sincronizarEstado(centro.id)
+  const handleConfirmarRecepcion = async (id, itemKeys, observacion) => {
+    try {
+      await confirmarRecepcion(id, itemKeys, observacion)
+      if (sincronizarEstado) await sincronizarEstado(centro.id)
+    } catch (e) {
+      console.error('[PanelDespacho/confirmarRecepcion]', e)
+      alert('No se pudo confirmar la recepción. Intenta de nuevo.')
+    }
   }
 
   const handleEliminar = async (id) => {
@@ -191,7 +261,8 @@ export default function PanelDespacho({ centro, role, teamId, sincronizarEstado 
   }
 
   const copiarWhatsapp = (d) => {
-    const lineas = d.items?.map(i => `• ${i.tipo}: ${i.nombre} — Cant: ${i.cantidadEnviada ?? i.cantidad}`).join('\n') ?? ''
+    const items  = normalizarItemsLegacy(d)
+    const lineas = items.map(i => `• ${i.nombre} — Cant: ${i.cantidad}`).join('\n')
     const texto  = `📦 *Despacho — ${centro.nombre}*\n📅 ${new Date(d.creadoEn).toLocaleDateString('es-CL')}\n\n${lineas}`
     navigator.clipboard.writeText(texto)
     alert('✅ Copiado. Pégalo en WhatsApp.')
@@ -206,7 +277,7 @@ export default function PanelDespacho({ centro, role, teamId, sincronizarEstado 
         {(role === 'admin' || role === 'supervisor') && (
           <button
             onClick={() => {
-              if (itemsPendientes.length === 0) { alert('No hay insumos ni herramientas solicitados o en cero.'); return }
+              if (itemsPendientes.length === 0) { alert('No hay herramientas marcadas como falta en este centro.'); return }
               setModalItems(true)
             }}
             style={styles.btnGenerar}
@@ -218,21 +289,18 @@ export default function PanelDespacho({ centro, role, teamId, sincronizarEstado 
 
       {itemsPendientes.length > 0 && (
         <div style={styles.pendientesBox}>
-          <div style={styles.pendientesTitulo}>⏳ Pendientes de despacho ({itemsPendientes.length})</div>
-          {itemsPendientes.map((i, idx) => (
-            <div key={idx} style={styles.penItem}>
-              <span style={{ ...styles.penTipo, color: i.tipo === 'Herramienta' ? 'var(--gl-brand-soft)' : '#86efac' }}>{i.tipo}</span>
+          <div style={styles.pendientesTitulo}>⚠️ Faltantes sin despachar ({itemsPendientes.length})</div>
+          {itemsPendientes.map((i) => (
+            <div key={claveItem(i)} style={styles.penItem}>
+              <span style={styles.penTipo}>{origenLabel(i)}</span>
               <span style={styles.penNombre}>{i.nombre}</span>
-              <span style={{ ...styles.penCant, color: i.cantidad === 0 ? 'var(--gl-fault)' : 'var(--gl-text-muted)' }}>
-                {i.cantidad === 0 ? '⚠️ Sin stock' : `Solicitud extra ×${i.cantidadSolicitada}`}
-              </span>
             </div>
           ))}
         </div>
       )}
 
       {itemsPendientes.length === 0 && despachos.length === 0 && (
-        <p style={styles.vacio}>Sin solicitudes ni despachos registrados.</p>
+        <p style={styles.vacio}>Sin faltantes ni despachos registrados.</p>
       )}
 
       {despachos.length > 0 && (
@@ -242,7 +310,7 @@ export default function PanelDespacho({ centro, role, teamId, sincronizarEstado 
             {despachos.map(d => (
               <DespachoCard
                 key={d.id} d={d} role={role}
-                onMarcarEnviado={handleMarcarEnviado}
+                onEnviarPendientes={handleEnviarPendientes}
                 onConfirmarRecepcion={handleConfirmarRecepcion}
                 onEliminar={handleEliminar}
                 onCopiarWhatsapp={copiarWhatsapp}
@@ -270,9 +338,8 @@ const styles = {
   pendientesBox:   { background: 'var(--gl-bg-input)', border: '1px solid var(--gl-low)', borderRadius: '8px', padding: '10px 12px', marginBottom: '12px' },
   pendientesTitulo:{ color: 'var(--gl-low)', fontSize: '11px', fontWeight: '700', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' },
   penItem:         { display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' },
-  penTipo:         { fontSize: '10px', fontWeight: '700', background: 'var(--gl-bg-elevated)', borderRadius: '4px', padding: '1px 5px' },
+  penTipo:         { fontSize: '10px', fontWeight: '700', background: 'var(--gl-bg-elevated)', borderRadius: '4px', padding: '1px 5px', color: 'var(--gl-text-muted)' },
   penNombre:       { color: 'var(--gl-text-primary)', fontSize: '11px', flex: 1 },
-  penCant:         { fontSize: '10px', fontWeight: '600' },
   vacio:           { color: 'var(--gl-text-muted)', fontSize: '13px' },
   historial:       { marginTop: '4px' },
   historialTitulo: { color: 'var(--gl-text-muted)', fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' },
@@ -287,7 +354,7 @@ const styles = {
   seccion:         { display: 'flex', flexDirection: 'column', gap: '3px' },
   seccionTitulo:   { color: 'var(--gl-text-muted)', fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '2px' },
   dItem:           { display: 'flex', alignItems: 'center', gap: '6px', background: 'var(--gl-bg-elevated)', borderRadius: '5px', padding: '4px 8px' },
-  dItemTipo:       { fontSize: '9px', fontWeight: '700', background: 'var(--gl-bg-input)', borderRadius: '3px', padding: '1px 4px' },
+  dItemTipo:       { fontSize: '9px', fontWeight: '700', background: 'var(--gl-bg-input)', borderRadius: '3px', padding: '1px 4px', color: 'var(--gl-brand-soft)', whiteSpace: 'nowrap' },
   dItemNombre:     { color: 'var(--gl-text-primary)', fontSize: '11px', flex: 1 },
   dItemCant:       { color: 'var(--gl-text-secondary)', fontSize: '11px', fontWeight: '600' },
   obsBox:          { background: 'var(--gl-bg-elevated)', borderRadius: '6px', padding: '6px 8px' },
@@ -301,24 +368,20 @@ const styles = {
   btnRecibido:     { background: 'var(--gl-ok-tint)', border: '1px solid var(--gl-ok)', color: '#86efac', borderRadius: '6px', padding: '4px 10px', cursor: 'pointer', fontSize: '11px', fontWeight: '600' },
   btnEliminar:     { background: 'transparent', border: '1px solid var(--gl-fault)', color: 'var(--gl-fault)', borderRadius: '6px', padding: '4px 8px', cursor: 'pointer', fontSize: '11px' },
   modalOverlay:    { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 },
-  modal:           { background: 'var(--gl-bg-elevated)', border: '1px solid var(--gl-border)', borderRadius: '16px', padding: '24px', width: '100%', maxWidth: '380px', maxHeight: '85vh', overflowY: 'auto' },
+  modal:           { background: 'var(--gl-bg-elevated)', border: '1px solid var(--gl-border)', borderRadius: '16px', padding: '24px', width: '100%', maxWidth: '420px', maxHeight: '85vh', overflowY: 'auto' },
   modalTitulo:     { color: 'var(--gl-text-primary)', fontSize: '16px', fontWeight: '700', marginBottom: '4px' },
   modalSubtitulo:  { color: 'var(--gl-text-muted)', fontSize: '12px', marginBottom: '16px' },
   itemsLista:      { display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' },
   itemRow:         { display: 'flex', alignItems: 'center', gap: '10px', background: 'var(--gl-bg-input)', borderRadius: '8px', padding: '8px 10px' },
-  itemInfo:        { display: 'flex', flexDirection: 'column', gap: '2px', flex: 1 },
+  itemInfo:        { display: 'flex', flexDirection: 'column', gap: '2px', flex: 1, minWidth: 0 },
   itemTipoBadge:   { fontSize: '9px', fontWeight: '700', color: 'var(--gl-text-muted)', textTransform: 'uppercase' },
   itemNombre:      { color: 'var(--gl-text-primary)', fontSize: '12px', fontWeight: '500' },
-  itemSinStock:    { color: 'var(--gl-fault)', fontSize: '10px', fontWeight: '600' },
-  itemSolicitudExtra: { color: 'var(--gl-low)', fontSize: '10px', fontWeight: '600' },
   itemCantBox:     { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' },
   itemCantLabel:   { color: 'var(--gl-text-muted)', fontSize: '9px' },
   inputCant:       { width: '50px', background: 'var(--gl-bg-elevated)', border: '1px solid var(--gl-border)', borderRadius: '4px', color: 'var(--gl-text-primary)', fontSize: '12px', padding: '3px 6px', outline: 'none', textAlign: 'center' },
+  btnToggleEnvio:  { border: 'none', borderRadius: '6px', padding: '5px 8px', cursor: 'pointer', fontSize: '10px', fontWeight: '700', whiteSpace: 'nowrap', flexShrink: 0 },
   label:           { color: 'var(--gl-text-secondary)', fontSize: '12px', fontWeight: '500', display: 'block', marginBottom: '6px' },
   textarea:        { width: '100%', background: 'var(--gl-bg-input)', border: '1px solid var(--gl-border)', borderRadius: '8px', color: 'var(--gl-text-primary)', fontSize: '13px', padding: '8px', outline: 'none', resize: 'none', boxSizing: 'border-box' },
-  checkRow:        { display: 'flex', alignItems: 'center', gap: '8px', marginTop: '10px' },
-  checkLabel:      { color: 'var(--gl-text-primary)', fontSize: '13px', cursor: 'pointer' },
-  checkHint:       { color: 'var(--gl-text-muted)', fontSize: '11px', marginTop: '4px' },
   modalBtns:       { display: 'flex', gap: '10px', marginTop: '16px' },
   btnCancelar:     { flex: 1, background: 'transparent', border: '1px solid var(--gl-border)', color: 'var(--gl-text-secondary)', borderRadius: '8px', padding: '8px', cursor: 'pointer', fontSize: '13px' },
   btnConfirmar:    { flex: 1, background: 'var(--gl-brand)', border: 'none', color: '#fff', borderRadius: '8px', padding: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '600' },

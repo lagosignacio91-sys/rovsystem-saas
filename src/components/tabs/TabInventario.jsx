@@ -74,20 +74,32 @@ function ModalAgregar({ onGuardar, onCerrar }) {
 }
 
 // ---- Ítem de la caja de herramientas (libre) ----
-function ItemCaja({ item, puedeEditar, onActualizarCantidad, onEliminar }) {
+function ItemCaja({ item, puedeEditar, onActualizarCantidad, onToggleFalta, onEliminar }) {
+  const enFalta = item.falta === true
   return (
     <div style={s.card}>
       <div style={s.itemRow}>
         <span style={s.itemNombre}>{item.nombre}</span>
-        {puedeEditar ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {puedeEditar ? (
             <input type="number" min={0} value={item.cantidad}
               onChange={e => onActualizarCantidad(item.id, e.target.value)} style={s.inputCant} />
-            <button onClick={() => onEliminar(item.id)} style={s.btnEliminar}>🗑️</button>
-          </div>
-        ) : (
-          <span style={s.cantBadge}>Cant: {item.cantidad}</span>
-        )}
+          ) : (
+            <span style={s.cantBadge}>Cant: {item.cantidad}</span>
+          )}
+          <button
+            onClick={puedeEditar ? () => onToggleFalta(item.id, !enFalta) : undefined}
+            style={{
+              ...s.estadoBadge,
+              color: enFalta ? 'var(--gl-fault)' : 'var(--gl-ok)',
+              background: enFalta ? 'var(--gl-fault-tint)' : 'var(--gl-ok-tint)',
+              cursor: puedeEditar ? 'pointer' : 'default',
+            }}
+          >
+            {enFalta ? '⚠️ Falta' : '● Ok'}
+          </button>
+          {puedeEditar && <button onClick={() => onEliminar(item.id)} style={s.btnEliminar}>🗑️</button>}
+        </div>
       </div>
     </div>
   )
@@ -112,8 +124,9 @@ function CajaHerramientas({ centroId, role }) {
 
   const guardar = (nueva) => setDoc(doc(db, 'centros', centroId, 'datos', 'cajaHerramientas'), { lista: nueva }, { merge: true })
 
-  const agregar = (item) => { guardar([...lista, { ...item, id: Date.now() }]); setModalAg(false) }
+  const agregar = (item) => { guardar([...lista, { ...item, id: Date.now(), falta: false }]); setModalAg(false) }
   const actualizarCantidad = (id, cant) => guardar(lista.map(i => i.id === id ? { ...i, cantidad: Number(cant) } : i))
+  const toggleFalta = (id, val) => guardar(lista.map(i => i.id === id ? { ...i, falta: val } : i))
   const eliminar = (id) => guardar(lista.filter(i => i.id !== id))
 
   return (
@@ -134,7 +147,7 @@ function CajaHerramientas({ centroId, role }) {
           <div style={s.listaItems}>
             {lista.map(item => (
               <ItemCaja key={item.id} item={item} puedeEditar={puedeEditar}
-                onActualizarCantidad={actualizarCantidad} onEliminar={eliminar} />
+                onActualizarCantidad={actualizarCantidad} onToggleFalta={toggleFalta} onEliminar={eliminar} />
             ))}
           </div>
         </>

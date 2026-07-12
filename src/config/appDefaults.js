@@ -46,10 +46,10 @@ export const NAV_DEFAULT = [
 // Gestión (centros/operadores) solo admin y taller; el operador entra a su centro por el mapa.
 export const NAV_META = {
   '/':           { to: '/',           icon: Map,       end: true },
-  '/centros':         { to: '/centros',         icon: Building2,    roles: ['admin', 'supervisor'] },
+  '/centros':         { to: '/centros',         icon: Building2,    roles: ['admin', 'supervisor'], badgeKey: 'centros' },
   '/despachos':       { to: '/despachos',       icon: Package,      badgeKey: 'despachos' },
   '/operadores':      { to: '/operadores',      icon: Users,        roles: ['admin', 'supervisor'] },
-  '/bitacoras':       { to: '/bitacoras',       icon: BookOpen },
+  '/bitacoras':       { to: '/bitacoras',       icon: BookOpen,    roles: ['admin', 'operador', 'owner', 'ventas'] },
   '/turnos':          { to: '/turnos',          icon: ClipboardCheck },
   '/bodega-virtual':  { to: '/bodega-virtual',  icon: Warehouse,    roles: ['supervisor'] },
   '/bodega-admin':    { to: '/bodega-admin',    icon: Warehouse,    roles: ['admin'] },

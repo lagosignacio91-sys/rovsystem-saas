@@ -4,6 +4,7 @@ import { LogOut, Menu, X, Clock, SlidersHorizontal } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import { useCentros } from '../../hooks/useCentros'
 import { useDespachosGlobal } from '../../hooks/useDespachosGlobal'
+import { useFaltantesGlobal } from '../../hooks/useFaltantesGlobal'
 import { useAppConfig } from '../../hooks/useAppConfig'
 import { useEmpresas } from '../../hooks/useEmpresas'
 import { NAV_META } from '../../config/appDefaults'
@@ -33,6 +34,10 @@ export default function MainLayout() {
   }, [role])
 
   const { pendientes } = useDespachosGlobal({ role, teamId, onNuevaSolicitud, onDespachoCambia })
+  // Solo admin/supervisor gestionan faltantes de centros — evita listeners de más a otros roles.
+  const { centrosConFaltantes, totalCentrosConFaltantes } = useFaltantesGlobal(
+    (role === 'admin' || role === 'supervisor') ? centrosState.centros : []
+  )
   const { empresas }            = useEmpresas()
   const [empresaActiva, setEmpresaActiva] = useState(null)
   const [drawerOpen, setDrawerOpen]       = useState(false)
@@ -50,7 +55,7 @@ export default function MainLayout() {
 
   const usuarioLabel = nombre || user?.email?.split('@')[0] || ''
   const inicial = (usuarioLabel[0] ?? '?').toUpperCase()
-  const badges  = { despachos: pendientes.length }
+  const badges  = { despachos: pendientes.length, centros: totalCentrosConFaltantes }
 
   // Gate de licencia móvil: en teléfono, si el usuario no tiene acceso móvil,
   // mostrar la pantalla de invitación a contratar (en computador entra normal).
@@ -171,7 +176,7 @@ export default function MainLayout() {
           </div>
         ) : (
           <main className="gl-content">
-            <Outlet context={{ ...centrosState, role, uid: user?.uid, teamId, empresaActiva }} />
+            <Outlet context={{ ...centrosState, role, uid: user?.uid, teamId, empresaActiva, centrosConFaltantes }} />
           </main>
         )}
 

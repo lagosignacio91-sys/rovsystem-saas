@@ -5,7 +5,7 @@ import FormCentro from '../components/map/FormCentro'
 import PanelCentro from '../components/ui/PanelCentro'
 
 export default function MapaPage() {
-  const { centros, cargando, agregarCentro, eliminarCentro, actualizarCentro, sincronizarEstado, role, uid, teamId, empresaActiva } = useOutletContext()
+  const { centros, cargando, agregarCentro, eliminarCentro, actualizarCentro, sincronizarEstado, role, uid, teamId, empresaActiva, centrosConFaltantes } = useOutletContext()
   const [latlng, setLatlng]             = useState(null)
   const [centroActivo, setCentroActivo] = useState(null)
 
@@ -29,7 +29,7 @@ export default function MapaPage() {
 
   return (
     <div style={{ width: '100%', height: '100%', position: 'relative' }}>
-      <MapView centros={centrosFiltrados} onMapClick={handleMapClick} onCentroClick={handleCentroClick} role={role} userTeamId={teamId} />
+      <MapView centros={centrosFiltrados} onMapClick={handleMapClick} onCentroClick={handleCentroClick} role={role} userTeamId={teamId} centrosConFaltantes={centrosConFaltantes} />
 
       {centroVivo && (
         <div className="panel-slide gl-panel-wrapper" style={{ position: 'absolute', top: 0, right: 0, height: '100%', zIndex: 1000 }}>

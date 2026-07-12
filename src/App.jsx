@@ -88,7 +88,7 @@ function AnimatedRoutes() {
         <Route path="centros"    element={<RoleRoute roles={['admin', 'supervisor']} role={role} loading={loading}><CentrosPage /></RoleRoute>} />
         <Route path="despachos"  element={<DespachosPage />} />
         <Route path="operadores" element={<RoleRoute roles={['admin', 'supervisor']} role={role} loading={loading}><OperadoresPage /></RoleRoute>} />
-        <Route path="bitacoras"       element={<BitacorasPage />} />
+        <Route path="bitacoras"       element={<RoleRoute roles={['admin', 'operador', 'owner', 'ventas']} role={role} loading={loading}><BitacorasPage /></RoleRoute>} />
         <Route path="turnos"          element={<TurnosPage />} />
         <Route path="bodega-virtual"  element={<RoleRoute roles={['supervisor']} role={role} loading={loading}><BodegaVirtualPage /></RoleRoute>} />
         <Route path="bodega-admin"    element={<RoleRoute roles={['admin']}      role={role} loading={loading}><BodegaAdminPage   /></RoleRoute>} />

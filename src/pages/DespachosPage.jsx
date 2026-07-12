@@ -4,6 +4,7 @@ import { Clock, Truck, CircleCheck, Trash2, Package, Send, ChevronDown, ChevronR
 import { t } from '../theme/tokens'
 import { Button, Modal } from '../components/kit'
 import { useDespachosGlobal } from '../hooks/useDespachosGlobal'
+import { claveItem, normalizarItemsLegacy } from '../lib/despachos'
 
 const ESTADO_INFO = {
   pendiente: { label: 'Pendiente',  color: t.low,      tint: t.lowTint,      icon: Clock },
@@ -35,14 +36,26 @@ function itemsTexto(d) {
   return items.map(i => i.nombre + (i.cantidadSolicitada ? ` ×${i.cantidadSolicitada}` : '')).join(', ')
 }
 
-function DespachoCard({ d, role, marcarEnviado, onAbrirRecepcion, onEliminar }) {
+function DespachoCard({ d, role, marcarEnviado, enviarItemsPendientes, onAbrirRecepcion, onEliminar }) {
   const info = ESTADO_INFO[d.estado] ?? ESTADO_INFO.pendiente
   const Icon = info.icon
   const recibido = d.estado === 'recibido'
+  const items = normalizarItemsLegacy(d)
+  const pendientesItems = items.filter(i => i.estadoItem === 'pendiente')
 
   const enviarWhatsApp = () => {
     const msg = `*Solicitud de despacho*\nCentro: ${d.centroNombre}\nÍtems:\n${(d.items ?? []).map(i => `• ${i.nombre}${i.cantidadSolicitada ? ` ×${i.cantidadSolicitada}` : ''}`).join('\n')}`
     window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank')
+  }
+
+  // Los despachos del flujo "falta → despacho" (origen: 'centro') marcan sus ítems
+  // pendientes como enviados uno a uno; los de Bodega Central siguen usando marcarEnviado.
+  const handleMarcarEnviado = () => {
+    if (d.origen === 'centro') {
+      enviarItemsPendientes(d.id, pendientesItems.map(claveItem))
+    } else {
+      marcarEnviado(d.id, (d.items ?? []).map(i => ({ ...i, cantidadDespachada: i.cantidadEnviada ?? i.cantidadSolicitada ?? i.cantidad ?? 1 })))
+    }
   }
 
   return (
@@ -82,10 +95,10 @@ function DespachoCard({ d, role, marcarEnviado, onAbrirRecepcion, onEliminar }) 
           {(role === 'admin' || role === 'supervisor') && d.estado === 'pendiente' && (
             <>
               <Button size="sm" icon={Send} onClick={enviarWhatsApp} style={{ background: '#22c55e', color: '#06240f' }}>WhatsApp</Button>
-              <Button size="sm" variant="secondary" icon={Truck} onClick={() => marcarEnviado(d.id, (d.items ?? []).map(i => ({ ...i, cantidadDespachada: i.cantidadEnviada ?? i.cantidadSolicitada ?? i.cantidad ?? 1 })))}>Marcar enviado</Button>
+              <Button size="sm" variant="secondary" icon={Truck} onClick={handleMarcarEnviado}>Marcar enviado</Button>
             </>
           )}
-          {(d.estado === 'enviado' || d.estado === 'parcial') && (
+          {(role === 'admin' || role === 'operador') && (d.estado === 'enviado' || d.estado === 'parcial') && (
             <Button size="sm" variant="secondary" icon={CircleCheck} onClick={() => onAbrirRecepcion(d)} style={{ borderColor: t.ok, color: t.ok }}>Confirmar recepción</Button>
           )}
           {(role === 'admin' || role === 'supervisor') && (
@@ -97,7 +110,7 @@ function DespachoCard({ d, role, marcarEnviado, onAbrirRecepcion, onEliminar }) 
   )
 }
 
-function GrupoCentro({ nombre, despachos, role, marcarEnviado, onAbrirRecepcion, onEliminar }) {
+function GrupoCentro({ nombre, despachos, role, marcarEnviado, enviarItemsPendientes, onAbrirRecepcion, onEliminar }) {
   const [abierto, setAbierto] = useState(true)
   const pendientes = despachos.filter(d => d.estado === 'pendiente' || d.estado === 'parcial').length
   return (
@@ -115,7 +128,8 @@ function GrupoCentro({ nombre, despachos, role, marcarEnviado, onAbrirRecepcion,
         <div style={{ display: 'flex', flexDirection: 'column', gap: 7, marginTop: 7, paddingLeft: 8 }}>
           {despachos.map(d => (
             <DespachoCard key={d.id} d={d} role={role}
-              marcarEnviado={marcarEnviado} onAbrirRecepcion={onAbrirRecepcion}
+              marcarEnviado={marcarEnviado} enviarItemsPendientes={enviarItemsPendientes}
+              onAbrirRecepcion={onAbrirRecepcion}
               onEliminar={onEliminar} />
           ))}
         </div>
@@ -126,26 +140,34 @@ function GrupoCentro({ nombre, despachos, role, marcarEnviado, onAbrirRecepcion,
 
 export default function DespachosPage() {
   const { role, centros, empresaActiva, teamId } = useOutletContext()
-  const { despachos, cargando, marcarEnviado, confirmarRecepcion, eliminarDespacho } = useDespachosGlobal({ role, teamId })
+  const { despachos, cargando, marcarEnviado, enviarItemsPendientes, confirmarRecepcion, eliminarDespacho } = useDespachosGlobal({ role, teamId })
   const [filtro,          setFiltro]          = useState('todos')
   const [aEliminar,       setAEliminar]       = useState(null)
   const [despachoRecibir, setDespachoRecibir] = useState(null)
   const [obsRecepcion,    setObsRecepcion]    = useState('')
-  const [recibirCompleto, setRecibirCompleto] = useState(true)
+  const [itemsRecibir,    setItemsRecibir]    = useState({}) // clave item -> boolean
   const [guardandoRec,    setGuardandoRec]    = useState(false)
 
   const abrirRecepcion = (d) => {
-    setDespachoRecibir(d)
+    const enviados = normalizarItemsLegacy(d).filter(i => i.estadoItem === 'enviado')
+    setDespachoRecibir({ ...d, _enviados: enviados })
     setObsRecepcion('')
-    setRecibirCompleto(true)
+    setItemsRecibir(enviados.reduce((acc, i) => ({ ...acc, [claveItem(i)]: true }), {}))
   }
+
+  const toggleItemRecibir = (key) => setItemsRecibir(prev => ({ ...prev, [key]: !prev[key] }))
 
   const handleConfirmarRecepcion = async () => {
     if (!despachoRecibir) return
+    const itemKeys = despachoRecibir._enviados.filter(i => itemsRecibir[claveItem(i)]).map(claveItem)
+    if (itemKeys.length === 0) return
     setGuardandoRec(true)
     try {
-      await confirmarRecepcion(despachoRecibir.id, obsRecepcion, recibirCompleto)
+      await confirmarRecepcion(despachoRecibir.id, itemKeys, obsRecepcion)
       setDespachoRecibir(null)
+    } catch (e) {
+      console.error('[DespachosPage/confirmarRecepcion]', e)
+      alert('No se pudo confirmar la recepción. Intenta de nuevo.')
     } finally {
       setGuardandoRec(false)
     }
@@ -205,7 +227,8 @@ export default function DespachosPage() {
 
         {centrosOrdenados.map(nombre => (
           <GrupoCentro key={nombre} nombre={nombre} despachos={porCentro[nombre]}
-            role={role} marcarEnviado={marcarEnviado} onAbrirRecepcion={abrirRecepcion}
+            role={role} marcarEnviado={marcarEnviado} enviarItemsPendientes={enviarItemsPendientes}
+            onAbrirRecepcion={abrirRecepcion}
             onEliminar={setAEliminar} />
         ))}
       </div>
@@ -221,23 +244,26 @@ export default function DespachosPage() {
           </>}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div>
+              <label style={{ display: 'block', fontSize: t.textSm, fontWeight: 600, color: t.textSecondary, marginBottom: 6 }}>Ítems recibidos</label>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {despachoRecibir._enviados.map(i => (
+                  <label key={claveItem(i)} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: t.textSm, color: t.textPrimary, background: t.bgInput, borderRadius: t.radiusMd, padding: '6px 10px' }}>
+                    <input type="checkbox" checked={itemsRecibir[claveItem(i)] ?? true} onChange={() => toggleItemRecibir(claveItem(i))} />
+                    {i.nombre} ×{i.cantidad}
+                  </label>
+                ))}
+              </div>
+            </div>
+            <div>
               <label style={{ display: 'block', fontSize: t.textSm, fontWeight: 600, color: t.textSecondary, marginBottom: 4 }}>Observación</label>
               <textarea
                 value={obsRecepcion}
                 onChange={e => setObsRecepcion(e.target.value)}
                 placeholder="Ej: Se recibió todo OK, faltó un ítem..."
                 rows={3}
-                autoFocus
                 style={{ width: '100%', padding: '8px 10px', background: t.bgInput, border: `1px solid ${t.border}`, borderRadius: t.radiusMd, color: t.textPrimary, fontSize: t.textSm, resize: 'vertical', boxSizing: 'border-box' }}
               />
             </div>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: t.textSm, color: t.textPrimary }}>
-              <input type="checkbox" checked={recibirCompleto} onChange={e => setRecibirCompleto(e.target.checked)} />
-              Recepción completa
-            </label>
-            <p style={{ fontSize: t.textXs, color: t.textMuted, margin: 0 }}>
-              {recibirCompleto ? '🟢 El despacho quedará como Recibido' : '🟡 Quedará como Recepción Parcial'}
-            </p>
           </div>
         </Modal>
       )}
