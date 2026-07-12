@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
-import { db, secondaryAuth, auth } from '../lib/firebase'
-import { collection, onSnapshot, setDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore'
-import { createUserWithEmailAndPassword, signOut, deleteUser } from 'firebase/auth'
+import { db, auth, functions } from '../lib/firebase'
+import { collection, onSnapshot, updateDoc, deleteDoc, doc } from 'firebase/firestore'
+import { httpsCallable } from 'firebase/functions'
 
 export function useUsuarios() {
   const [usuarios, setUsuarios] = useState([])
@@ -15,44 +15,19 @@ export function useUsuarios() {
     return () => unsub()
   }, [])
 
+  // El alta la hace una Cloud Function con Admin SDK (verifica que el llamador sea
+  // admin server-side). Antes se creaba la cuenta desde el navegador con el signUp
+  // público; moverlo al servidor permite apagar ese signUp sin romper el alta.
   const crearOperador = async (datos, password) => {
     setError(null)
     try {
-      const cred = await createUserWithEmailAndPassword(secondaryAuth, datos.correoCorporativo, password)
-      const uid  = cred.user.uid
-      try {
-        await setDoc(doc(db, 'usuarios', uid), {
-          rol:                datos.rol                ?? 'operador',
-          nombre:             datos.nombre             ?? '',
-          rut:                datos.rut                ?? '',
-          telefono:           datos.telefono           ?? '',
-          correoCorporativo:  datos.correoCorporativo,
-          foto:               datos.foto               ?? null,
-          teamId:             datos.teamId             ?? null,
-          empresaId:          datos.empresaId          ?? null,
-          movilHabilitado:    datos.movilHabilitado    ?? false,
-          esRelevo:           datos.esRelevo           ?? false,
-          area:               datos.area               ?? '',
-          proveedor:          datos.proveedor          ?? '',
-          estado:             datos.estado             ?? 'pendiente',
-          passwordCambiado:   false,
-          createdAt:          new Date().toISOString(),
-          createdBy:          auth.currentUser?.uid    ?? '',
-          updatedAt:          new Date().toISOString(),
-          updatedBy:          auth.currentUser?.uid    ?? '',
-        })
-      } catch (e) {
-        // Rollback: borrar la cuenta de Auth recién creada para no dejar huérfana.
-        try { await deleteUser(secondaryAuth.currentUser) } catch (_) { /* noop */ }
-        throw e
-      } finally {
-        await signOut(secondaryAuth)
-      }
-      return { uid, error: null }
+      const crearUsuario = httpsCallable(functions, 'crearUsuario')
+      const res = await crearUsuario({ ...datos, password })
+      return { uid: res.data?.uid ?? null, error: null }
     } catch (e) {
-      const msg = e.code === 'auth/email-already-in-use'
+      const msg = e.code === 'functions/already-exists'
         ? 'El correo ya tiene una cuenta registrada'
-        : e.message
+        : (e.message || 'No se pudo crear el usuario')
       setError(msg)
       return { uid: null, error: msg }
     }
