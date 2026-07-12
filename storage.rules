@@ -2,48 +2,71 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
 
-    // Fotos de entregas de turno.
-    // Write/delete: solo usuario que subió el archivo (metadata.uploadedBy) o admin.
+    // ── Helpers que consultan Firestore para rol/team ──────────────────
+    // firestore.get() sobre un doc inexistente lanza y la regla deniega
+    // (fail-closed), lo que ya cubre las cuentas huérfanas (ver S-01).
+    function miRol() {
+      return firestore.get(/databases/(default)/documents/usuarios/$(request.auth.uid)).data.rol;
+    }
+    function miTeam() {
+      return firestore.get(/databases/(default)/documents/usuarios/$(request.auth.uid)).data.teamId;
+    }
+    function centroTeam(centroId) {
+      return firestore.get(/databases/(default)/documents/centros/$(centroId)).data.teamAsignado;
+    }
+    function esGestion() {
+      return request.auth != null && miRol() in ['admin', 'supervisor'];
+    }
+    // El operador solo escribe en la carpeta de un centro de SU team (S-06).
+    function centroDeMiTeam(centroId) {
+      return request.auth != null && (esGestion() || centroTeam(centroId) == miTeam());
+    }
+    // La subida debe declararse a nombre del propio usuario (anti-spoof de
+    // uploadedBy, que antes lo fijaba el cliente sin validación — S-06).
+    function subidaPropia() {
+      return request.resource.metadata.uploadedBy == request.auth.uid;
+    }
+    function esImagenValida() {
+      return request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    // Fotos de entregas de turno. Read amplio (roster/vistas de taller);
+    // write acotado por team + subida propia. Delete: quien subió, o gestión.
     match /entregas/{centroId}/{entregaId}/{archivo} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null
-        && request.resource.size < 5 * 1024 * 1024
-        && request.resource.contentType.matches('image/.*');
+      allow read:   if request.auth != null;
+      allow write:  if centroDeMiTeam(centroId) && esImagenValida() && subidaPropia();
       allow delete: if request.auth != null
-        && (resource.metadata['uploadedBy'] == request.auth.uid
-            || request.auth.token.email.matches('.*@hyperionx\\.tech'));
+        && (resource.metadata['uploadedBy'] == request.auth.uid || esGestion());
     }
 
-    // Fotos de despacho.
+    // Fotos de despacho. El team se toma del propio doc del despacho.
     match /despachos/{despachoId}/{archivo} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null
-        && request.resource.size < 5 * 1024 * 1024
-        && request.resource.contentType.matches('image/.*');
+      allow read:   if request.auth != null;
+      allow write:  if request.auth != null && esImagenValida() && subidaPropia()
+        && (esGestion()
+            || firestore.get(/databases/(default)/documents/despachos/$(despachoId)).data.teamAsignado == miTeam());
       allow delete: if request.auth != null
-        && (resource.metadata['uploadedBy'] == request.auth.uid
-            || request.auth.token.email.matches('.*@hyperionx\\.tech'));
+        && (resource.metadata['uploadedBy'] == request.auth.uid || esGestion());
     }
 
-    // Fotos de operador.
+    // Fotos de operador (avatar del roster). Read amplio (popup de contacto del
+    // mapa de centros ajenos); write acotado por team + subida propia.
     match /operadores/{centroId}/{archivo} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null
-        && request.resource.size < 5 * 1024 * 1024
-        && request.resource.contentType.matches('image/.*');
+      allow read:   if request.auth != null;
+      allow write:  if centroDeMiTeam(centroId) && esImagenValida() && subidaPropia();
       allow delete: if request.auth != null
-        && (resource.metadata['uploadedBy'] == request.auth.uid
-            || request.auth.token.email.matches('.*@hyperionx\\.tech'));
+        && (resource.metadata['uploadedBy'] == request.auth.uid || esGestion());
     }
 
-    // Documentos Olimpo (hxDocs).
+    // Documentos internos de Olimpo (hxDocs). S-04: antes cualquier autenticado
+    // leía/escribía estos documentos de negocio. Ahora coherente con Firestore:
+    // solo owner/ventas leen, solo owner escribe/borra.
     match /hxDocs/{archivo} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null
+      allow read:   if request.auth != null && miRol() in ['owner', 'ventas'];
+      allow write:  if request.auth != null && miRol() == 'owner'
         && request.resource.size < 20 * 1024 * 1024;
-      allow delete: if request.auth != null
-        && (resource.metadata['uploadedBy'] == request.auth.uid
-            || request.auth.token.email.matches('.*@hyperionx\\.tech'));
+      allow delete: if request.auth != null && miRol() == 'owner';
     }
 
     // Resto: denegado por defecto.
