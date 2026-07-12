@@ -121,8 +121,12 @@ service cloud.firestore {
     // Crear/enviar: admin y taller. Confirmar recepción (update): también el operador. Borrar: admin y taller.
     match /despachos/{id} {
       // El operador solo lee despachos de SU propio team (anti cross-tenant).
+      // LV-02: se usa resource.data.get('teamAsignado','') en vez de acceso directo;
+      // el acceso directo lanzaba "Property teamAsignado is undefined" al evaluar la
+      // regla en consultas `list` (analisis estatico / docs sin el campo), rompiendo
+      // el listener. get(...,'') es fail-closed: '' no coincide con ningún teamId real.
       allow read:          if aprovisionado()
-        && (!isOperador() || resource.data.teamAsignado
+        && (!isOperador() || resource.data.get('teamAsignado', '')
               == get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.teamId);
       allow create:        if isAdmin() || isSupervisor();
       // El operador solo confirma recepción (campos acotados) y SOLO de su propio team.
@@ -149,8 +153,9 @@ service cloud.firestore {
     // (crear, marcar reemplazo enviado, borrar). El operador solo hace dos
     // transiciones puntuales de SU propio team, con campos acotados por paso.
     match /equipoTickets/{id} {
+      // LV-02: get('teamAsignado','') evita el error de evaluación en consultas list.
       allow read: if aprovisionado()
-        && (!isOperador() || resource.data.teamAsignado
+        && (!isOperador() || resource.data.get('teamAsignado', '')
               == get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.teamId);
 
       allow create: if isAdmin() || isSupervisor();
