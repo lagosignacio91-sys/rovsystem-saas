@@ -83,9 +83,15 @@ service cloud.firestore {
       }
 
       // Equipos ROV: solo admin y operador editan. El taller (supervisor) NO edita; sí lee fallas.
+      // El operador solo edita equipos de centros de SU team (anti cross-tenant, S-02),
+      // mismo patrón que datos/ y despachos — antes cualquier operador podía escribir
+      // los equipos/fallas de centros de otros teams.
       match /equipos/{doc} {
         allow read:  if aprovisionado();
-        allow write: if isAdmin() || isOperador();
+        allow write: if isAdmin()
+          || (isOperador()
+              && get(/databases/$(database)/documents/centros/$(centroId)).data.teamAsignado
+                 == get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.teamId);
       }
 
       // Datos operativos del centro:
@@ -184,9 +190,15 @@ service cloud.firestore {
     }
     match /hxProspectos/{doc} {
       allow read, write: if isOwner() || isVentas();
-      // Tracking anónimo: solo permite actualizar visitas y ultimaVisita
+      // Tracking anónimo de visitas (sin sesión). S-05: antes permitía escribir
+      // `visitas`/`ultimaVisita` con CUALQUIER valor/estructura y sin límite. Ahora
+      // solo se acepta un incremento de exactamente +1 en `visitas` (int) y un
+      // `ultimaVisita` timestamp; get('visitas', 0) cubre el doc sin el campo aún.
       allow update: if request.resource.data.diff(resource.data).affectedKeys()
-                       .hasOnly(['visitas', 'ultimaVisita']);
+                         .hasOnly(['visitas', 'ultimaVisita'])
+                     && request.resource.data.visitas is int
+                     && request.resource.data.visitas == resource.data.get('visitas', 0) + 1
+                     && request.resource.data.ultimaVisita is timestamp;
     }
 
     // ---- Centros: owner puede leer para métricas ----
