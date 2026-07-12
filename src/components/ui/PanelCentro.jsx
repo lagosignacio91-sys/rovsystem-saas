@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, memo } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { db } from '../../lib/firebase'
 import { doc, onSnapshot } from 'firebase/firestore'
 import { Trash2, X, Gamepad2, Users } from 'lucide-react'
@@ -159,18 +159,22 @@ export default memo(function PanelCentro({ centro, onCerrar, onEliminar, sincron
         })}
       </div>
 
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={tabActiva}
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -6 }}
-          transition={{ duration: 0.18, ease: [0.4, 0, 0.2, 1] }}
-          style={styles.contenido}
-        >
-          {TAB_COMPONENTES[tabActiva]?.({ centro, role: rolEfectivo, uid, teamId, sincronizarEstado })}
-        </motion.div>
-      </AnimatePresence>
+      {/* Contenido de la pestaña activa. Se renderiza con un motion.div "keyed"
+          (sin AnimatePresence): al cambiar `tabActiva`, React desmonta el tab
+          anterior y monta el nuevo, que corre su animación de entrada. NO se usa
+          `mode="wait"`: ese modo difería el montaje del tab entrante hasta que el
+          saliente completara su animación de salida (onExitComplete), handoff que
+          quedaba bloqueado por el re-render de ~1s del layout (ver useReloj/T-01),
+          dejando el contenido congelado en la primera pestaña. */}
+      <motion.div
+        key={tabActiva}
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.18, ease: [0.4, 0, 0.2, 1] }}
+        style={styles.contenido}
+      >
+        {TAB_COMPONENTES[tabActiva]?.({ centro, role: rolEfectivo, uid, teamId, sincronizarEstado })}
+      </motion.div>
 
       {aEliminar && (
         <Modal open title="Eliminar centro" onClose={() => setAEliminar(false)} maxWidth={340}
