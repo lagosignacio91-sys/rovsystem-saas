@@ -14,12 +14,25 @@ service cloud.firestore {
     function isOperador()   { return signedIn() && rol() == 'operador'; }
     function isOwner()      { return signedIn() && rol() == 'owner'; }
     function isVentas()     { return signedIn() && rol() == 'ventas'; }
+    function rolValido(r) { return r in ['operador', 'supervisor', 'admin', 'owner', 'ventas']; }
+
+    // Usuario "aprovisionado": autenticado Y con un perfil en /usuarios creado por
+    // un admin (create es solo-admin). Cierra el hueco de S-01: una cuenta huérfana
+    // de auto-registro cumple signedIn() pero NO tiene perfil, así que no debe leer
+    // nada. El gate fuerte es la EXISTENCIA del perfil; el `&&` corta antes de llamar
+    // a rol() si no existe. No se exige estado=='activo': ese campo arranca en
+    // 'pendiente' al crear el usuario y hoy es auto-editable (ver S-10), no sirve de
+    // frontera de confianza; se abordará por separado.
+    function aprovisionado() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/usuarios/$(request.auth.uid))
+        && rolValido(rol());
+    }
 
     // ---- Usuarios ----
     // El roster lo leen varias vistas (mapa, centros, operadores).
     // Self puede actualizar su perfil (ej: passwordCambiado) PERO no su rol ni teamId
     // (evita auto-escalar privilegios). Crear/borrar solo admin.
-    function rolValido(r) { return r in ['operador', 'supervisor', 'admin', 'owner', 'ventas']; }
     match /usuarios/{uid} {
       // PII (RUT, teléfono, correos): solo admin, taller y el propio usuario.
       allow read:   if isAdmin() || isSupervisor() || isOwner() || request.auth.uid == uid;
@@ -35,17 +48,17 @@ service cloud.firestore {
 
     // ---- Catálogos: cualquiera lee, solo admin escribe ----
     match /empresas/{id} {
-      allow read:  if signedIn();
+      allow read:  if aprovisionado();
       allow write: if isAdmin() || isOwner();
     }
     match /config/{doc} {
-      allow read:  if signedIn();
+      allow read:  if aprovisionado();
       allow write: if isAdmin();
     }
 
     // ---- Centros ----
     match /centros/{centroId} {
-      allow read:          if signedIn();
+      allow read:          if aprovisionado();
       allow create, delete: if isAdmin();
       // El doc del centro solo lo edita el admin, EXCEPTO el campo `estado`,
       // que se recalcula al cambiar stock: el taller, o el operador de ESE team.
@@ -65,13 +78,13 @@ service cloud.firestore {
 
       // Config por centro (lista de ítems del wizard): admin y taller escriben; operador solo lee.
       match /config/{doc} {
-        allow read:  if signedIn();
+        allow read:  if aprovisionado();
         allow write: if isAdmin() || isSupervisor();
       }
 
       // Equipos ROV: solo admin y operador editan. El taller (supervisor) NO edita; sí lee fallas.
       match /equipos/{doc} {
-        allow read:  if signedIn();
+        allow read:  if aprovisionado();
         allow write: if isAdmin() || isOperador();
       }
 
@@ -83,7 +96,7 @@ service cloud.firestore {
         // El taller (supervisor) no debe ver bitácoras diarias, ni siquiera vía lectura directa.
         // estucheHerramientas/cajaHerramientas/operadores siguen abiertas a cualquier autenticado
         // (ej. popup de contacto de centros ajenos en el Mapa).
-        allow read:  if signedIn()
+        allow read:  if aprovisionado()
           && (doc != 'bitacora'
               || (!isOperador() && !isSupervisor())
               || (isOperador()
@@ -102,7 +115,7 @@ service cloud.firestore {
     // Crear/enviar: admin y taller. Confirmar recepción (update): también el operador. Borrar: admin y taller.
     match /despachos/{id} {
       // El operador solo lee despachos de SU propio team (anti cross-tenant).
-      allow read:          if signedIn()
+      allow read:          if aprovisionado()
         && (!isOperador() || resource.data.teamAsignado
               == get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.teamId);
       allow create:        if isAdmin() || isSupervisor();
@@ -124,7 +137,7 @@ service cloud.firestore {
     // (crear, marcar reemplazo enviado, borrar). El operador solo hace dos
     // transiciones puntuales de SU propio team, con campos acotados por paso.
     match /equipoTickets/{id} {
-      allow read: if signedIn()
+      allow read: if aprovisionado()
         && (!isOperador() || resource.data.teamAsignado
               == get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.teamId);
 
