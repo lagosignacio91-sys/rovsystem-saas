@@ -207,35 +207,44 @@ export function useBodegaCentral() {
   }
 
   // ── DESPACHO: descontar stock por nombre (match contra repuestos y herramientas/insumos) ──
+  // T-04: el match del ítem usa el estado local (para saber a qué doc apunta), pero el
+  // DESCUENTO es atómico vía runTransaction: re-lee la cantidad del servidor y escribe
+  // max(0, actual - qty). Antes era read-modify-write sobre el estado local (rancio), así
+  // que dos despachos concurrentes del mismo ítem perdían un descuento.
   const descontarStockDespacho = useCallback(async (items) => {
     for (const item of items) {
       const nombre = item.nombre?.toLowerCase()
       if (!nombre) continue
       const qty = Number(item.cantidadEnviada ?? item.cantidadDespachada ?? item.cantidad ?? 1) || 0
+      if (qty <= 0) continue
 
       const repuesto = repuestos.find(r =>
         (item.id && String(r.id) === String(item.id)) || r.nombre?.toLowerCase() === nombre
       )
-      if (repuesto) {
-        const nuevo = Math.max(0, (Number(repuesto.cantidad) || 0) - qty)
-        await updateDoc(doc(db, 'bodegaCentral', 'almacen', 'repuestos', repuesto.id), {
-          cantidad: nuevo, updatedAt: new Date().toISOString(),
-        })
-        continue
-      }
-
-      const hi = herramientasInsumos.find(h =>
+      const hi = repuesto ? null : herramientasInsumos.find(h =>
         (item.id && String(h.id) === String(item.id)) || h.nombre?.toLowerCase() === nombre
       )
-      if (hi) {
-        const nuevo = Math.max(0, (Number(hi.cantidad) || 0) - qty)
-        await updateDoc(doc(db, 'bodegaCentral', 'almacen', 'herramientasInsumos', hi.id), {
-          cantidad: nuevo, updatedAt: new Date().toISOString(),
-        })
+      const target = repuesto
+        ? doc(db, 'bodegaCentral', 'almacen', 'repuestos', repuesto.id)
+        : hi
+          ? doc(db, 'bodegaCentral', 'almacen', 'herramientasInsumos', hi.id)
+          : null
+
+      if (!target) {
+        logError('bodega/descontarStock', new Error(`Ítem "${item.nombre}" no encontrado en bodega`))
         continue
       }
 
-      logError('bodega/descontarStock', new Error(`Ítem "${item.nombre}" no encontrado en bodega`))
+      try {
+        await runTransaction(db, async (tx) => {
+          const snap = await tx.get(target)
+          if (!snap.exists()) return
+          const actual = Number(snap.data().cantidad) || 0
+          tx.update(target, { cantidad: Math.max(0, actual - qty), updatedAt: new Date().toISOString() })
+        })
+      } catch (e) {
+        logError('bodega/descontarStock/tx', e)
+      }
     }
   }, [repuestos, herramientasInsumos])
 
