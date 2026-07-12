@@ -13,8 +13,12 @@ export function useDespachosGlobal({ role, teamId, onNuevaSolicitud, onDespachoC
   const prevIds = useRef(null)
 
   useEffect(() => {
-    // Operador: esperar a que cargue el team antes de suscribirse (evita un query sin
-    // el `where` que la regla de Firestore exige para poder listar).
+    // Esperar a que el rol esté cargado antes de suscribirse. Si role es null (auth
+    // resolviéndose) pero el usuario real es operador, un query SIN `where` se deniega
+    // ('false for list') — la regla exige el filtro por team para el operador (LV-02).
+    if (!role) { setCargando(true); return }
+    // Operador: esperar también a que cargue el team antes de suscribirse (evita un
+    // query sin el `where` que la regla de Firestore exige para poder listar).
     if (role === 'operador' && !teamId) { setCargando(true); return }
 
     const ref = (role === 'operador' && teamId)

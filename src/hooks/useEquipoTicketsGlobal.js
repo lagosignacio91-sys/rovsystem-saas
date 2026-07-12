@@ -10,6 +10,9 @@ export function useEquipoTicketsGlobal({ role, teamId } = {}) {
   const [cargando, setCargando] = useState(true)
 
   useEffect(() => {
+    // Esperar a que el rol esté cargado (LV-02): con role null pero usuario operador,
+    // un query sin `where` por team se deniega ('false for list').
+    if (!role) { setCargando(true); return }
     if (role === 'operador' && !teamId) { setCargando(true); return }
 
     const ref = (role === 'operador' && teamId)
