@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { db, auth } from '../../lib/firebase'
 import { doc, setDoc, getDoc, onSnapshot, arrayUnion } from 'firebase/firestore'
 import { Send, FileText, ChevronDown, ChevronUp, History } from 'lucide-react'
+import { logError } from '../../lib/logger'
 
 function hoy() {
   return new Date().toISOString().slice(0, 10)
@@ -109,7 +110,7 @@ export default function TabBitacora({ centro, role }) {
       const listaOps = ops.lista ?? [ops.op1, ops.op2].filter(Boolean)
       const enFaena = listaOps.find(op => op?.estado === 'faena' && op?.nombre)
       if (enFaena) setDatos(d => ({ ...d, piloto: enFaena.nombre }))
-    })
+    }, (e) => logError('TabBitacora/operadores', e))
     return () => unsub()
   }, [centro.id])
 

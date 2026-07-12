@@ -66,7 +66,7 @@ export function useEquipoTickets(centroId, teamId) {
       const d = snap.exists() ? snap.data() : {}
       rovData = { principal: d.principal ?? {}, backup: d.backup ?? {} }
       recalc()
-    })
+    }, (e) => logError('useEquipoTickets/rov', e))
     return () => { unsub(); recalcRef.current = null }
   }, [centroId])
 

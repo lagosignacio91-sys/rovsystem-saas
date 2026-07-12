@@ -3,6 +3,7 @@ import { db, auth } from '../lib/firebase'
 import { collection, onSnapshot, updateDoc, doc, arrayUnion, query, where } from 'firebase/firestore'
 import { confirmarRecepcionItems } from '../lib/recepcion'
 import { calcularEstadoDespacho, claveItem, normalizarItemsLegacy } from '../lib/despachos'
+import { logError } from '../lib/logger'
 
 // Escucha los despachos. Si se pasa role='operador' y teamId, filtra solo los del propio team.
 // onNuevaSolicitud(d): callback opcional llamado cuando llega un despacho nuevo (para toasts).
@@ -53,7 +54,7 @@ export function useDespachosGlobal({ role, teamId, onNuevaSolicitud, onDespachoC
       prevIds.current = new Set(data.map(d => d.id))
       setDespachos(data)
       setCargando(false)
-    })
+    }, (e) => { logError('useDespachosGlobal', e); setCargando(false) })
     return () => unsub()
   }, [role, teamId])
 

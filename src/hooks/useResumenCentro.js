@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { db } from '../lib/firebase'
 import { doc, onSnapshot } from 'firebase/firestore'
 import { HERRAMIENTAS_BASICAS_DEFAULT } from '../config/appDefaults'
+import { logError } from '../lib/logger'
 
 export function useResumenCentro(centroId) {
   const [resumen, setResumen] = useState({ fallas: [], solicitudes: [] })
@@ -54,11 +55,11 @@ export function useResumenCentro(centroId) {
     const unsubRov = onSnapshot(doc(db, 'centros', centroId, 'equipos', 'rov'), snap => {
       rovData = snap.exists() ? snap.data() : null
       actualizar()
-    })
+    }, (e) => logError('useResumenCentro/rov', e))
     const unsubEst = onSnapshot(doc(db, 'centros', centroId, 'datos', 'estucheHerramientas'), snap => {
       estData = snap.exists() ? snap.data() : null
       actualizar()
-    })
+    }, (e) => logError('useResumenCentro/estuche', e))
 
     return () => { unsubRov(); unsubEst() }
   }, [centroId])

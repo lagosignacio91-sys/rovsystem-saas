@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { db } from '../lib/firebase'
 import { doc, onSnapshot, setDoc, arrayUnion } from 'firebase/firestore'
+import { logError } from '../lib/logger'
 
 // Agrega una entrada nueva a la bitácora del centro (nunca sobrescribe el historial).
 export async function guardarBitacora(centroId, entrada) {
@@ -48,7 +49,7 @@ export function useBitacorasGlobal(centros) {
       unsubs.push(onSnapshot(refBit, snap => {
         state[centro.id].bitacora = snap.exists() ? snap.data() : null
         flush()
-      }))
+      }, (e) => { logError('useBitacorasGlobal/bitacora', e); setCargando(false) }))
 
       const refOps = doc(db, 'centros', centro.id, 'datos', 'operadores')
       unsubs.push(onSnapshot(refOps, snap => {
@@ -58,7 +59,7 @@ export function useBitacorasGlobal(centros) {
           op2: lista[1] ?? null,
         }
         flush()
-      }))
+      }, (e) => { logError('useBitacorasGlobal/operadores', e); setCargando(false) }))
     }
 
     return () => unsubs.forEach(u => u())

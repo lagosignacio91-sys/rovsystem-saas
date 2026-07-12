@@ -4,6 +4,7 @@ import { doc, setDoc, onSnapshot, deleteField } from 'firebase/firestore'
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 import { useAppConfig } from '../../hooks/useAppConfig'
 import { TIPOS_OPERADOR } from '../../config/appDefaults'
+import { logError } from '../../lib/logger'
 
 function FormOperador({ titulo, form, setForm, fotoPreview, fileRef, handleFoto, onGuardar, onCerrar, campos }) {
   return (
@@ -114,7 +115,7 @@ export default function TabOperador({ centro, role }) {
         setLista([])
       }
       setCargando(false)
-    })
+    }, (e) => { logError('TabOperador/operadores', e); setCargando(false) })
     return () => unsub()
   }, [centro.id])
 

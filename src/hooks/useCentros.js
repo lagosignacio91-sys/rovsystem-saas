@@ -55,13 +55,13 @@ export function useCentros() {
   useEffect(() => {
     const unsubCentros = onSnapshot(collection(db, 'centros'), (snap) => {
       setCentrosRaw(snap.docs.map(d => ({ id: d.id, ...d.data() })))
-    })
+    }, (e) => logError('useCentros/centros', e))
     // Mapa empresaId → nombre, para denormalizar empresaNombre al vuelo
     const unsubEmpresas = onSnapshot(collection(db, 'empresas'), (snap) => {
       const map = {}
       snap.docs.forEach(d => { map[d.id] = d.data().nombre })
       setEmpresasMap(map)
-    })
+    }, (e) => logError('useCentros/empresas', e))
     return () => { unsubCentros(); unsubEmpresas() }
   }, [])
 

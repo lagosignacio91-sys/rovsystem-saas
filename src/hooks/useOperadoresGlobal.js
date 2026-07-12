@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { db } from '../lib/firebase'
 import { doc, onSnapshot } from 'firebase/firestore'
+import { logError } from '../lib/logger'
 
 export function useOperadoresGlobal(centros) {
   const [operadores, setOperadores] = useState([])
@@ -31,7 +32,7 @@ export function useOperadoresGlobal(centros) {
         const all = []
         centros.forEach(centro => all.push(...(dataMap.get(centro.id) || [])))
         setOperadores(all)
-      })
+      }, (e) => { logError('useOperadoresGlobal', e); setCargando(false) })
     )
 
     return () => { active = false; unsubs.forEach(u => u()) }

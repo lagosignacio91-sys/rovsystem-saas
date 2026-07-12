@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { db, auth, functions } from '../lib/firebase'
 import { collection, onSnapshot, updateDoc, deleteDoc, doc } from 'firebase/firestore'
 import { httpsCallable } from 'firebase/functions'
+import { logError } from '../lib/logger'
 
 export function useUsuarios() {
   const [usuarios, setUsuarios] = useState([])
@@ -11,7 +12,7 @@ export function useUsuarios() {
   useEffect(() => {
     const unsub = onSnapshot(collection(db, 'usuarios'), snap => {
       setUsuarios(snap.docs.map(d => ({ id: d.id, ...d.data() })))
-    })
+    }, (e) => logError('useUsuarios', e))
     return () => unsub()
   }, [])
 

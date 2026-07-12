@@ -3,6 +3,7 @@ import { db } from '../lib/firebase'
 import {
   collection, addDoc, onSnapshot, deleteDoc, doc
 } from 'firebase/firestore'
+import { logError } from '../lib/logger'
 
 export function useEmpresas() {
   const [empresas, setEmpresas] = useState([])
@@ -13,7 +14,7 @@ export function useEmpresas() {
       const data = snap.docs.map(d => ({ id: d.id, ...d.data() }))
       setEmpresas(data.sort((a, b) => a.nombre.localeCompare(b.nombre)))
       setCargando(false)
-    })
+    }, (e) => { logError('useEmpresas', e); setCargando(false) })
     return () => unsub()
   }, [])
 

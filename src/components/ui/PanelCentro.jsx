@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, memo } from 'react'
 import { motion } from 'framer-motion'
 import { db } from '../../lib/firebase'
 import { doc, onSnapshot } from 'firebase/firestore'
+import { logError } from '../../lib/logger'
 import { Trash2, X, Gamepad2, Users } from 'lucide-react'
 import { t } from '../../theme/tokens'
 import { EstadoBadge, Modal, Button } from '../kit'
@@ -70,14 +71,14 @@ export default memo(function PanelCentro({ centro, onCerrar, onEliminar, sincron
   useEffect(() => {
     const unsub = onSnapshot(doc(db, 'centros', centro.id, 'datos', 'operadores'), (snap) => {
       setOperadores(snap.exists() ? snap.data() : { op1: {}, op2: {} })
-    })
+    }, (e) => logError('PanelCentro/operadores', e))
     return () => unsub()
   }, [centro.id])
 
   useEffect(() => {
     const unsub = onSnapshot(doc(db, 'centros', centro.id), (snap) => {
       if (snap.exists()) setEstadoActual(snap.data().estado)
-    })
+    }, (e) => logError('PanelCentro/centro', e))
     return () => unsub()
   }, [centro.id])
 

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { db } from '../../lib/firebase'
 import { doc, setDoc, onSnapshot } from 'firebase/firestore'
 import { HERRAMIENTAS_BASICAS_DEFAULT } from '../../config/appDefaults'
+import { logError } from '../../lib/logger'
 
 // ---- Fila de checklist fijo (Ok / Falta) ----
 function FilaHerramienta({ item, estado, puedeEditar, onCambiar }) {
@@ -118,7 +119,7 @@ function CajaHerramientas({ centroId, role }) {
     const unsub = onSnapshot(ref, (snap) => {
       setLista(snap.exists() ? (snap.data().lista ?? []) : [])
       setCargando(false)
-    })
+    }, (e) => { logError('TabInventario/caja', e); setCargando(false) })
     return () => unsub()
   }, [centroId])
 
@@ -168,7 +169,7 @@ export default function TabInventario({ centro, role, sincronizarEstado }) {
       const data = snap.exists() ? snap.data() : {}
       setEstadoPrincipal(data.principal ?? {})
       setEstadoBackup(data.backup ?? {})
-    })
+    }, (e) => logError('TabInventario/estuche', e))
     return () => unsub()
   }, [centro.id])
 

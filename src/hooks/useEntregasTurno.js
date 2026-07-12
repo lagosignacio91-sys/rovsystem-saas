@@ -38,7 +38,7 @@ export function useEntregasTurno(centroId) {
     const unsub = onSnapshot(q, (snap) => {
       setEntregas(snap.docs.map(d => ({ id: d.id, ...d.data() })))
       setCargando(false)
-    })
+    }, (e) => { logError('useEntregasTurno/entregas', e); setCargando(false) })
     return () => unsub()
   }, [centroId])
 
@@ -46,8 +46,10 @@ export function useEntregasTurno(centroId) {
     if (!centroId) return
     const ref = doc(db, 'centros', centroId, 'config', 'inventario')
     const unsub = onSnapshot(ref, (snap) => {
-      setItemsList(snap.exists() ? snap.data().items : ITEMS_DEFAULT)
-    })
+      // T-10: si el doc existe pero sin `items` (o no-array), caer a ITEMS_DEFAULT
+      // en vez de dejar itemsList undefined (rompía ModalEntregaTurno con .map).
+      setItemsList(snap.data()?.items ?? ITEMS_DEFAULT)
+    }, (e) => logError('useEntregasTurno/config', e))
     return () => unsub()
   }, [centroId])
 

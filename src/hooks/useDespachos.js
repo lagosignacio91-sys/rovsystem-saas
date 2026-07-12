@@ -7,6 +7,7 @@ import {
 import { confirmarRecepcionItems } from '../lib/recepcion'
 import { calcularEstadoDespacho, claveItem, normalizarItemsLegacy } from '../lib/despachos'
 import { HERRAMIENTAS_BASICAS_DEFAULT } from '../config/appDefaults'
+import { logError } from '../lib/logger'
 
 // `teamId`: opcional. Cuando viene presente (operador con team propio), se agrega como
 // filtro extra de la query — la regla de Firestore exige que el `where` lo demuestre
@@ -28,7 +29,7 @@ export function useDespachos(centroId, teamId) {
       const data = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(d => !d.eliminado)
       setDespachos(data.sort((a, b) => (b.creadoEn ?? '').localeCompare(a.creadoEn ?? '')))
       setCargando(false)
-    })
+    }, (e) => { logError('useDespachos/despachos', e); setCargando(false) })
     return () => unsub()
   }, [centroId, teamId])
 
@@ -73,11 +74,11 @@ export function useDespachos(centroId, teamId) {
       const d = snap.exists() ? snap.data() : {}
       estucheData = { principal: d.principal ?? {}, backup: d.backup ?? {} }
       recalc()
-    })
+    }, (e) => logError('useDespachos/estuche', e))
     const unsubCaja = onSnapshot(doc(db, 'centros', centroId, 'datos', 'cajaHerramientas'), snap => {
       cajaLista = snap.exists() ? (snap.data().lista ?? []) : []
       recalc()
-    })
+    }, (e) => logError('useDespachos/caja', e))
     return () => { unsubEst(); unsubCaja(); recalcRef.current = null }
   }, [centroId])
 

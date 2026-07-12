@@ -23,15 +23,18 @@ export function useBodegaCentral() {
   useEffect(() => {
     const unsubEquipos = onSnapshot(
       collection(db, 'bodegaCentral', 'almacen', 'equipos'),
-      snap => setEquipos(snap.docs.map(d => ({ id: d.id, ...d.data() })))
+      snap => setEquipos(snap.docs.map(d => ({ id: d.id, ...d.data() }))),
+      e => logError('useBodegaCentral/equipos', e)
     )
     const unsubRepuestos = onSnapshot(
       collection(db, 'bodegaCentral', 'almacen', 'repuestos'),
-      snap => setRepuestos(snap.docs.map(d => ({ id: d.id, ...d.data() })))
+      snap => setRepuestos(snap.docs.map(d => ({ id: d.id, ...d.data() }))),
+      e => logError('useBodegaCentral/repuestos', e)
     )
     const unsubHI = onSnapshot(
       collection(db, 'bodegaCentral', 'almacen', 'herramientasInsumos'),
-      snap => setHerramientasInsumos(snap.docs.map(d => ({ id: d.id, ...d.data() })))
+      snap => setHerramientasInsumos(snap.docs.map(d => ({ id: d.id, ...d.data() }))),
+      e => logError('useBodegaCentral/herramientasInsumos', e)
     )
     return () => { unsubEquipos(); unsubRepuestos(); unsubHI() }
   }, [])
