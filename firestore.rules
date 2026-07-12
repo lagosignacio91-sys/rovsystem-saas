@@ -133,6 +133,12 @@ service cloud.firestore {
             && request.resource.data.diff(resource.data).affectedKeys()
                  .hasOnly(['estado', 'observacion', 'recibidoEn', 'recibidoPor', 'historial', 'stockAplicado', 'items'])
             && request.resource.data.items.size() == resource.data.items.size()
+            // S-07: validación de tipos — el operador no puede inyectar valores
+            // corruptos (no-string) en estos campos vía SDK directo. get(...,'')
+            // deja pasar el caso en que el campo no viene en el update.
+            && request.resource.data.estado is string
+            && request.resource.data.get('observacion', '') is string
+            && request.resource.data.get('recibidoPor', '') is string
             && resource.data.teamAsignado
                == get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.teamId);
       allow delete:        if isAdmin() || isSupervisor();
