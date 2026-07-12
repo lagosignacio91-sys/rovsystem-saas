@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { db } from '../../lib/firebase'
 import { doc, setDoc, getDoc } from 'firebase/firestore'
+import { logError } from '../../lib/logger'
 
 export const CAMPOS = [
   { key: 'modelo',               label: 'Modelo',             sinFalla: true },
@@ -168,14 +169,19 @@ export default function TabROV({ centro, role, sincronizarEstado }) {
 
   useEffect(() => {
     const cargar = async () => {
-      const ref  = doc(db, 'centros', centro.id, 'equipos', 'rov')
-      const snap = await getDoc(ref)
-      if (snap.exists()) {
-        const p = snap.data().principal ?? {}
-        const b = snap.data().backup ?? {}
-        setPrincipal(p); setBackup(b)
+      try {
+        const ref  = doc(db, 'centros', centro.id, 'equipos', 'rov')
+        const snap = await getDoc(ref)
+        if (snap.exists()) {
+          const p = snap.data().principal ?? {}
+          const b = snap.data().backup ?? {}
+          setPrincipal(p); setBackup(b)
+        }
+      } catch (e) {
+        logError('TabROV/cargar', e)
+      } finally {
+        setCargando(false)
       }
-      setCargando(false)
     }
     cargar()
   }, [centro.id])
@@ -184,15 +190,19 @@ export default function TabROV({ centro, role, sincronizarEstado }) {
     if (sincronizarEstado) await sincronizarEstado(centro.id)
   }
 
+  // T-03: se escribe SOLO la rama editada (merge:true deja intacta la hermana en
+  // Firestore). Antes se reenviaba también `backup`/`principal` desde el estado
+  // local cargado una vez con getDoc; si otro usuario editaba la rama hermana
+  // entretanto, se pisaba con el valor rancio. Ahora eso no puede pasar.
   const guardarPrincipal = async (datos) => {
     const ref = doc(db, 'centros', centro.id, 'equipos', 'rov')
-    await setDoc(ref, { principal: datos, backup }, { merge: true })
+    await setDoc(ref, { principal: datos }, { merge: true })
     setPrincipal(datos); await verificarEstadoCentro()
   }
 
   const guardarBackup = async (datos) => {
     const ref = doc(db, 'centros', centro.id, 'equipos', 'rov')
-    await setDoc(ref, { principal, backup: datos }, { merge: true })
+    await setDoc(ref, { backup: datos }, { merge: true })
     setBackup(datos); await verificarEstadoCentro()
   }
 
