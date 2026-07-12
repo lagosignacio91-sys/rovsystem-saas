@@ -101,16 +101,18 @@ export const LISTAS_DEFAULT = {
 // ---- Campos del operador (Fase 4) ----
 // Campos reordenables/ocultables de la tarjeta de operador. `nombre` queda
 // siempre fijo en la cabecera, no se configura aquí.
+// S-03: `rut` y `correoPersonal` se quitaron de la tarjeta del panel porque ese
+// roster (centros/{id}/datos/operadores) es de lectura amplia. Esos datos
+// personales se gestionan y ven solo en la página Operadores (colección /usuarios,
+// con acceso restringido). Aquí quedan solo los canales de contacto corporativos.
 export const CAMPOS_OPERADOR_DEFAULT = [
-  { id: 'rut',            label: 'RUT' },
   { id: 'telefono',       label: 'Teléfono' },
-  { id: 'correoPersonal', label: 'Correo personal' },
   { id: 'correoCorp',     label: 'Correo corporativo' },
 ]
 
 // Tipo de input por campo (no serializable; vive en código).
 export const TIPOS_OPERADOR = {
-  rut: 'text', telefono: 'text', correoPersonal: 'email',
+  telefono: 'text',
   correoCorp: 'email',
 }
 

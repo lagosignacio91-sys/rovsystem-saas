@@ -167,14 +167,20 @@ export function useCentros() {
       const prevSnap  = await getDoc(ref)
       const prevLista = prevSnap.exists() ? (prevSnap.data().lista ?? []) : []
       const lista = asignados.map(u => {
-        const prev = prevLista.find(p => p?.rut && p.rut === u.rut)
+        const uid = u.uid ?? u.id ?? null
+        // S-03: este doc `operadores` lo lee cualquier usuario aprovisionado (roster +
+        // popup de contacto del mapa de centros ajenos), así que NO se espejan aquí datos
+        // personales sensibles: `rut` (cédula) ni `correoPersonal`. Esos viven solo en
+        // /usuarios (acceso restringido a admin/taller/self). Se conserva nombre + canales
+        // de contacto corporativos (telefono, correoCorp) + estado operativo.
+        // El match con la entrada previa pasa a ser por `uid` (antes por `rut`, que ya no
+        // se guarda); se deja un fallback por rut para docs antiguos aún sin migrar.
+        const prev = prevLista.find(p => (p?.uid && p.uid === uid) || (p?.rut && u.rut && p.rut === u.rut))
         return {
-          uid:            u.uid ?? u.id ?? null,
+          uid,
           nombre:         u.nombre ?? '',
-          rut:            u.rut ?? '',
           telefono:       u.telefono ?? '',
           correoCorp:     u.correoCorporativo ?? '',
-          correoPersonal: u.correoPersonal ?? '',
           foto:           u.foto ?? prev?.foto ?? null,
           esRelevo:       u.esRelevo ?? false,
           estado:         prev?.estado ?? 'descanso',
