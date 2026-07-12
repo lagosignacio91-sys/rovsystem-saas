@@ -1,1 +1,11 @@
-{"version":"0.0.1","configurations":[{"name":"gl-app","runtimeExecutable":"npm","runtimeArgs":["run","dev"],"port":5173,"autoPort":true},{"name":"demo","runtimeExecutable":"npm","runtimeArgs":["run","dev:demo"],"port":5174,"autoPort":true},{"name":"website","runtimeExecutable":"npx","runtimeArgs":["serve",".","--listen","3030","--no-clipboard"],"port":3030}]}
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "rov-emulator",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "port": 5173
+    }
+  ]
+}
