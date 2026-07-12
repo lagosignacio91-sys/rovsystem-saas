@@ -208,8 +208,8 @@ export default function CentrosPage() {
                                 <a href={`tel:${opFaena.telefono.replace(/[^\d+]/g,'')}`} onClick={e => e.stopPropagation()}
                                   style={{ color: t.textMuted, display: 'flex' }}><Phone size={12} /></a>
                               )}
-                              {opFaena.correoPersonal && (
-                                <a href={`mailto:${opFaena.correoPersonal}`} onClick={e => e.stopPropagation()}
+                              {(opFaena.correoCorp || opFaena.correoPersonal) && (
+                                <a href={`mailto:${opFaena.correoCorp || opFaena.correoPersonal}`} onClick={e => e.stopPropagation()}
                                   style={{ color: t.textMuted, display: 'flex' }}><Mail size={12} /></a>
                               )}
                             </div>
