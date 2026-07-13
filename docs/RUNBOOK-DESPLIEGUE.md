@@ -28,8 +28,8 @@ npm run build           # compila
 
 - [ ] **Guardar copia de las reglas actualmente desplegadas** (rollback). En la consola: Firestore → Reglas → copiar el texto vigente a un archivo local `rollback/firestore.rules.prod-YYYYMMDD`; ídem Storage → Reglas.
 - [ ] **Alerta de presupuesto** en Cloud Console (si aún no está).
-- [ ] **Confirmar env vars de Vercel** (Project → Settings → Environment Variables): `VITE_FIREBASE_PROJECT_ID=gl-app-dbdf2`, resto de `VITE_FIREBASE_*` de prod, y **que NO exista `VITE_USE_EMULATORS`** en Production.
-- [ ] **Confirmar cómo despliega Vercel** (Git auto-deploy vs `vercel --prod`). Si es por Git, el push necesita **VPN** (Fortinet bloquea GitHub).
+- [x] **Env vars de Vercel confirmadas** (proyecto `hyperionx-rovsystem`): están las 6 `VITE_FIREBASE_*` y **NO existe `VITE_USE_EMULATORS`** → el build de prod no usa emuladores. ✅
+- [x] **Mecanismo de deploy confirmado** (ver Fase 5): proyecto `hyperionx-rovsystem` @ **app.hyperionx.tech**, auto-deploy desde `main` de `lagosignacio91-sys/rovsystem-saas`. **Vercel CLI instalado** → plan B sin VPN disponible.
 
 ---
 
@@ -83,11 +83,27 @@ Con functions ya desplegadas, **borrar el documento `usuarios/{uid}` dispara `on
 
 ## Fase 5 — Deploy del frontend (Vercel)
 
-Según lo confirmado en Fase 0:
-- **Git auto-deploy:** `git push origin remediacion/produccion` (con VPN) → Vercel despliega. O mergear a `main` si ese es el branch de producción de Vercel.
-- **CLI:** `vercel --prod` desde `_codigo/gl-app`.
+**Producción:** proyecto `hyperionx-rovsystem` → **https://app.hyperionx.tech** → auto-deploy desde `main` de `lagosignacio91-sys/rovsystem-saas` (el remoto local `origin` ya apunta ahí). Hoy la rama `remediacion/produccion` está ~29 commits adelante de `main`.
 
-**Verificar en la URL de producción:**
+Dos vías (elegir una):
+
+**Vía A — GitHub (flujo normal, requiere VPN por Fortinet):**
+```bash
+git checkout main
+git merge --no-ff remediacion/produccion
+git push origin main          # ← necesita VPN / hotspot (Fortinet bloquea github.com)
+```
+Vercel detecta el push a `main` y despliega solo.
+
+**Vía B — Vercel CLI (sin VPN, plan recomendado si no hay VPN):**
+```bash
+# Vercel CLI ya instalado (v54.21.x). Desde _codigo/gl-app:
+vercel link          # una vez: elegir scope gmella-s-projects → proyecto hyperionx-rovsystem
+vercel --prod        # build + deploy a producción usando las env vars del proyecto
+```
+Sube el código local directo a producción sin pasar por GitHub. Después, cuando haya VPN, igual conviene mergear+pushear `main` para que el repo quede como fuente de verdad.
+
+**Verificar en https://app.hyperionx.tech:**
 - [ ] Login de un admin OK · mapa carga con marcadores · panel de centro abre · pestañas ROV/Inventario cambian.
 - [ ] Consola del navegador **sin errores** ni `permission-denied`.
 
