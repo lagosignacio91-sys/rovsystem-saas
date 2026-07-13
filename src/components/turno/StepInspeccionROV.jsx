@@ -1,6 +1,8 @@
 import { useRef, useState } from 'react'
 import { Camera, CheckCircle, AlertTriangle, ImagePlus } from 'lucide-react'
 import { useAppConfig } from '../../hooks/useAppConfig'
+import { comprimirFoto } from '../../lib/compressorFotos'
+import { logError } from '../../lib/logger'
 
 // Compat: secciones por defecto (la fuente real es config/app via useAppConfig).
 export { INSPECCION_ROV_DEFAULT as SECCIONES_ROV } from '../../config/appDefaults'
@@ -33,11 +35,26 @@ function SeccionItem({ sec, data, onChange }) {
 
   const set = (patch) => onChange(sec.id, { ...data, ...patch })
 
-  const onFile = (e) => {
+  const [subiendo, setSubiendo] = useState(false)
+
+  // T-06: comprimir la foto (JPEG ~800px, calidad 0.65) antes de subirla a Storage
+  // y de embeberla en el PDF. Se guarda un Blob comprimido para el upload y el
+  // dataURL como preview (sin URL.createObjectURL, que antes no se revocaba → fuga).
+  const onFile = async (e) => {
     const file = e.target.files?.[0]
     if (!file) return
-    const url = URL.createObjectURL(file)
-    set({ file, preview: url })
+    setSubiendo(true)
+    try {
+      const dataUrl = await comprimirFoto(file)
+      const blob    = await (await fetch(dataUrl)).blob()
+      set({ file: blob, preview: dataUrl })
+    } catch (err) {
+      logError('StepInspeccionROV/comprimir', err)
+      // Fallback: usar el archivo original si la compresión falla.
+      set({ file, preview: URL.createObjectURL(file) })
+    } finally {
+      setSubiendo(false)
+    }
   }
 
   return (
@@ -76,9 +93,9 @@ function SeccionItem({ sec, data, onChange }) {
 
       <div style={s.fotoRow}>
         {preview && <img src={preview} alt="" style={s.thumb} />}
-        <button type="button" style={s.fotoBtn} onClick={() => fileRef.current.click()}>
+        <button type="button" style={s.fotoBtn} onClick={() => fileRef.current.click()} disabled={subiendo}>
           {preview ? <Camera size={14} /> : <ImagePlus size={14} />}
-          {preview ? 'Cambiar foto' : 'Tomar / subir foto'}
+          {subiendo ? 'Comprimiendo…' : (preview ? 'Cambiar foto' : 'Tomar / subir foto')}
         </button>
         <input ref={fileRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={onFile} />
       </div>
