@@ -35,12 +35,11 @@ npm run build           # compila
 
 ## Fase 1 — Backup de Firestore
 
-```bash
-# Requiere Blaze (ya activo) y un bucket GCS. Exporta TODA la base a un bucket.
-gcloud config set project gl-app-dbdf2
-gcloud firestore export gs://gl-app-dbdf2.appspot.com/backups/pre-deploy-$(date +%Y%m%d-%H%M)
-```
-- [ ] Export terminado sin error. (Si `gcloud` no está, se puede hacer el export desde la consola: Firestore → Importar/Exportar.)
+`gcloud` **no está instalado** en este PC → hacer el backup **por consola**:
+- Firebase Console → Firestore Database → pestaña **"Importar/Exportar"** (o **"Recuperación ante desastres"**) → **Exportar** → elegir/crear bucket (ej. `gs://gl-app-dbdf2.appspot.com/backups/pre-deploy-YYYYMMDD`) → exportar toda la base.
+- [ ] Export terminado sin error.
+
+> Alternativa si se instala gcloud: `gcloud firestore export gs://gl-app-dbdf2.appspot.com/backups/pre-deploy-$(date +%Y%m%d-%H%M)`. Prod está casi vacío, así que el export es chico y rápido.
 
 ---
 
