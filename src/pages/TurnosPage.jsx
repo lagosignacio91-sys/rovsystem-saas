@@ -45,7 +45,9 @@ function EntregaCard({ entrega, onEliminar, role }) {
   )
 }
 
-function CentroTurnos({ centro, role }) {
+// Cuerpo del centro: aquí vive useEntregasTurno (2 listeners). Al montarse SOLO
+// cuando el centro está expandido (T-05), evitamos abrir 2×N listeners de golpe.
+function CentroTurnosBody({ centro, role }) {
   const { entregas, itemsList, cargando, eliminarEntrega, guardarEntregaCompleta } = useEntregasTurno(centro.id)
   const [modal, setModal] = useState(false)
 
@@ -53,28 +55,18 @@ function CentroTurnos({ centro, role }) {
   const tieneReporte = entregas.length > 0
 
   return (
-    <div style={{ marginBottom: 20 }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-        <div>
-          <div style={{ fontSize: t.textBase, fontWeight: 600, color: t.textPrimary, textTransform: 'capitalize' }}>{centro.nombre}</div>
-          {centro.teamAsignado && (
-            <span style={{ fontSize: 10, color: t.brandSoft, background: t.brandTint, borderRadius: t.radiusMd, padding: '1px 7px', fontWeight: 600 }}>
-              {centro.teamAsignado}
-            </span>
-          )}
+    <>
+      {(canCreate && !tieneReporte) && (
+        <button onClick={() => setModal(true)}
+          style={{ display: 'flex', alignItems: 'center', gap: 5, background: t.brand, border: 'none', color: '#fff', borderRadius: t.radiusMd, padding: '6px 13px', cursor: 'pointer', fontSize: t.textSm, fontWeight: 600, marginBottom: 10 }}>
+          <Plus size={14} /> Nueva entrega
+        </button>
+      )}
+      {(canCreate && tieneReporte) && (
+        <div style={{ fontSize: 11, color: t.fault, lineHeight: 1.3, marginBottom: 10 }}>
+          Elimina el reporte actual para generar uno nuevo
         </div>
-        {canCreate && !tieneReporte && (
-          <button onClick={() => setModal(true)}
-            style={{ display: 'flex', alignItems: 'center', gap: 5, background: t.brand, border: 'none', color: '#fff', borderRadius: t.radiusMd, padding: '6px 13px', cursor: 'pointer', fontSize: t.textSm, fontWeight: 600 }}>
-            <Plus size={14} /> Nueva entrega
-          </button>
-        )}
-        {canCreate && tieneReporte && (
-          <span style={{ fontSize: 11, color: t.fault, maxWidth: 200, textAlign: 'right', lineHeight: 1.3 }}>
-            Elimina el reporte actual para generar uno nuevo
-          </span>
-        )}
-      </div>
+      )}
 
       {cargando && <p style={{ color: t.textMuted, fontSize: t.textSm }}>Cargando...</p>}
       {!cargando && entregas.length === 0 && (
@@ -94,6 +86,28 @@ function CentroTurnos({ centro, role }) {
           onCerrar={() => setModal(false)}
         />
       )}
+    </>
+  )
+}
+
+function CentroTurnos({ centro, role, defaultOpen }) {
+  const [open, setOpen] = useState(defaultOpen)
+
+  return (
+    <div style={{ marginBottom: 20 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, cursor: 'pointer' }}
+        onClick={() => setOpen(o => !o)} role="button" aria-expanded={open}>
+        {open ? <ChevronDown size={16} color={t.textMuted} /> : <ChevronRight size={16} color={t.textMuted} />}
+        <div>
+          <div style={{ fontSize: t.textBase, fontWeight: 600, color: t.textPrimary, textTransform: 'capitalize' }}>{centro.nombre}</div>
+          {centro.teamAsignado && (
+            <span style={{ fontSize: 10, color: t.brandSoft, background: t.brandTint, borderRadius: t.radiusMd, padding: '1px 7px', fontWeight: 600 }}>
+              {centro.teamAsignado}
+            </span>
+          )}
+        </div>
+      </div>
+      {open && <CentroTurnosBody centro={centro} role={role} />}
     </div>
   )
 }
@@ -117,7 +131,9 @@ export default function TurnosPage() {
           </div>
         )}
         {lista.map(c => (
-          <CentroTurnos key={c.id} centro={c} role={role} />
+          // Operador: su(s) centro(s) arrancan abiertos (flujo diario). Admin/taller:
+          // colapsados, los listeners de cada centro se montan solo al expandir (T-05).
+          <CentroTurnos key={c.id} centro={c} role={role} defaultOpen={role === 'operador'} />
         ))}
       </div>
     </div>
