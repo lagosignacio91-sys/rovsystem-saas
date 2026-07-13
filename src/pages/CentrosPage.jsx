@@ -25,7 +25,6 @@ export default function CentrosPage() {
   const [busca, setBusca]               = useState('')
   const [filtroEstado, setFiltroEstado] = useState(null)
   const [centroActivo, setCentroActivo] = useState(null)
-  const [teams, setTeams]               = useState([])
   const [usuarios, setUsuarios]         = useState([])
 
   // modales admin
@@ -39,7 +38,6 @@ export default function CentrosPage() {
     if (role !== 'admin' && role !== 'supervisor') return
     getDocs(collection(db, 'usuarios')).then(snap => {
       const lista = snap.docs.map(d => ({ uid: d.id, ...d.data() }))
-      setTeams(lista.filter(u => u.rol === 'operador'))
       setUsuarios(lista)
     })
   }, [role])

@@ -101,9 +101,9 @@ export default function ModalEntregaTurno({ centro, itemsList, onCerrar, onGuard
     setError(null)
     const principalArr = buildInspeccion('principal')
     const backupArr    = buildInspeccion('backup')
-    const inventarioArr = inventario.map(({ file: _f, ...i }) => i)
+    const inventarioArr = inventario.map(({ file, ...i }) => i)
 
-    const sinFile = (arr) => arr.map(({ file: _f, ...rest }) => rest)
+    const sinFile = (arr) => arr.map(({ file, ...rest }) => rest)
 
     const entregaData = {
       ...datos,

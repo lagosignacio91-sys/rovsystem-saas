@@ -31,7 +31,7 @@ function Campo({ label, valor }) {
   )
 }
 
-function OpRow({ op, centroNombre }) {
+function OpRow({ op }) {
   if (!op?.nombre) return null
   const tel = op.telefono?.replace(/[^\d+]/g, '') ?? ''
   const msg = encodeURIComponent('se solicita su bitácora diaria')

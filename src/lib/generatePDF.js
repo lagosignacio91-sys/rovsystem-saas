@@ -207,7 +207,7 @@ export async function generarPDFEntrega(entrega) {
         doc.rect(x1, y, photoW, photoH, 'FD')
         try {
           doc.addImage(left.img, 'JPEG', x1, y, photoW, photoH, undefined, 'FAST')
-        } catch (_) { /* imagen inválida — quedará fondo azul */ }
+        } catch { /* imagen inválida — quedará fondo azul */ }
         doc.setFont('helvetica', 'bold')
         doc.setFontSize(7.5)
         doc.setTextColor(50, 80, 120)
@@ -220,7 +220,7 @@ export async function generarPDFEntrega(entrega) {
           doc.rect(x2, y, photoW, photoH, 'FD')
           try {
             doc.addImage(right.img, 'JPEG', x2, y, photoW, photoH, undefined, 'FAST')
-          } catch (_) { /* imagen inválida */ }
+          } catch { /* imagen inválida */ }
           doc.text(right.sec.label, x2 + photoW / 2, y + photoH + 5, { align: 'center' })
         }
 

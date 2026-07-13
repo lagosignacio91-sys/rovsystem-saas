@@ -73,7 +73,7 @@ export function useAuth() {
 
   const signIn = async (email, password) => {
     try {
-      const result = await signInWithEmailAndPassword(auth, email, password)
+      await signInWithEmailAndPassword(auth, email, password)
       return { error: null }
     } catch (error) {
       logError('useAuth/login', error)

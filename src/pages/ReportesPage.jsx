@@ -4,7 +4,7 @@ import { collection, getDocs, query, where, orderBy, limit } from 'firebase/fire
 import { db } from '../lib/firebase'
 import { t } from '../theme/tokens'
 import { useIsMobile } from '../hooks/useIsMobile'
-import { BarChart2, Package, Wrench, Download } from 'lucide-react'
+import { BarChart2, Package, Wrench } from 'lucide-react'
 
 // Tarjeta para móvil: muestra pares etiqueta/valor apilados (reemplaza filas de tabla).
 function DataCard({ rows }) {

@@ -3,7 +3,7 @@ import { db, storage, auth } from '../lib/firebase'
 import { logError } from '../lib/logger'
 import {
   collection, addDoc, deleteDoc, doc, onSnapshot, orderBy, query,
-  getDoc, setDoc, updateDoc,
+  setDoc, updateDoc,
 } from 'firebase/firestore'
 import { ref, uploadBytes, getDownloadURL, listAll, deleteObject } from 'firebase/storage'
 

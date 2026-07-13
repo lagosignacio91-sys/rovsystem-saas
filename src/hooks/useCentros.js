@@ -3,7 +3,7 @@ import { db } from '../lib/firebase'
 import { logError } from '../lib/logger'
 import {
   collection, addDoc, onSnapshot,
-  updateDoc, deleteDoc, doc, getDoc, getDocs, writeBatch, setDoc
+  updateDoc, doc, getDoc, getDocs, writeBatch, setDoc
 } from 'firebase/firestore'
 
 export const CENTROS_GL = [

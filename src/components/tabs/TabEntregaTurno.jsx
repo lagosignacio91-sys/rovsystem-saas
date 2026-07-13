@@ -88,7 +88,7 @@ const ms = {
   btnSave:   { flex: 1, padding: '9px', borderRadius: 8, border: 'none', background: 'var(--gl-brand)', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' },
 }
 
-export default function TabEntregaTurno({ centro, role, uid }) {
+export default function TabEntregaTurno({ centro, role }) {
   const { entregas, itemsList, cargando, eliminarEntrega, guardarItemsList, guardarEntregaCompleta } = useEntregasTurno(centro.id)
   const [modalNueva,    setModalNueva]    = useState(false)
   const [modalInventario, setModalInv]   = useState(false)

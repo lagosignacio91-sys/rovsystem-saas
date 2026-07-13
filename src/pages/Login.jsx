@@ -2,14 +2,11 @@ import { useState } from 'react'
 import { Mail, Lock, Eye, EyeOff, ArrowRight, AlertCircle, Download, Share, CheckCircle2, X } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { useInstallPrompt } from '../hooks/useInstallPrompt'
-import { useAppConfig } from '../hooks/useAppConfig'
 import { t } from '../theme/tokens'
 import ThemeToggle from '../components/kit/ThemeToggle'
 
 export default function Login() {
   const { signIn } = useAuth()
-  const { branding } = useAppConfig()
-  const cliente = branding.appName || 'GL Robótica'
   const { instalable, instalada, esIOS, instalar } = useInstallPrompt()
   const [email, setEmail]       = useState('')
   const [password, setPassword] = useState('')

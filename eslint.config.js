@@ -25,6 +25,11 @@ export default defineConfig([
       globals: globals.browser,
       parserOptions: { ecmaFeatures: { jsx: true } },
     },
+    rules: {
+      // Permite el patron idiomatico de omitir una clave por rest:
+      // `const { file, ...resto } = obj` sin marcar `file` como no usada.
+      'no-unused-vars': ['error', { ignoreRestSiblings: true }],
+    },
   },
 
   // Cloud Functions: runtime Node (CommonJS), sin globals de navegador.
