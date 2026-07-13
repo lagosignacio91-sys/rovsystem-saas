@@ -4,7 +4,7 @@ import App from './App'
 import './theme/theme.css'
 import './index.css'
 import { ThemeProvider } from './theme/ThemeProvider'
-import { AppConfigProvider } from './hooks/useAppConfig'
+import { AppConfigProvider } from './hooks/AppConfigProvider'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

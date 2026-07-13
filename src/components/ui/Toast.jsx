@@ -1,15 +1,11 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { X, Package, Truck } from 'lucide-react'
-
-let _addToast = null
-export const toast = {
-  solicitud: (msg) => _addToast?.({ tipo: 'solicitud', msg }),
-  despacho:  (msg) => _addToast?.({ tipo: 'despacho',  msg }),
-}
+import { registerToast } from './toastBus'
 
 export function ToastProvider() {
   const [items, setItems] = useState([])
   const timers = useRef({})
+  const nextId = useRef(0)
 
   const remove = useCallback((id) => {
     clearTimeout(timers.current[id])
@@ -17,12 +13,12 @@ export function ToastProvider() {
   }, [])
 
   const add = useCallback((t) => {
-    const id = Date.now()
+    const id = ++nextId.current
     setItems(prev => [...prev.slice(-3), { ...t, id }])
     timers.current[id] = setTimeout(() => remove(id), 10000)
   }, [remove])
 
-  useEffect(() => { _addToast = add; return () => { _addToast = null } }, [add])
+  useEffect(() => registerToast(add), [add])
 
   if (items.length === 0) return null
 

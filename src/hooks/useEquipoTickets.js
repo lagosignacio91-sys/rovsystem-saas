@@ -6,7 +6,7 @@ import {
 } from 'firebase/firestore'
 import { confirmarRecepcionEquipo } from '../lib/equipoRecepcion'
 import { claveFalla } from '../lib/equipoTickets'
-import { CAMPOS } from '../components/tabs/TabROV'
+import { CAMPOS } from '../config/camposRov'
 import { logError } from '../lib/logger'
 
 // `teamId`: opcional, mismo criterio que useDespachos.js (operador con team propio filtra,

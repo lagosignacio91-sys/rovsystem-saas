@@ -1,6 +1,5 @@
-import { createContext, useContext, useEffect, useState, useCallback } from 'react'
-
-const ThemeContext = createContext({ theme: 'dark', toggleTheme: () => {}, setTheme: () => {} })
+import { useEffect, useState, useCallback } from 'react'
+import { ThemeContext } from './themeContext'
 
 const STORAGE_KEY = 'app-theme'
 
@@ -44,8 +43,4 @@ export function ThemeProvider({ children }) {
       {children}
     </ThemeContext.Provider>
   )
-}
-
-export function useTheme() {
-  return useContext(ThemeContext)
 }

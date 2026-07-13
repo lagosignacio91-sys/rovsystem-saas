@@ -2,16 +2,7 @@ import { useState, useEffect } from 'react'
 import { db } from '../../lib/firebase'
 import { doc, setDoc, getDoc } from 'firebase/firestore'
 import { logError } from '../../lib/logger'
-
-export const CAMPOS = [
-  { key: 'modelo',               label: 'Modelo',             sinFalla: true },
-  { key: 'codigoRov',            label: 'Código ROV' },
-  { key: 'codigoControl',        label: 'Código Control' },
-  { key: 'codigoUmbilical',      label: 'Código Umbilical' },
-  { key: 'sensor',               label: 'Sensor' },
-  { key: 'codigoCargadorRov',    label: 'Cargador ROV' },
-  { key: 'codigoCargadorControl',label: 'Cargador Control' },
-]
+import { CAMPOS } from '../../config/camposRov'
 
 function ModalFalla({ campo, valorActual, onConfirmar, onCerrar }) {
   const [razon, setRazon] = useState(valorActual ?? '')
