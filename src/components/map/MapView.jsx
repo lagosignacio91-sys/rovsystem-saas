@@ -100,7 +100,7 @@ function FitCentros({ centros }) {
   return (
     <div className="leaflet-top leaflet-left" style={{ marginTop: 80 }}>
       <div className="leaflet-control leaflet-bar">
-        <button onClick={fit} title="Ver todos los centros" className="gl-map-fit-btn">
+        <button onClick={fit} title="Ver todos los centros" aria-label="Ver todos los centros" className="gl-map-fit-btn">
           <Maximize2 size={14} />
         </button>
       </div>
@@ -254,6 +254,7 @@ function BuscadorUnificado({ centros, mapRef, onSelect, onCoordsPin, role, mouse
             if (e.key === 'Escape') limpiar()
           }}
           placeholder=""
+          aria-label={role === 'admin' ? 'Buscar centro o ingresar coordenadas' : 'Buscar centro'}
           style={buscador.input}
         />
         {query && (

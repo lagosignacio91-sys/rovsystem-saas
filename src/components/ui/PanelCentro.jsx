@@ -89,6 +89,24 @@ export default memo(function PanelCentro({ centro, onCerrar, onEliminar, sincron
     }
   }, [tabsVisibles, tabActiva])
 
+  // Navegación por teclado entre pestañas (WAI-ARIA tabs, activación automática:
+  // la selección sigue al foco). Flechas ↔/↕ mueven, Home/End van a los extremos.
+  const onTabKeyDown = (e) => {
+    const ids = tabsVisibles.map((tb) => tb.id)
+    const i = ids.indexOf(tabActiva)
+    let next = null
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') next = ids[(i + 1) % ids.length]
+    else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') next = ids[(i - 1 + ids.length) % ids.length]
+    else if (e.key === 'Home') next = ids[0]
+    else if (e.key === 'End') next = ids[ids.length - 1]
+    if (next) {
+      e.preventDefault()
+      setTabActiva(next)
+      setExpanded(true)
+      requestAnimationFrame(() => document.getElementById(`gl-tab-${next}`)?.focus())
+    }
+  }
+
   // Compatibilidad: la sincronización guarda en `lista` (array); formato antiguo usa op1/op2.
   const listaOps  = operadores.lista ?? [operadores.op1, operadores.op2].filter(Boolean)
   const opEnFaena = listaOps.find(op => op?.estado === 'faena' && op?.nombre)
@@ -145,13 +163,13 @@ export default memo(function PanelCentro({ centro, onCerrar, onEliminar, sincron
         </div>
       )}
 
-      <div className="gl-panel-tabs-bar" style={styles.tabs}>
+      <div className="gl-panel-tabs-bar" style={styles.tabs} role="tablist" aria-label="Secciones del centro" onKeyDown={onTabKeyDown}>
         {tabsVisibles.map(({ id, label }) => {
           const Icon = ICONOS_TAB[id]
           const active = tabActiva === id
           return (
-            <button key={id} className="gl-tab-btn" onClick={() => { setTabActiva(id); setExpanded(true) }}
-              tabIndex={0} role="tab" aria-selected={active}
+            <button key={id} id={`gl-tab-${id}`} className="gl-tab-btn" onClick={() => { setTabActiva(id); setExpanded(true) }}
+              role="tab" aria-selected={active} aria-controls={`gl-tabpanel-${id}`} tabIndex={active ? 0 : -1}
               style={{ ...styles.tab, color: active ? t.brandSoft : t.textMuted, borderBottom: `2px solid ${active ? t.brand : 'transparent'}` }}>
               {Icon && <Icon size={17} strokeWidth={2} />}
               <span className="gl-tab-label" style={{ fontSize: 9, letterSpacing: '0.04em', fontWeight: 600 }}>{label}</span>
@@ -169,6 +187,9 @@ export default memo(function PanelCentro({ centro, onCerrar, onEliminar, sincron
           dejando el contenido congelado en la primera pestaña. */}
       <motion.div
         key={tabActiva}
+        id={`gl-tabpanel-${tabActiva}`}
+        role="tabpanel"
+        aria-labelledby={`gl-tab-${tabActiva}`}
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.18, ease: [0.4, 0, 0.2, 1] }}
