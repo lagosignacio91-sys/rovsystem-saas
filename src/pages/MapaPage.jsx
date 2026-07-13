@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import MapView from '../components/map/MapView'
 import FormCentro from '../components/map/FormCentro'
@@ -11,14 +11,17 @@ export default function MapaPage() {
 
   const centrosFiltrados = empresaActiva ? centros.filter(c => c.empresaId === empresaActiva.id) : centros
 
-  const handleMapClick = (ll) => { if (role === 'admin') { setCentroActivo(null); setLatlng(ll) } }
-  const handleGuardar  = async (datos) => { await agregarCentro(datos); setLatlng(null) }
-  const handleEliminar = async (id) => { await eliminarCentro(id); setCentroActivo(null) }
+  // Handlers memoizados (T-01): estables entre renders para no romper el memo de
+  // MapView/PanelCentro (que reciben estas funciones como props).
+  const handleMapClick = useCallback((ll) => { if (role === 'admin') { setCentroActivo(null); setLatlng(ll) } }, [role])
+  const handleGuardar  = useCallback(async (datos) => { await agregarCentro(datos); setLatlng(null) }, [agregarCentro])
+  const handleEliminar = useCallback(async (id) => { await eliminarCentro(id); setCentroActivo(null) }, [eliminarCentro])
+  const cerrarPanel    = useCallback(() => setCentroActivo(null), [])
 
-  const handleCentroClick = (c) => {
+  const handleCentroClick = useCallback((c) => {
     if (role === 'operador') return // el operador ya ve el popup de contacto (ver MapView); el panel queda siempre fijo a la derecha
     if (role === 'admin' || role === 'supervisor') { setCentroActivo(c); return }
-  }
+  }, [role])
 
   // Operador: el panel de su propio centro queda siempre visible, no depende de click.
   const miCentro = role === 'operador' ? centros.find(c => c.teamAsignado === teamId) : null
@@ -40,7 +43,7 @@ export default function MapaPage() {
             teamId={teamId}
             sincronizarEstado={sincronizarEstado}
             actualizarCentro={actualizarCentro}
-            onCerrar={role === 'operador' ? null : () => setCentroActivo(null)}
+            onCerrar={role === 'operador' ? null : cerrarPanel}
             onEliminar={handleEliminar}
           />
         </div>

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
-import { LogOut, Menu, X, Clock, SlidersHorizontal } from 'lucide-react'
+import { LogOut, Menu, X, SlidersHorizontal } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import { useCentros } from '../../hooks/useCentros'
 import { useDespachosGlobal } from '../../hooks/useDespachosGlobal'
@@ -9,13 +9,13 @@ import { useAppConfig } from '../../hooks/useAppConfig'
 import { useEmpresas } from '../../hooks/useEmpresas'
 import { NAV_META } from '../../config/appDefaults'
 import { t } from '../../theme/tokens'
-import { useReloj } from '../../hooks/useReloj'
 import ThemeToggle from '../kit/ThemeToggle'
 import SelectorEmpresa from '../ui/SelectorEmpresa'
 import ModalPersonalizar from '../admin/ModalPersonalizar'
 import { ToastProvider, toast } from '../ui/Toast'
 import MobileUpsell from './MobileUpsell'
 import { useIsMobile } from '../../hooks/useIsMobile'
+import Reloj from './Reloj'
 import './layout.css'
 
 export default function MainLayout() {
@@ -42,7 +42,6 @@ export default function MainLayout() {
   const [empresaActiva, setEmpresaActiva] = useState(null)
   const [drawerOpen, setDrawerOpen]       = useState(false)
   const [personalizar, setPersonalizar]   = useState(false)
-  const { horaStr, fechaStr }   = useReloj()
   const location                = useLocation()
 
   // Para operadores: auto-aplicar la empresa que les corresponde (sin que puedan cambiarla)
@@ -147,13 +146,7 @@ export default function MainLayout() {
                 )
             }
           </div>
-          <div className="gl-topbar-clock" style={relojBox}>
-            <Clock size={14} color={t.brandSoft} />
-            <div style={{ lineHeight: 1.1 }}>
-              <div className="gl-mono" style={{ fontSize: 13, fontWeight: 600, color: t.accentSoft, textShadow: '0 0 10px var(--gl-accent-tint)' }}>{horaStr}</div>
-              <div style={{ fontSize: 9, color: t.textMuted, textTransform: 'capitalize' }}>{fechaStr}</div>
-            </div>
-          </div>
+          <Reloj />
           <ThemeToggle />
         </header>
 
@@ -204,4 +197,3 @@ const logoWrap = { width: 34, height: 34, borderRadius: 10, background: '#fff', 
 const logoImg  = { width: '100%', height: '100%', objectFit: 'contain', borderRadius: 7 }
 const userBox  = { marginTop: 'auto', display: 'flex', alignItems: 'center', gap: 8, paddingTop: 12, borderTop: `1px solid ${t.border}` }
 const avatar   = { width: 30, height: 30, borderRadius: '50%', background: t.brandTint, color: t.brandSoft, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 600, flexShrink: 0 }
-const relojBox = { display: 'flex', alignItems: 'center', gap: 7, background: t.bgInput, border: `1px solid ${t.border}`, borderRadius: t.radiusMd, padding: '5px 10px', flexShrink: 0 }
