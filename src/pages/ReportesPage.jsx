@@ -59,7 +59,7 @@ function BarRow({ label, value, max, color }) {
 export default function ReportesPage() {
   const { centros, empresaActiva } = useOutletContext()
   const isMobile = useIsMobile()
-  const mesOpts = useMemo(getMesOptions, [])
+  const mesOpts = useMemo(() => getMesOptions(), [])
   const [mesSel, setMesSel] = useState(mesOpts[0].value)
   const [despachos, setDespachos] = useState([])
   const [fallas, setFallas]       = useState([])

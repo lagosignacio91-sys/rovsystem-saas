@@ -1,5 +1,5 @@
 import { logError } from '../../lib/logger'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { X } from 'lucide-react'
 import { t } from '../../theme/tokens'
 
@@ -9,9 +9,13 @@ export default function ModalAgregarRepuesto({ isOpen, onClose, onAgregar, model
   const [cantidad,     setCantidad]     = useState('1')
   const [cargando,     setCargando]     = useState(false)
 
-  useEffect(() => {
+  // Resetea los campos al abrir, ajustando estado durante el render al detectar
+  // el cambio de prop — sin efecto síncrono.
+  const [prevOpen, setPrevOpen] = useState(isOpen)
+  if (isOpen !== prevOpen) {
+    setPrevOpen(isOpen)
     if (isOpen) { setNombre(''); setModeloEquipo(''); setCantidad('1') }
-  }, [isOpen])
+  }
 
   if (!isOpen) return null
 

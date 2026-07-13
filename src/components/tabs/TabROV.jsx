@@ -45,7 +45,15 @@ function EquipoCard({ titulo, datos, onGuardar, role, fijo = false }) {
   const [obsEditando, setObsEditando] = useState(false)
   const [obsTemp, setObsTemp]         = useState(datos.observacion ?? '')
 
-  useEffect(() => { setForm(datos); setObsTemp(datos.observacion ?? '') }, [datos])
+  // Re-sincroniza la copia editable cuando cambia la prop datos (actualización
+  // externa del equipo), ajustando estado durante el render al detectar el
+  // cambio — sin efecto síncrono. Mismo disparo que el efecto anterior ([datos]).
+  const [prevDatos, setPrevDatos] = useState(datos)
+  if (datos !== prevDatos) {
+    setPrevDatos(datos)
+    setForm(datos)
+    setObsTemp(datos.observacion ?? '')
+  }
 
   // El taller (supervisor) ve fallas pero NO edita equipos ROV. Solo admin/operador editan.
   const puedeEditar = role === 'admin' || role === 'operador'

@@ -1,5 +1,5 @@
 import { logError } from '../../lib/logger'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { X } from 'lucide-react'
 import { t } from '../../theme/tokens'
 
@@ -10,9 +10,13 @@ export default function ModalAgregarHerramientaInsumo({ isOpen, onClose, onAgreg
   const [stockMinimo, setStockMinimo] = useState('3')
   const [cargando, setCargando] = useState(false)
 
-  useEffect(() => {
+  // Resetea los campos cada vez que el modal pasa a abierto, ajustando estado
+  // durante el render al detectar el cambio de prop (sin efecto síncrono).
+  const [prevOpen, setPrevOpen] = useState(isOpen)
+  if (isOpen !== prevOpen) {
+    setPrevOpen(isOpen)
     if (isOpen) { setNombre(''); setCantidad('1'); setCategoria(''); setStockMinimo('3') }
-  }, [isOpen])
+  }
 
   if (!isOpen) return null
 

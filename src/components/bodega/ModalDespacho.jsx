@@ -1,5 +1,5 @@
 import { logError } from '../../lib/logger'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useRef } from 'react'
 import { X, Camera, XCircle } from 'lucide-react'
 import { t } from '../../theme/tokens'
 import { storage } from '../../lib/firebase'
@@ -31,7 +31,12 @@ export default function ModalDespacho({ isOpen, onClose, solicitud, onDespachar 
   const [cantidades,    setCantidades]    = useState({})
   const fileRef = useRef(null)
 
-  useEffect(() => {
+  // Resetea el formulario al abrir (o al cambiar de solicitud), ajustando estado
+  // durante el render al detectar el cambio de prop — sin efecto síncrono.
+  const claveApertura = isOpen ? (solicitud?.id ?? '') : null
+  const [prevClave, setPrevClave] = useState(claveApertura)
+  if (claveApertura !== prevClave) {
+    setPrevClave(claveApertura)
     if (isOpen) {
       setComentario('')
       setTransportista('')
@@ -44,7 +49,7 @@ export default function ModalDespacho({ isOpen, onClose, solicitud, onDespachar 
       })
       setCantidades(init)
     }
-  }, [isOpen, solicitud?.id])
+  }
 
   if (!isOpen || !solicitud) return null
 

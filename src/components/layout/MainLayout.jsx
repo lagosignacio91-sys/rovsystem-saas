@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useCallback } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { LogOut, Menu, X, SlidersHorizontal } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
@@ -45,13 +45,13 @@ export default function MainLayout() {
   const [personalizar, setPersonalizar]   = useState(false)
   const location                = useLocation()
 
-  // Para operadores: auto-aplicar la empresa que les corresponde (sin que puedan cambiarla)
-  useEffect(() => {
-    if (role === 'operador' && empresaId && empresas.length > 0 && !empresaActiva) {
-      const emp = empresas.find(e => e.id === empresaId)
-      if (emp) setEmpresaActiva(emp)
-    }
-  }, [role, empresaId, empresas, empresaActiva])
+  // Para operadores: auto-aplicar la empresa que les corresponde (sin que puedan
+  // cambiarla). Se ajusta durante el render al tener los datos —guardado por
+  // !empresaActiva, se dispara una sola vez— en vez de con un efecto síncrono.
+  if (role === 'operador' && empresaId && empresas.length > 0 && !empresaActiva) {
+    const emp = empresas.find(e => e.id === empresaId)
+    if (emp) setEmpresaActiva(emp)
+  }
 
   const usuarioLabel = nombre || user?.email?.split('@')[0] || ''
   const inicial = (usuarioLabel[0] ?? '?').toUpperCase()

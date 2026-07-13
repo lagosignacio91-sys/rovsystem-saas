@@ -1,5 +1,5 @@
 import { logError } from '../../lib/logger'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { X } from 'lucide-react'
 import { t } from '../../theme/tokens'
 
@@ -10,15 +10,21 @@ export default function ModalAgregarEquipo({ isOpen, onClose, onAgregar, modelos
   const [detallesFalla, setDetallesFalla] = useState('')
   const [cargando,     setCargando]     = useState(false)
 
-  // Usar modeloDefault si se abre desde una fila de modelo específico
-  useEffect(() => {
+  // Resetea los campos al abrir (usando modeloDefault si se abre desde una fila
+  // de modelo específico), ajustando estado durante el render al detectar el
+  // cambio de prop — sin efecto síncrono. La clave combina apertura + modelo
+  // para conservar el mismo disparo que el efecto anterior ([isOpen, modeloDefault]).
+  const claveApertura = isOpen ? (modeloDefault ?? '') : null
+  const [prevClave, setPrevClave] = useState(claveApertura)
+  if (claveApertura !== prevClave) {
+    setPrevClave(claveApertura)
     if (isOpen) {
       setModelo(modeloDefault || '')
       setSerial('')
       setEstado('operativo')
       setDetallesFalla('')
     }
-  }, [isOpen, modeloDefault])
+  }
 
   if (!isOpen) return null
 

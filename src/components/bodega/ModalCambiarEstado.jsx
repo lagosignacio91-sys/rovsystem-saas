@@ -1,5 +1,5 @@
 import { logError } from '../../lib/logger'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { X } from 'lucide-react'
 import { t } from '../../theme/tokens'
 
@@ -7,9 +7,14 @@ export default function ModalCambiarEstado({ isOpen, onClose, equipo, onCambiar 
   const [detallesFalla, setDetallesFalla] = useState('')
   const [cargando,      setCargando]      = useState(false)
 
-  useEffect(() => {
+  // Limpia el detalle al abrir (o al cambiar de equipo), ajustando estado
+  // durante el render al detectar el cambio de prop — sin efecto síncrono.
+  const claveApertura = isOpen ? (equipo?.serial ?? '') : null
+  const [prevClave, setPrevClave] = useState(claveApertura)
+  if (claveApertura !== prevClave) {
+    setPrevClave(claveApertura)
     if (isOpen) setDetallesFalla('')
-  }, [isOpen, equipo?.serial])
+  }
 
   if (!isOpen || !equipo) return null
 
