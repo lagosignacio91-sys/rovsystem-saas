@@ -32,3 +32,25 @@ export function validarEmail(email) {
   if (!email || typeof email !== 'string') return false
   return /^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/.test(email.trim())
 }
+
+/**
+ * Valida que una bitácora diaria tenga contenido mínimo antes de guardarla (LV-03).
+ * Antes ambos sinks (ModalGenerarBitacora y TabBitacora) permitían guardar una
+ * entrada completamente vacía, que se sumaba al historial y al reporte de WhatsApp.
+ *
+ * Regla mínima: al menos uno de los campos de la jornada debe tener texto real
+ * (estado de puerto, jornada AM, jornada PM u observaciones). No se exige piloto
+ * porque se autocompleta desde el operador en faena y no siempre es editable.
+ *
+ * Devuelve { ok, motivo } para poder deshabilitar el botón y explicar el porqué.
+ */
+export function validarBitacora(datos) {
+  const d = datos ?? {}
+  const txt = (v) => (typeof v === 'string' ? v.trim() : '')
+  const tieneContenido = [d.estadoPuerto, d.jornadaAm, d.jornadaPm, d.observaciones]
+    .some(v => txt(v).length > 0)
+  if (!tieneContenido) {
+    return { ok: false, motivo: 'Registra al menos estado de puerto, jornada AM/PM u observaciones.' }
+  }
+  return { ok: true, motivo: '' }
+}

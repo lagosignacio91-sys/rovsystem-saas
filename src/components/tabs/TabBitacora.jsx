@@ -3,6 +3,7 @@ import { db, auth } from '../../lib/firebase'
 import { doc, setDoc, getDoc, onSnapshot, arrayUnion } from 'firebase/firestore'
 import { Send, FileText, ChevronDown, ChevronUp, History } from 'lucide-react'
 import { logError } from '../../lib/logger'
+import { validarBitacora } from '../../lib/validaciones'
 
 function hoy() {
   return new Date().toISOString().slice(0, 10)
@@ -121,7 +122,11 @@ export default function TabBitacora({ centro, role }) {
     .slice()
     .reverse()
 
+  const validacion = validarBitacora(datos)
+
   const guardar = async () => {
+    // Defensa en profundidad: no persistir una bitácora vacía (LV-03).
+    if (!validarBitacora(datos).ok) return false
     setGuardando(true)
     try {
       const uid = auth.currentUser?.uid ?? null
@@ -130,15 +135,20 @@ export default function TabBitacora({ centro, role }) {
       setHistorial(h => [...h, entrada])
       // Limpia los campos diarios; piloto/team/área se conservan (son de configuración, no diarios).
       setDatos(d => ({ ...d, fecha: hoy(), estadoPuerto: '', jornadaAm: '', jornadaPm: '', observaciones: '' }))
+      return true
     } finally {
       setGuardando(false)
     }
   }
 
   const enviarWhatsApp = async () => {
-    await guardar()
+    // El texto se arma con `datos` actuales; guardar() los limpia al terminar, así
+    // que capturamos el texto ANTES de guardar y solo enviamos si el guardado ocurrió.
+    if (!validacion.ok) return
     const texto = generarTexto({ centro, datos, rov })
-    const url   = `whatsapp://send?text=${encodeURIComponent(texto)}`
+    const guardado = await guardar()
+    if (!guardado) return
+    const url = `whatsapp://send?text=${encodeURIComponent(texto)}`
     window.location.href = url
   }
 
@@ -196,14 +206,17 @@ export default function TabBitacora({ centro, role }) {
 
       {/* ---- Acciones ---- */}
       {puedEditar && (
-        <div style={s.acciones}>
-          <button onClick={guardar} disabled={guardando} style={s.btnGuardar}>
-            {guardando ? 'Guardando…' : 'Guardar borrador'}
-          </button>
-          <button onClick={enviarWhatsApp} style={s.btnWpp}>
-            <Send size={14} /> Generar y enviar WhatsApp
-          </button>
-        </div>
+        <>
+          <div style={s.acciones}>
+            <button onClick={guardar} disabled={guardando || !validacion.ok} style={{ ...s.btnGuardar, opacity: (guardando || !validacion.ok) ? 0.5 : 1, cursor: (guardando || !validacion.ok) ? 'not-allowed' : 'pointer' }}>
+              {guardando ? 'Guardando…' : 'Guardar borrador'}
+            </button>
+            <button onClick={enviarWhatsApp} disabled={guardando || !validacion.ok} style={{ ...s.btnWpp, opacity: (guardando || !validacion.ok) ? 0.5 : 1, cursor: (guardando || !validacion.ok) ? 'not-allowed' : 'pointer' }}>
+              <Send size={14} /> Generar y enviar WhatsApp
+            </button>
+          </div>
+          {!validacion.ok && <p style={s.aviso}>{validacion.motivo}</p>}
+        </>
       )}
 
       {/* ---- Vista previa del texto ---- */}
@@ -312,6 +325,7 @@ const s = {
   eqLabel:    { fontSize: 10, color: 'var(--gl-text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', flexShrink: 0 },
   eqVal:      { fontSize: 11, color: 'var(--gl-text-primary)', textAlign: 'right' },
   acciones:   { display: 'flex', gap: 8, marginTop: 4 },
+  aviso:      { fontSize: 11, color: 'var(--gl-fault)', margin: '6px 0 0', lineHeight: 1.4 },
   btnGuardar: { flex: 1, background: 'transparent', border: '1px solid var(--gl-border)', color: 'var(--gl-text-secondary)', borderRadius: 8, padding: '9px 12px', cursor: 'pointer', fontSize: 12, fontWeight: 600 },
   btnWpp:     { flex: 2, background: '#25D366', border: 'none', color: '#fff', borderRadius: 8, padding: '9px 12px', cursor: 'pointer', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 },
   btnVista:   { display: 'flex', alignItems: 'center', gap: 5, background: 'none', border: '1px solid var(--gl-border)', borderRadius: 7, color: 'var(--gl-text-secondary)', fontSize: 11, padding: '6px 10px', cursor: 'pointer', fontFamily: 'inherit' },

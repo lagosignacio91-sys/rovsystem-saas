@@ -4,6 +4,7 @@ import { doc, getDoc } from 'firebase/firestore'
 import { Modal, Button } from '../kit'
 import { t } from '../../theme/tokens'
 import { guardarBitacora } from '../../hooks/useBitacorasGlobal'
+import { validarBitacora } from '../../lib/validaciones'
 
 function hoy() {
   return new Date().toISOString().slice(0, 10)
@@ -39,7 +40,11 @@ export default function ModalGenerarBitacora({ centro, ultima, onCerrar }) {
 
   const set = (campo, valor) => setDatos(d => ({ ...d, [campo]: valor }))
 
+  const validacion = validarBitacora(datos)
+
   const guardar = async () => {
+    // Defensa en profundidad: aunque el botón esté deshabilitado, no guardar vacío (LV-03).
+    if (!validarBitacora(datos).ok) return
     setGuardando(true)
     try {
       const uid = auth.currentUser?.uid ?? null
@@ -57,7 +62,7 @@ export default function ModalGenerarBitacora({ centro, ultima, onCerrar }) {
     <Modal open title={`Generar bitácora diaria — ${centro.nombre}`} onClose={onCerrar} maxWidth={440}
       footer={<>
         <Button variant="secondary" size="lg" onClick={onCerrar}>Cancelar</Button>
-        <Button variant="primary" size="lg" disabled={guardando} onClick={guardar}>
+        <Button variant="primary" size="lg" disabled={guardando || !validacion.ok} onClick={guardar}>
           {guardando ? 'Guardando…' : 'Guardar'}
         </Button>
       </>}>
@@ -74,6 +79,8 @@ export default function ModalGenerarBitacora({ centro, ultima, onCerrar }) {
         <TextArea label="Jornada AM" valor={datos.jornadaAm} onChange={v => set('jornadaAm', v)} placeholder="Describe los trabajos de la mañana…" />
         <TextArea label="Jornada PM" valor={datos.jornadaPm} onChange={v => set('jornadaPm', v)} placeholder="Describe los trabajos de la tarde…" />
         <TextArea label="Observaciones" valor={datos.observaciones} onChange={v => set('observaciones', v)} placeholder="Sin observaciones / escribe aquí…" />
+
+        {!validacion.ok && <p style={s.aviso}>{validacion.motivo}</p>}
       </div>
     </Modal>
   )
@@ -115,4 +122,5 @@ const s = {
   lbl:       { fontSize: 10, fontWeight: 600, color: 'var(--gl-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' },
   input:     { background: 'var(--gl-bg-input)', border: '1px solid var(--gl-border)', borderRadius: 7, color: 'var(--gl-text-primary)', fontSize: 13, padding: '7px 10px', outline: 'none', fontFamily: 'inherit', width: '100%', boxSizing: 'border-box' },
   textarea:  { background: 'var(--gl-bg-input)', border: '1px solid var(--gl-border)', borderRadius: 7, color: 'var(--gl-text-primary)', fontSize: 13, padding: '7px 10px', outline: 'none', fontFamily: 'inherit', resize: 'vertical', width: '100%', boxSizing: 'border-box', lineHeight: 1.5 },
+  aviso:     { fontSize: 11, color: 'var(--gl-fault)', margin: '2px 0 0', lineHeight: 1.4 },
 }
