@@ -7,7 +7,7 @@ import { getFunctions, connectFunctionsEmulator } from 'firebase/functions'
 const required = (key) => {
   const val = import.meta.env[key]
   if (!val) throw new Error(`Variable de entorno ${key} no configurada. Revisa .env o Vercel.`)
-  return val.replace(/^﻿/, '')
+  return val.replace(/^\uFEFF/, '')
 }
 
 const firebaseConfig = {

@@ -30,7 +30,7 @@ export function validarRut(rut) {
  */
 export function validarEmail(email) {
   if (!email || typeof email !== 'string') return false
-  return /^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/.test(email.trim())
+  return /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email.trim())
 }
 
 /**
