@@ -70,7 +70,7 @@ exports.crearUsuario = onCall(async (request) => {
       updatedBy:         caller.uid,
     })
   } catch (e) {
-    try { await getAuth().deleteUser(userRecord.uid) } catch (_) { /* noop */ }
+    try { await getAuth().deleteUser(userRecord.uid) } catch { /* noop */ }
     throw new HttpsError('internal', 'No se pudo crear el perfil: ' + e.message)
   }
 
