@@ -1,18 +1,33 @@
 # Runbook de despliegue a producción — RovSystem
 
-**Proyecto Firebase:** `gl-app-dbdf2` (prod-only, sin staging) · **Plan:** Blaze (activo) · **Frontend:** Vercel
-**Objetivo:** miércoles 2026-07-15 · **Rama:** `remediacion/produccion`
+**Proyecto Firebase:** `gl-app-dbdf2` (prod-only, sin staging) · **Frontend:** Vercel (`hyperionx-rovsystem` @ app.hyperionx.tech)
+**Objetivo:** miércoles 2026-07-15 · **Rama:** `remediacion/produccion` · **Requiere: internet normal (sin Fortinet/VPN)**
 
 > Regla de oro: **una fase a la vez**, verificar antes de pasar a la siguiente. Si una verificación falla, **detener** y revertir esa fase antes de seguir.
 
 ---
 
+## 🔴 PRERREQUISITOS CRÍTICOS (hallados el 2026-07-13 — resolver ANTES de desplegar)
+
+El 2026-07-13 se intentó desplegar y se toparon 2 bloqueadores que **solo se resuelven en consola** y necesitan **internet normal**:
+
+1. **Cuenta de facturación de Blaze NO está abierta.** El plan figura "Blaze" y la cuenta "Pago de Firebase" aparece *vinculada*, pero **no hay ninguna cuenta de facturación activa** (en Cloud Console → Facturación, filtro "Activo" = 0 filas). Por eso `firebase deploy --only functions` falla con *"Billing account ... is not open"* al no poder habilitar Artifact Registry / Cloud Build.
+   - **Causa probable:** el flujo de pago de Google se rompió por el bloqueo de páginas del Fortinet. **Con internet normal debería completarse.**
+   - **Acción:** Cloud Console → Facturación → abrir/crear una cuenta con **método de pago (tarjeta) válido** y **vincularla** a `gl-app-dbdf2`. Verificar que en el filtro "Activo" aparezca la cuenta.
+   - Sin esto **no se pueden desplegar Functions ni las APIs pagas de Storage.**
+2. **Firebase Storage NO está inicializado** en el proyecto. `firebase deploy --only storage` falla con *"Firebase Storage has not been set up"*.
+   - **Acción:** Firebase Console → **Storage** → **"Get Started"** → elegir ubicación (idealmente **us-east1**, igual que Firestore) y aceptar. Recién ahí se puede desplegar `storage.rules`.
+
+> Nota: el 2026-07-13 las **reglas de Firestore SÍ se desplegaron y se revirtieron** de prueba (funcionó 2 veces) → esa parte está probada. Prod quedó con las reglas **originales** (revertidas); el repo tiene las nuevas listas para redeplegar.
+
+---
+
 ## Estado confirmado (auditado 2026-07-13)
-- **Blaze activo** (cuenta "Pago de Firebase" vinculada). Falta solo crear la **alerta de presupuesto** (~10.000 CLP) en Cloud Console → Facturación → Presupuestos.
 - **5 usuarios, todos `estado:'activo'` + rol válido** → nadie se bloquea con las reglas nuevas:
   omar.guajardo=admin · mleal=admin · dario.ruz=supervisor · richard.lagos=operador(team09) · ivan.anabalon=operador(team09).
 - **Prod casi vacío:** 1 centro (`auchile`, sin team). ivan/richard sin datos operativos → **borrables sin riesgo**.
 - **Ensayo en emuladores:** crearUsuario 7/7 · reglas 8/8 · phase2 11/11 · storage 8/8.
+- **Alerta de presupuesto** (~10.000 CLP) en Cloud Console → Facturación → Presupuestos: pendiente (se pudo hacer una vez que la cuenta esté abierta).
 
 ---
 
@@ -26,8 +41,9 @@ npm run lint            # 0/0
 npm run build           # compila
 ```
 
-- [ ] **Guardar copia de las reglas actualmente desplegadas** (rollback). En la consola: Firestore → Reglas → copiar el texto vigente a un archivo local `rollback/firestore.rules.prod-YYYYMMDD`; ídem Storage → Reglas.
-- [ ] **Alerta de presupuesto** en Cloud Console (si aún no está).
+- [x] **Copia de rollback de reglas ya lista** en `rollback/firestore.rules.prod-baseline` y `rollback/storage.rules.prod-baseline` (baseline pre-remediación = lo que corre prod hoy). Para revertir Firestore: `cp rollback/firestore.rules.prod-baseline firestore.rules && firebase deploy --only firestore:rules && git checkout firestore.rules`.
+- [ ] **Prerrequisitos críticos resueltos** (billing abierto + Storage inicializado — ver sección arriba). ⛔ Sin esto no sigas.
+- [ ] **Alerta de presupuesto** en Cloud Console (una vez billing abierto).
 - [x] **Env vars de Vercel confirmadas** (proyecto `hyperionx-rovsystem`): están las 6 `VITE_FIREBASE_*` y **NO existe `VITE_USE_EMULATORS`** → el build de prod no usa emuladores. ✅
 - [x] **Mecanismo de deploy confirmado** (ver Fase 5): proyecto `hyperionx-rovsystem` @ **app.hyperionx.tech**, auto-deploy desde `main` de `lagosignacio91-sys/rovsystem-saas`. **Vercel CLI instalado** → plan B sin VPN disponible.
 
@@ -45,16 +61,27 @@ npm run build           # compila
 
 ## Fase 2 — Deploy de backend (reglas + functions)
 
+Desplegar en **3 pasos** (el orden importa; el 13/07 se validó que el paso de reglas funciona):
+
 ```bash
-firebase deploy --only firestore:rules,storage,functions
+# 1) Reglas de Firestore (ya probado 2 veces el 13/07, funciona)
+firebase deploy --only firestore:rules
+
+# 2) Reglas de Storage — SOLO después de haber inicializado Storage ("Get Started", prereq)
+firebase deploy --only storage
+
+# 3) Functions — SOLO con la cuenta de facturación ABIERTA (prereq). Primera vez tarda
+#    unos minutos: habilita Cloud Functions, Cloud Build y Artifact Registry.
+firebase deploy --only functions
 ```
-La primera vez, functions puede pedir habilitar APIs (Cloud Functions, Cloud Build, Artifact Registry) y tardar unos minutos.
 
 **Verificar:**
-- [ ] Deploy sin errores; en consola → Functions aparece **`crearUsuario`** (y `onDocumentDeleted`).
 - [ ] Reglas nuevas visibles en Firestore → Reglas y Storage → Reglas.
+- [ ] En consola → Functions aparece **`crearUsuario`** (y `onDocumentDeleted`).
 
-**Rollback:** `firebase deploy --only firestore:rules` con la copia guardada en Fase 0. Functions: redeploy de la versión anterior o `firebase functions:delete` si hiciera falta.
+**Rollback:** reglas → `cp rollback/firestore.rules.prod-baseline firestore.rules && firebase deploy --only firestore:rules && git checkout firestore.rules` (ídem storage). Functions: `firebase functions:delete crearUsuario` o redeploy anterior.
+
+> Si `firestore:rules` se despliega pero storage/functions quedan bloqueados por un prereq, **revertir las reglas de Firestore** (comando de arriba) para no dejar prod en estado mixto, y resolver el prereq antes de reintentar. (Es lo que se hizo el 13/07.)
 
 ---
 
