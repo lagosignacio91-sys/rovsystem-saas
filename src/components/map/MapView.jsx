@@ -3,15 +3,20 @@ import { useState, useRef, useCallback, useEffect, memo } from 'react'
 import { Search, X, MapPin, Maximize2 } from 'lucide-react'
 import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
+// Iconos del marcador servidos desde el propio bundle (Vite los emite con hash),
+// no desde el CDN unpkg: evita depender de una red externa en producción.
+import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png'
+import markerIcon from 'leaflet/dist/images/marker-icon.png'
+import markerShadow from 'leaflet/dist/images/marker-shadow.png'
 import PopupCentro from './PopupCentro'
 import PopupCentroContactos from './PopupCentroContactos'
 import { t, ESTADO_META } from '../../theme/tokens'
 
 delete L.Icon.Default.prototype._getIconUrl
 L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-  iconUrl:       'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  shadowUrl:     'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+  iconRetinaUrl: markerIcon2x,
+  iconUrl:       markerIcon,
+  shadowUrl:     markerShadow,
 })
 
 // SVG paths (lucide) por estado para incrustar en el marcador

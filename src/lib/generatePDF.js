@@ -2,8 +2,18 @@ import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import { db } from './firebase'
 import { doc as fsDoc, getDoc } from 'firebase/firestore'
+import { logError } from './logger'
 
 const LOGO_PATH = '/logo.png'
+
+// Las funciones públicas de PDF se llaman como onClick fire-and-forget; capturan
+// su propio error para no dejar rejections sin controlar. Un AbortError es el
+// usuario cerrando el diálogo de compartir (no es un fallo real): se ignora.
+function manejarErrorPDF(e, contexto) {
+  if (e?.name === 'AbortError') return
+  logError(contexto, e)
+  alert('No se pudo generar el PDF. Intenta nuevamente.')
+}
 
 async function loadLogoBase64() {
   try {
@@ -422,47 +432,55 @@ function nombreBitacora(bitacora, centro) {
 }
 
 export async function descargarPDFBitacora(bitacora, centro) {
-  const doc = await construirPDFBitacora(bitacora, centro)
-  doc.save(nombreBitacora(bitacora, centro))
+  try {
+    const doc = await construirPDFBitacora(bitacora, centro)
+    doc.save(nombreBitacora(bitacora, centro))
+  } catch (e) { manejarErrorPDF(e, 'descargarPDFBitacora') }
 }
 
 export async function compartirPDFBitacora(bitacora, centro) {
-  const doc = await construirPDFBitacora(bitacora, centro)
-  const nombre = nombreBitacora(bitacora, centro)
-  const blob = doc.output('blob')
-  const file = new File([blob], nombre, { type: 'application/pdf' })
+  try {
+    const doc = await construirPDFBitacora(bitacora, centro)
+    const nombre = nombreBitacora(bitacora, centro)
+    const blob = doc.output('blob')
+    const file = new File([blob], nombre, { type: 'application/pdf' })
 
-  if (navigator.canShare && navigator.canShare({ files: [file] })) {
-    await navigator.share({
-      files: [file],
-      title: `Bitácora diaria — ${centro.nombre}`,
-      text:  `Bitácora diaria · ${centro.nombre} · ${bitacora.fecha}`,
-    })
-  } else {
-    doc.save(nombre)
-  }
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({
+        files: [file],
+        title: `Bitácora diaria — ${centro.nombre}`,
+        text:  `Bitácora diaria · ${centro.nombre} · ${bitacora.fecha}`,
+      })
+    } else {
+      doc.save(nombre)
+    }
+  } catch (e) { manejarErrorPDF(e, 'compartirPDFBitacora') }
 }
 
 export async function descargarPDF(entrega) {
-  const doc = await generarPDFEntrega(entrega)
-  const fecha = entrega.fecha?.replace(/\//g, '-') ?? 'informe'
-  doc.save(`Entrega-Turno-${entrega.centroNombre ?? 'GL'}-${fecha}.pdf`)
+  try {
+    const doc = await generarPDFEntrega(entrega)
+    const fecha = entrega.fecha?.replace(/\//g, '-') ?? 'informe'
+    doc.save(`Entrega-Turno-${entrega.centroNombre ?? 'GL'}-${fecha}.pdf`)
+  } catch (e) { manejarErrorPDF(e, 'descargarPDF') }
 }
 
 export async function compartirPDF(entrega) {
-  const doc = await generarPDFEntrega(entrega)
-  const fecha = entrega.fecha?.replace(/\//g, '-') ?? 'informe'
-  const nombre = `Entrega-Turno-${entrega.centroNombre ?? 'GL'}-${fecha}.pdf`
-  const blob = doc.output('blob')
-  const file = new File([blob], nombre, { type: 'application/pdf' })
+  try {
+    const doc = await generarPDFEntrega(entrega)
+    const fecha = entrega.fecha?.replace(/\//g, '-') ?? 'informe'
+    const nombre = `Entrega-Turno-${entrega.centroNombre ?? 'GL'}-${fecha}.pdf`
+    const blob = doc.output('blob')
+    const file = new File([blob], nombre, { type: 'application/pdf' })
 
-  if (navigator.canShare && navigator.canShare({ files: [file] })) {
-    await navigator.share({
-      files: [file],
-      title: `Entrega de turno — ${entrega.centroNombre}`,
-      text:  `Informe de entrega de turno · ${entrega.centroNombre} · ${entrega.fecha}`,
-    })
-  } else {
-    doc.save(nombre)
-  }
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({
+        files: [file],
+        title: `Entrega de turno — ${entrega.centroNombre}`,
+        text:  `Informe de entrega de turno · ${entrega.centroNombre} · ${entrega.fecha}`,
+      })
+    } else {
+      doc.save(nombre)
+    }
+  } catch (e) { manejarErrorPDF(e, 'compartirPDF') }
 }
