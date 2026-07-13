@@ -12,14 +12,15 @@ export function useDespachosGlobal({ role, teamId, onNuevaSolicitud, onDespachoC
   const [cargando, setCargando]   = useState(true)
   const prevIds = useRef(null)
 
+  // Todavía no se puede suscribir: falta el rol (auth resolviéndose) o, para el
+  // operador, el team. En ese caso se reporta "cargando" derivado, sin setState
+  // síncrono en el efecto. La regla de Firestore exige el filtro por team para
+  // que el operador pueda listar (LV-02); por eso se espera al teamId.
+  const esperando = !role || (role === 'operador' && !teamId)
+
   useEffect(() => {
-    // Esperar a que el rol esté cargado antes de suscribirse. Si role es null (auth
-    // resolviéndose) pero el usuario real es operador, un query SIN `where` se deniega
-    // ('false for list') — la regla exige el filtro por team para el operador (LV-02).
-    if (!role) { setCargando(true); return }
-    // Operador: esperar también a que cargue el team antes de suscribirse (evita un
-    // query sin el `where` que la regla de Firestore exige para poder listar).
-    if (role === 'operador' && !teamId) { setCargando(true); return }
+    if (!role) return
+    if (role === 'operador' && !teamId) return
 
     const ref = (role === 'operador' && teamId)
       ? query(collection(db, 'despachos'), where('teamAsignado', '==', teamId))
@@ -60,7 +61,7 @@ export function useDespachosGlobal({ role, teamId, onNuevaSolicitud, onDespachoC
       setCargando(false)
     }, (e) => { logError('useDespachosGlobal', e); setCargando(false) })
     return () => unsub()
-  }, [role, teamId])
+  }, [role, teamId]) // eslint-disable-line react-hooks/exhaustive-deps -- los callbacks se leen por closure; incluirlos re-suscribiria el listener en cada render del padre
 
   // Sin cambios: único punto de acoplamiento con Bodega Virtual (marca todo el despacho
   // enviado + descuenta stock central). No tocar firma ni comportamiento.
@@ -108,5 +109,5 @@ export function useDespachosGlobal({ role, teamId, onNuevaSolicitud, onDespachoC
     [despachos]
   )
 
-  return { despachos, pendientes, cargando, marcarEnviado, enviarItemsPendientes, confirmarRecepcion, eliminarDespacho }
+  return { despachos, pendientes, cargando: esperando || cargando, marcarEnviado, enviarItemsPendientes, confirmarRecepcion, eliminarDespacho }
 }

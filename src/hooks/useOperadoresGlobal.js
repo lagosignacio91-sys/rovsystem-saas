@@ -11,7 +11,7 @@ export function useOperadoresGlobal(centros) {
   const idsStable = [...centros.map(c => c.id)].sort().join(',')
 
   useEffect(() => {
-    if (!centros.length) { setOperadores([]); setCargando(false); return }
+    if (!centros.length) return   // sin centros no hay nada que suscribir; el vacío se deriva abajo
 
     let active = true
     const dataMap = new Map()
@@ -38,5 +38,6 @@ export function useOperadoresGlobal(centros) {
     return () => { active = false; unsubs.forEach(u => u()) }
   }, [idsStable]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  if (!centros.length) return { operadores: [], cargando: false }
   return { operadores, cargando }
 }

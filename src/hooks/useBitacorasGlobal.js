@@ -16,14 +16,13 @@ export function useBitacorasGlobal(centros) {
   const [datos,    setDatos]    = useState([])
   const [cargando, setCargando] = useState(true)
 
-  useEffect(() => {
-    if (!centros || centros.length === 0) {
-      setDatos([])
-      setCargando(false)
-      return
-    }
+  // Clave estable: re-suscribir solo cuando cambia el conjunto de ids, no en
+  // cada nueva referencia del array centros.
+  const idsStable = centros.map(c => c.id).join(',')
 
-    setCargando(true)
+  useEffect(() => {
+    if (!centros || centros.length === 0) return   // sin centros no hay nada que suscribir; el vacío se deriva abajo
+
     const state = {}
     const unsubs = []
 
@@ -63,7 +62,8 @@ export function useBitacorasGlobal(centros) {
     }
 
     return () => unsubs.forEach(u => u())
-  }, [centros.map(c => c.id).join(',')])
+  }, [idsStable]) // eslint-disable-line react-hooks/exhaustive-deps -- re-suscribe por el conjunto de ids, no por la referencia de centros
 
+  if (!centros || centros.length === 0) return { datos: [], cargando: false }
   return { datos, cargando }
 }

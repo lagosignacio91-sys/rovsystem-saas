@@ -9,11 +9,14 @@ export function useEquipoTicketsGlobal({ role, teamId } = {}) {
   const [tickets, setTickets]   = useState([])
   const [cargando, setCargando] = useState(true)
 
+  // Todavía no se puede suscribir: falta el rol (auth resolviéndose) o, para el
+  // operador, el team. Se reporta "cargando" derivado, sin setState síncrono en
+  // el efecto. La regla exige el filtro por team para que el operador liste (LV-02).
+  const esperando = !role || (role === 'operador' && !teamId)
+
   useEffect(() => {
-    // Esperar a que el rol esté cargado (LV-02): con role null pero usuario operador,
-    // un query sin `where` por team se deniega ('false for list').
-    if (!role) { setCargando(true); return }
-    if (role === 'operador' && !teamId) { setCargando(true); return }
+    if (!role) return
+    if (role === 'operador' && !teamId) return
 
     const ref = (role === 'operador' && teamId)
       ? query(collection(db, 'equipoTickets'), where('teamAsignado', '==', teamId))
@@ -67,5 +70,5 @@ export function useEquipoTicketsGlobal({ role, teamId } = {}) {
 
   const abiertos = useMemo(() => tickets.filter(t => t.estado !== 'recibido'), [tickets])
 
-  return { tickets, abiertos, cargando, marcarDespachadoTaller, marcarReemplazoEnviado, confirmarRecepcion, eliminarTicket }
+  return { tickets, abiertos, cargando: esperando || cargando, marcarDespachadoTaller, marcarReemplazoEnviado, confirmarRecepcion, eliminarTicket }
 }

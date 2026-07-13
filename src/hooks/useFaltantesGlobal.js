@@ -10,8 +10,11 @@ import { logError } from '../lib/logger'
 export function useFaltantesGlobal(centros) {
   const [estadoPorCentro, setEstadoPorCentro] = useState({})
 
+  // Clave estable: re-suscribir solo cuando cambia el conjunto de ids.
+  const idsStable = centros.map(c => c.id).join(',')
+
   useEffect(() => {
-    if (!centros || centros.length === 0) { setEstadoPorCentro({}); return }
+    if (!centros || centros.length === 0) return   // sin centros no hay nada que suscribir; el vacío se deriva abajo
 
     const state = {}
     const unsubs = []
@@ -34,12 +37,13 @@ export function useFaltantesGlobal(centros) {
     }
 
     return () => unsubs.forEach(u => u())
-  }, [centros.map(c => c.id).join(',')])
+  }, [idsStable]) // eslint-disable-line react-hooks/exhaustive-deps -- re-suscribe por el conjunto de ids, no por la referencia de centros
 
   const centrosConFaltantes = useMemo(
     () => new Set(Object.entries(estadoPorCentro).filter(([, v]) => v.estuche || v.caja).map(([id]) => id)),
     [estadoPorCentro]
   )
 
+  if (!centros || centros.length === 0) return { centrosConFaltantes: new Set(), totalCentrosConFaltantes: 0 }
   return { centrosConFaltantes, totalCentrosConFaltantes: centrosConFaltantes.size }
 }
