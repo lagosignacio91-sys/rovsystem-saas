@@ -6,17 +6,19 @@ import {
   updateDoc, doc, getDoc, getDocs, writeBatch, setDoc
 } from 'firebase/firestore'
 
+// Sin teamAsignado por defecto: la asignación real de team a cada centro
+// la hace el admin manualmente desde la app (rota según licencias/turnos).
 export const CENTROS_GL = [
-  { nombre: 'auchile',          teamAsignado: 'team01', lat: -45.06569, lng: -73.57994 },
-  { nombre: 'gregoria',         teamAsignado: 'team02', lat: -45.60891, lng: -73.52102 },
-  { nombre: 'ninualac',         teamAsignado: 'team03', lat: -44.99103, lng: -73.72147 },
-  { nombre: 'nevenka',          teamAsignado: 'team04', lat: -45.80200, lng: -73.63740 },
-  { nombre: 'tangbac',          teamAsignado: 'team05', lat: -45.04291, lng: -73.68528 },
-  { nombre: 'aysen 4',          teamAsignado: 'team06', lat: -45.33625, lng: -73.14792 },
-  { nombre: 'teresa 1',         teamAsignado: 'team07', lat: -44.92559, lng: -73.74093 },
-  { nombre: 'pato',             teamAsignado: 'team09', lat: -45.51674, lng: -74.10208 },
-  { nombre: 'jorge canal goñi', teamAsignado: 'team10', lat: -44.84563, lng: -73.95372 },
-  { nombre: 'isla quemada',     teamAsignado: 'team11', lat: -45.43502, lng: -73.85317 },
+  { nombre: 'auchile',          teamAsignado: null, lat: -45.06569, lng: -73.57994 },
+  { nombre: 'gregoria',         teamAsignado: null, lat: -45.60891, lng: -73.52102 },
+  { nombre: 'ninualac',         teamAsignado: null, lat: -44.99103, lng: -73.72147 },
+  { nombre: 'nevenka',          teamAsignado: null, lat: -45.80200, lng: -73.63740 },
+  { nombre: 'tangbac',          teamAsignado: null, lat: -45.04291, lng: -73.68528 },
+  { nombre: 'aysen 4',          teamAsignado: null, lat: -45.33625, lng: -73.14792 },
+  { nombre: 'teresa 1',         teamAsignado: null, lat: -44.92559, lng: -73.74093 },
+  { nombre: 'pato',             teamAsignado: null, lat: -45.51674, lng: -74.10208 },
+  { nombre: 'jorge canal goñi', teamAsignado: null, lat: -44.84563, lng: -73.95372 },
+  { nombre: 'isla quemada',     teamAsignado: null, lat: -45.43502, lng: -73.85317 },
 ]
 
 // Verifica el estado real de un centro leyendo sus subcolecciones
