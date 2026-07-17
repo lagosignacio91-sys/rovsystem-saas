@@ -4,13 +4,6 @@ import { validarRut, validarEmail } from '../../lib/validaciones'
 // Columnas del CSV real de GL Robótica: Área, Centro, Proveedor, Nombre, Rut, Correo, Teléfono
 const COLUMNAS_CSV = ['area', 'centro', 'proveedor', 'nombre', 'rut', 'correoCorporativo', 'telefono']
 
-const CENTRO_A_TEAM = {
-  'AUCHILE': 'team01', 'GREGORIA': 'team02', 'NINUALAC': 'team03',
-  'NEVENKA': 'team04', 'TANGBAC': 'team05', 'AYSEN 4': 'team06',
-  'TERESA 1': 'team07', 'APERTURAS': 'team08', 'PATO': 'team09',
-  'GOÑI': 'team10', 'QUEMADA': 'team11',
-}
-
 function parsearCSV(texto) {
   const lineas = texto.trim().split('\n').filter(l => l.trim())
   // Saltar la primera línea si es encabezado (contiene texto no-email en la 4ta columna)
@@ -21,7 +14,9 @@ function parsearCSV(texto) {
     const cols = linea.split(sep).map(c => c.trim().replace(/^"|"$/g, ''))
     const obj  = {}
     COLUMNAS_CSV.forEach((key, i) => { obj[key] = cols[i] ?? '' })
-    obj.teamId = CENTRO_A_TEAM[obj.centro?.toUpperCase()?.trim()] ?? ''
+    // Sin team preasignado por centro: la asignación real la hace el admin
+    // a mano en la vista previa (rota según turnos/licencias, no es fija).
+    obj.teamId = ''
     return obj
   }).filter(op => op.nombre)
 }
@@ -163,7 +158,7 @@ export default function ImportarCSV({ onImportar, onCerrar }) {
           </div>
         ) : (
           <>
-            <p style={styles.previewLabel}>{filas.length} operadores detectados — {seleccionadas} marcados. Desmarca los que no quieras importar (ej: APERTURAS sin centro):</p>
+            <p style={styles.previewLabel}>{filas.length} operadores detectados — {seleccionadas} marcados. Desmarca los que no quieras importar todavía, y asigná el team de cada uno si corresponde:</p>
 
             {/* Contraseña global */}
             <div style={styles.passwordGlobal}>
