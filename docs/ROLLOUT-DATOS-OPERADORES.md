@@ -11,25 +11,14 @@ Cómo preparar el Excel/CSV para el importador (`Importar operadores desde CSV`)
 - **⚠️ Codificación:** el importador lee el archivo como **ISO-8859-1 (Latin-1)**. Al exportar desde Excel elegí **"CSV (delimitado por comas)"**, **NO "CSV UTF-8"** → si no, los acentos y la Ñ (ej. **GOÑI**, nombres con á/é/í/ó) salen corruptos.
 - **Límites:** máximo **500 KB** y **200 operadores** por archivo (si hay más, dividir en partes).
 
-## 2. La columna "Centro" define el team automáticamente
+## 2. El team ya NO se asigna automático por el nombre del centro
 
-El valor de `Centro` (en mayúsculas, sin importar may/min) se mapea a un team. Debe coincidir **exacto** (acentos y espacios incluidos):
+**Cambio del 2026-07-17:** se sacó el mapeo fijo `Centro → team` del código (tenía errores confirmados: team08 sin centro y team09 mal asignado). Los 10 centros reales (auchile, gregoria, ninualac, nevenka, tangbac, aysen 4, teresa 1, pato, jorge canal goñi, isla quemada) están cargados en la empresa **aquachile**, pero **ninguno tiene team preasignado**.
 
-| Centro (en el Excel) | team |
-|---|---|
-| AUCHILE | team01 |
-| GREGORIA | team02 |
-| NINUALAC | team03 |
-| NEVENKA | team04 |
-| TANGBAC | team05 |
-| AYSEN 4 | team06 |
-| TERESA 1 | team07 |
-| APERTURAS | team08 |
-| PATO | team09 |
-| GOÑI | team10 |
-| QUEMADA | team11 |
-
-Si un `Centro` no está en esta lista, el team queda en blanco (se puede completar a mano en la vista previa antes de importar).
+**Flujo real ahora:**
+1. Importás los operadores desde el Excel (columna `Centro` queda solo como referencia/dato informativo, ya no dispara ninguna asignación automática — dejarla en blanco o con el nombre igual está bien).
+2. Vas a **Centros**, elegís el centro donde va cada operador, y le asignás el `teamId` correspondiente al operador (o le asignás el team directamente al centro, según cómo lo tengan pensado operar).
+3. Como GL reasigna gente de un centro a otro según turnos/licencias (ej. "German estaba en Pato, pero cubre Lalanca esta semana"), este paso es manual **a propósito** — no hay una tabla fija que lo automatice.
 
 ## 3. Validaciones que bloquean la importación
 
