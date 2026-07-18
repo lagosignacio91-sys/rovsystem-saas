@@ -20,7 +20,7 @@ function formatFecha(iso) {
   return `${d}/${m}/${String(y).slice(2)}`
 }
 
-function generarTexto({ centro, datos, rov }) {
+function generarTexto({ centro, datos, rov, redes }) {
   const principal = rov?.principal ?? {}
   const backup    = rov?.backup    ?? {}
 
@@ -58,6 +58,12 @@ function generarTexto({ centro, datos, rov }) {
     `📝 OBSERVACIONES:`,
     datos.observaciones || '—',
     ``,
+    `🧵 REDES / PARCHES`,
+    `  Parches disponibles: ${redes?.parchesStock ?? 0}`,
+    `  Herramienta de costura: ${redes?.costuraOperativa === false ? '⚠️ No operativa' : 'Operativa'}`,
+    `  Parches instalados hoy: ${datos.parchesInstalados || 0}`,
+    `  Costuras realizadas hoy: ${datos.costurasRealizadas || 0}`,
+    ``,
     `🤖 EQUIPOS`,
     equipoBloque('Equipo Principal', principal),
     ``,
@@ -70,9 +76,11 @@ export default function TabBitacora({ centro, role }) {
     piloto: '', team: '', area: '',
     fecha: hoy(), estadoPuerto: '',
     jornadaAm: '', jornadaPm: '', observaciones: '',
+    parchesInstalados: 0, costurasRealizadas: 0,
   })
   const [historial, setHistorial] = useState([])
   const [rov, setRov]           = useState({})
+  const [redes, setRedes]       = useState({ parchesStock: 0, costuraOperativa: true })
   const [cargando, setCargando] = useState(true)
   const [guardando, setGuardando] = useState(false)
   const [mostrarVista, setMostrarVista] = useState(false)
@@ -82,11 +90,16 @@ export default function TabBitacora({ centro, role }) {
 
   useEffect(() => {
     const cargar = async () => {
-      const [snapBit, snapRov, snapOps] = await Promise.all([
+      const [snapBit, snapRov, snapOps, snapRedes] = await Promise.all([
         getDoc(doc(db, ...kitBase(centro), 'datos', 'bitacora')),
         getDoc(doc(db, ...kitBase(centro), 'equipos', 'rov')),
         getDoc(doc(db, ...kitBase(centro), 'datos', 'operadores')),
+        getDoc(doc(db, ...kitBase(centro), 'datos', 'redes')),
       ])
+      if (snapRedes.exists()) {
+        const d = snapRedes.data()
+        setRedes({ parchesStock: d.parchesStock ?? 0, costuraOperativa: d.costuraOperativa ?? true })
+      }
       if (snapBit.exists()) {
         const lista = snapBit.data().lista ?? []
         setHistorial(lista)
@@ -124,6 +137,11 @@ export default function TabBitacora({ centro, role }) {
     .slice()
     .reverse()
 
+  const totalMes = historialMes.reduce((acc, b) => ({
+    parches: acc.parches + (Number(b.parchesInstalados) || 0),
+    costuras: acc.costuras + (Number(b.costurasRealizadas) || 0),
+  }), { parches: 0, costuras: 0 })
+
   const validacion = validarBitacora(datos)
 
   const guardar = async () => {
@@ -136,7 +154,7 @@ export default function TabBitacora({ centro, role }) {
       await setDoc(doc(db, ...kitBase(centro), 'datos', 'bitacora'), { lista: arrayUnion(entrada) }, { merge: true })
       setHistorial(h => [...h, entrada])
       // Limpia los campos diarios; piloto/team/área se conservan (son de configuración, no diarios).
-      setDatos(d => ({ ...d, fecha: hoy(), estadoPuerto: '', jornadaAm: '', jornadaPm: '', observaciones: '' }))
+      setDatos(d => ({ ...d, fecha: hoy(), estadoPuerto: '', jornadaAm: '', jornadaPm: '', observaciones: '', parchesInstalados: 0, costurasRealizadas: 0 }))
       return true
     } finally {
       setGuardando(false)
@@ -147,7 +165,7 @@ export default function TabBitacora({ centro, role }) {
     // El texto se arma con `datos` actuales; guardar() los limpia al terminar, así
     // que capturamos el texto ANTES de guardar y solo enviamos si el guardado ocurrió.
     if (!validacion.ok) return
-    const texto = generarTexto({ centro, datos, rov })
+    const texto = generarTexto({ centro, datos, rov, redes })
     const guardado = await guardar()
     if (!guardado) return
     const url = `whatsapp://send?text=${encodeURIComponent(texto)}`
@@ -156,7 +174,7 @@ export default function TabBitacora({ centro, role }) {
 
   if (cargando) return <p style={{ color: 'var(--gl-text-muted)', fontSize: 13 }}>Cargando...</p>
 
-  const textoGenerado = generarTexto({ centro, datos, rov })
+  const textoGenerado = generarTexto({ centro, datos, rov, redes })
 
   return (
     <div style={s.wrap}>
@@ -202,6 +220,28 @@ export default function TabBitacora({ centro, role }) {
           placeholder="Sin observaciones / escribe aquí…" />
       </div>
 
+      {/* ---- Redes: parches y costura (diario) ---- */}
+      <div style={s.divider} />
+      <div style={s.secTitulo}>🧵 Redes</div>
+      <div style={s.fijoBox}>
+        <span style={s.fijoLabel}>Disponibles</span>
+        <span style={s.fijoValor}>{redes.parchesStock ?? 0} parches</span>
+        <span style={{ ...s.fijoLabel, marginLeft: 8 }}>Herramienta</span>
+        <span style={{ ...s.fijoValor, color: redes.costuraOperativa === false ? 'var(--gl-fault)' : 'var(--gl-ok)' }}>
+          {redes.costuraOperativa === false ? '⚠️ No operativa' : 'Operativa'}
+        </span>
+      </div>
+      <div style={s.campoWrap}>
+        <label style={s.lbl}>Parches instalados hoy</label>
+        <input type="number" min={0} style={{ ...s.input, opacity: puedEditar ? 1 : 0.6 }} disabled={!puedEditar}
+          value={datos.parchesInstalados} onChange={e => set('parchesInstalados', Math.max(0, Number(e.target.value) || 0))} />
+      </div>
+      <div style={s.campoWrap}>
+        <label style={s.lbl}>Costuras realizadas hoy</label>
+        <input type="number" min={0} style={{ ...s.input, opacity: puedEditar ? 1 : 0.6 }} disabled={!puedEditar}
+          value={datos.costurasRealizadas} onChange={e => set('costurasRealizadas', Math.max(0, Number(e.target.value) || 0))} />
+      </div>
+
       {/* ---- Vista previa de equipos (FIJO, auto desde TabROV) ---- */}
       <div style={s.divider} />
       <EquiposInfo rov={rov} />
@@ -243,6 +283,11 @@ export default function TabBitacora({ centro, role }) {
           {historialMes.length === 0 && (
             <p style={{ color: 'var(--gl-text-muted)', fontSize: 12, margin: 0 }}>Sin entradas este mes.</p>
           )}
+          {historialMes.length > 0 && (
+            <div style={s.historialItem}>
+              <div style={s.historialFecha}>🧵 Total mes — parches: {totalMes.parches} · costuras: {totalMes.costuras}</div>
+            </div>
+          )}
           {historialMes.map((b, i) => (
             <div key={i} style={s.historialItem}>
               <div style={s.historialFecha}>{formatFecha(b.fecha)} — {b.piloto || 'Sin piloto'}</div>
@@ -250,6 +295,9 @@ export default function TabBitacora({ centro, role }) {
               {b.jornadaAm && <div style={s.historialLinea}><b>AM:</b> {b.jornadaAm}</div>}
               {b.jornadaPm && <div style={s.historialLinea}><b>PM:</b> {b.jornadaPm}</div>}
               {b.observaciones && <div style={s.historialLinea}><b>Obs:</b> {b.observaciones}</div>}
+              {((Number(b.parchesInstalados) || 0) > 0 || (Number(b.costurasRealizadas) || 0) > 0) && (
+                <div style={s.historialLinea}><b>Redes:</b> {b.parchesInstalados || 0} parches · {b.costurasRealizadas || 0} costuras</div>
+              )}
             </div>
           ))}
         </div>

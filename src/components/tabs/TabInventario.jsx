@@ -160,6 +160,80 @@ function CajaHerramientas({ centro, role }) {
   )
 }
 
+// ---- Redes: parches y herramienta de costura (por centro — o por team en apertura) ----
+function RedesParchesCostura({ centro, role }) {
+  const [redes, setRedes]       = useState({ parchesStock: 0, costuraOperativa: true })
+  const [cargando, setCargando] = useState(true)
+  const [abierto, setAbierto]   = useState(false)
+  const puedeEditar = role === 'admin' || role === 'operador' || role === 'supervisor' || role === 'apertura'
+
+  useEffect(() => {
+    const ref = doc(db, ...kitBase(centro), 'datos', 'redes')
+    const unsub = onSnapshot(ref, (snap) => {
+      const d = snap.exists() ? snap.data() : {}
+      setRedes({ parchesStock: d.parchesStock ?? 0, costuraOperativa: d.costuraOperativa ?? true })
+      setCargando(false)
+    }, (e) => { logError('TabInventario/redes', e); setCargando(false) })
+    return () => unsub()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [centro.id, centro.teamAsignado])
+
+  const guardar = (campos) => setDoc(doc(db, ...kitBase(centro), 'datos', 'redes'), campos, { merge: true })
+
+  const setParches = (v) => {
+    const n = Math.max(0, Number(v) || 0)
+    setRedes(r => ({ ...r, parchesStock: n }))
+    guardar({ parchesStock: n })
+  }
+  const toggleCostura = () => {
+    const nuevo = !(redes.costuraOperativa !== false)
+    setRedes(r => ({ ...r, costuraOperativa: nuevo }))
+    guardar({ costuraOperativa: nuevo })
+  }
+
+  const operativa = redes.costuraOperativa !== false
+
+  return (
+    <div style={s.seccion}>
+      <div style={s.secHeaderClick} onClick={() => setAbierto(a => !a)}>
+        <span style={s.secTitulo}>Redes: parches y costura</span>
+        <span style={s.chevron}>{abierto ? '▲' : '▼'}</span>
+      </div>
+      {abierto && (
+        <div style={s.listaItems}>
+          {cargando ? <p style={s.vacio}>Cargando...</p> : (
+            <>
+              <div style={s.filaEstuche}>
+                <span style={s.itemNombre}>Parches disponibles</span>
+                {puedeEditar ? (
+                  <input type="number" min={0} value={redes.parchesStock}
+                    onChange={e => setParches(e.target.value)} style={s.inputCant} />
+                ) : (
+                  <span style={s.cantBadge}>Cant: {redes.parchesStock}</span>
+                )}
+              </div>
+              <div style={s.filaEstuche}>
+                <span style={s.itemNombre}>Herramienta de costura</span>
+                <button
+                  onClick={puedeEditar ? toggleCostura : undefined}
+                  style={{
+                    ...s.estadoBadge,
+                    color: operativa ? 'var(--gl-ok)' : 'var(--gl-fault)',
+                    background: operativa ? 'var(--gl-ok-tint)' : 'var(--gl-fault-tint)',
+                    cursor: puedeEditar ? 'pointer' : 'default',
+                  }}
+                >
+                  {operativa ? '● Operativa' : '⚠️ No operativa'}
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function TabInventario({ centro, role, sincronizarEstado }) {
   const [estadoPrincipal, setEstadoPrincipal] = useState({})
   const [estadoBackup, setEstadoBackup]       = useState({})
@@ -192,6 +266,8 @@ export default function TabInventario({ centro, role, sincronizarEstado }) {
         puedeEditar={puedeEditar} onCambiar={(id, valor) => cambiarEstado('backup', id, valor)} />
       <div style={s.divider} />
       <CajaHerramientas centro={centro} role={role} />
+      <div style={s.divider} />
+      <RedesParchesCostura centro={centro} role={role} />
     </div>
   )
 }
