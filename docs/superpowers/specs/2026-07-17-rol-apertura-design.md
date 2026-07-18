@@ -83,6 +83,13 @@ Extender `ImportarCSV` con un **selector de tipo**: *Operadores* (actual) / *Ape
 - En modo **Apertura**: crea usuarios con `rol='apertura'`, `teamId='team08'`, `empresaId=null`, sin mapeo de centro. Mismas columnas que operadores **menos** Centro (o Centro ignorado).
 - El resto del flujo (validación de correo/RUT, contraseña por defecto, estado activo) igual que operadores.
 
+### Datos de las 2 personas de apertura (para el import del rollout)
+Entregados por el dueño (pestaña "apertura" del Excel). Se crean recién al desplegar el feature, no antes:
+- CESAR REINALDO DURAN MORALES · 21.239.647-8 · cduran@glrobotica.cl · 977064873
+- LUIS ARMANDO SEPULVEDA SAAVEDRA · 18.416.957-6 · luis.sepulveda@glrobotica.cl · 949537651
+
+Ambos: `rol='apertura'`, `teamId='team08'`, `empresaId=null`. Columna Centro del CSV ("APERTURA") se ignora.
+
 ## Flujo completo (ciclo de vida)
 
 1. Admin importa/crea las 2 personas de apertura (rol apertura, team08) y cargan su kit una vez en `teams/team08`.
