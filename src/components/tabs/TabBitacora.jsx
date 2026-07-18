@@ -4,6 +4,7 @@ import { doc, setDoc, getDoc, onSnapshot, arrayUnion } from 'firebase/firestore'
 import { Send, FileText, ChevronDown, ChevronUp, History } from 'lucide-react'
 import { logError } from '../../lib/logger'
 import { validarBitacora } from '../../lib/validaciones'
+import { kitBase } from '../../lib/kitScope'
 
 function hoy() {
   return new Date().toISOString().slice(0, 10)
@@ -77,14 +78,14 @@ export default function TabBitacora({ centro, role }) {
   const [mostrarVista, setMostrarVista] = useState(false)
   const [mostrarHistorial, setMostrarHistorial] = useState(false)
 
-  const puedEditar = role === 'operador'
+  const puedEditar = role === 'operador' || role === 'apertura'
 
   useEffect(() => {
     const cargar = async () => {
       const [snapBit, snapRov, snapOps] = await Promise.all([
-        getDoc(doc(db, 'centros', centro.id, 'datos', 'bitacora')),
-        getDoc(doc(db, 'centros', centro.id, 'equipos', 'rov')),
-        getDoc(doc(db, 'centros', centro.id, 'datos', 'operadores')),
+        getDoc(doc(db, ...kitBase(centro), 'datos', 'bitacora')),
+        getDoc(doc(db, ...kitBase(centro), 'equipos', 'rov')),
+        getDoc(doc(db, ...kitBase(centro), 'datos', 'operadores')),
       ])
       if (snapBit.exists()) {
         const lista = snapBit.data().lista ?? []
@@ -105,7 +106,7 @@ export default function TabBitacora({ centro, role }) {
     }
     cargar()
     // Suscribir cambios de operadores en tiempo real para actualizar piloto
-    const unsub = onSnapshot(doc(db, 'centros', centro.id, 'datos', 'operadores'), (snap) => {
+    const unsub = onSnapshot(doc(db, ...kitBase(centro), 'datos', 'operadores'), (snap) => {
       if (!snap.exists()) return
       const ops = snap.data()
       const listaOps = ops.lista ?? [ops.op1, ops.op2].filter(Boolean)
@@ -113,7 +114,8 @@ export default function TabBitacora({ centro, role }) {
       if (enFaena) setDatos(d => ({ ...d, piloto: enFaena.nombre }))
     }, (e) => logError('TabBitacora/operadores', e))
     return () => unsub()
-  }, [centro.id])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [centro.id, centro.teamAsignado])
 
   const set = (campo, valor) => setDatos(d => ({ ...d, [campo]: valor }))
 
@@ -131,7 +133,7 @@ export default function TabBitacora({ centro, role }) {
     try {
       const uid = auth.currentUser?.uid ?? null
       const entrada = { ...datos, creadoPor: uid, creadoEn: new Date().toISOString() }
-      await setDoc(doc(db, 'centros', centro.id, 'datos', 'bitacora'), { lista: arrayUnion(entrada) }, { merge: true })
+      await setDoc(doc(db, ...kitBase(centro), 'datos', 'bitacora'), { lista: arrayUnion(entrada) }, { merge: true })
       setHistorial(h => [...h, entrada])
       // Limpia los campos diarios; piloto/team/área se conservan (son de configuración, no diarios).
       setDatos(d => ({ ...d, fecha: hoy(), estadoPuerto: '', jornadaAm: '', jornadaPm: '', observaciones: '' }))

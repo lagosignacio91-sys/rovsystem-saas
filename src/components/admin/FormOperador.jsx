@@ -119,6 +119,7 @@ export default function FormOperador({ inicial, esEdicion, onGuardar, onCerrar }
             <label style={styles.label}>Rol</label>
             <select style={styles.select} value={form.rol ?? 'operador'} onChange={e => set('rol', e.target.value)}>
               <option value="operador">Operador</option>
+              <option value="apertura">Apertura</option>
               <option value="supervisor">Supervisor</option>
               <option value="admin">Admin</option>
               <option value="owner">Owner (HyperionX)</option>

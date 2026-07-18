@@ -3,6 +3,7 @@ import { db } from '../../lib/firebase'
 import { doc, setDoc, onSnapshot } from 'firebase/firestore'
 import { HERRAMIENTAS_BASICAS_DEFAULT } from '../../config/appDefaults'
 import { logError } from '../../lib/logger'
+import { kitBase, esCentroApertura } from '../../lib/kitScope'
 
 // ---- Fila de checklist fijo (Ok / Falta) ----
 function FilaHerramienta({ item, estado, puedeEditar, onCambiar }) {
@@ -106,24 +107,25 @@ function ItemCaja({ item, puedeEditar, onActualizarCantidad, onToggleFalta, onEl
   )
 }
 
-// ---- Caja de herramientas extra (libre, por centro) ----
-function CajaHerramientas({ centroId, role }) {
+// ---- Caja de herramientas extra (libre, por centro — o por team en apertura) ----
+function CajaHerramientas({ centro, role }) {
   const [lista, setLista]         = useState([])
   const [cargando, setCargando]   = useState(true)
   const [modalAgregar, setModalAg] = useState(false)
   const [abierto, setAbierto]     = useState(false)
-  const puedeEditar = role === 'admin' || role === 'operador' || role === 'supervisor'
+  const puedeEditar = role === 'admin' || role === 'operador' || role === 'supervisor' || role === 'apertura'
 
   useEffect(() => {
-    const ref = doc(db, 'centros', centroId, 'datos', 'cajaHerramientas')
+    const ref = doc(db, ...kitBase(centro), 'datos', 'cajaHerramientas')
     const unsub = onSnapshot(ref, (snap) => {
       setLista(snap.exists() ? (snap.data().lista ?? []) : [])
       setCargando(false)
     }, (e) => { logError('TabInventario/caja', e); setCargando(false) })
     return () => unsub()
-  }, [centroId])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [centro.id, centro.teamAsignado])
 
-  const guardar = (nueva) => setDoc(doc(db, 'centros', centroId, 'datos', 'cajaHerramientas'), { lista: nueva }, { merge: true })
+  const guardar = (nueva) => setDoc(doc(db, ...kitBase(centro), 'datos', 'cajaHerramientas'), { lista: nueva }, { merge: true })
 
   const agregar = (item) => { guardar([...lista, { ...item, id: Date.now(), falta: false }]); setModalAg(false) }
   const actualizarCantidad = (id, cant) => guardar(lista.map(i => i.id === id ? { ...i, cantidad: Number(cant) } : i))
@@ -161,23 +163,24 @@ function CajaHerramientas({ centroId, role }) {
 export default function TabInventario({ centro, role, sincronizarEstado }) {
   const [estadoPrincipal, setEstadoPrincipal] = useState({})
   const [estadoBackup, setEstadoBackup]       = useState({})
-  const puedeEditar = role === 'admin' || role === 'operador' || role === 'supervisor'
+  const puedeEditar = role === 'admin' || role === 'operador' || role === 'supervisor' || role === 'apertura'
 
   useEffect(() => {
-    const ref = doc(db, 'centros', centro.id, 'datos', 'estucheHerramientas')
+    const ref = doc(db, ...kitBase(centro), 'datos', 'estucheHerramientas')
     const unsub = onSnapshot(ref, (snap) => {
       const data = snap.exists() ? snap.data() : {}
       setEstadoPrincipal(data.principal ?? {})
       setEstadoBackup(data.backup ?? {})
     }, (e) => logError('TabInventario/estuche', e))
     return () => unsub()
-  }, [centro.id])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [centro.id, centro.teamAsignado])
 
   const cambiarEstado = async (equipo, itemId, valor) => {
-    const ref = doc(db, 'centros', centro.id, 'datos', 'estucheHerramientas')
+    const ref = doc(db, ...kitBase(centro), 'datos', 'estucheHerramientas')
     const nuevo = { ...(equipo === 'principal' ? estadoPrincipal : estadoBackup), [itemId]: valor }
     await setDoc(ref, { [equipo]: nuevo }, { merge: true })
-    if (sincronizarEstado) await sincronizarEstado(centro.id)
+    if (!esCentroApertura(centro) && sincronizarEstado) await sincronizarEstado(centro.id)
   }
 
   return (
@@ -188,7 +191,7 @@ export default function TabInventario({ centro, role, sincronizarEstado }) {
       <EquipoHerramientas titulo="Equipo Backup" estado={estadoBackup}
         puedeEditar={puedeEditar} onCambiar={(id, valor) => cambiarEstado('backup', id, valor)} />
       <div style={s.divider} />
-      <CajaHerramientas centroId={centro.id} role={role} />
+      <CajaHerramientas centro={centro} role={role} />
     </div>
   )
 }

@@ -6,7 +6,7 @@ const { getFirestore }      = require('firebase-admin/firestore')
 
 initializeApp()
 
-const ROLES_VALIDOS = ['operador', 'supervisor', 'admin', 'owner', 'ventas']
+const ROLES_VALIDOS = ['operador', 'supervisor', 'admin', 'owner', 'ventas', 'apertura']
 
 /**
  * Alta de usuarios server-side (S-01 / auto-registro).

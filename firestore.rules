@@ -14,7 +14,8 @@ service cloud.firestore {
     function isOperador()   { return signedIn() && rol() == 'operador'; }
     function isOwner()      { return signedIn() && rol() == 'owner'; }
     function isVentas()     { return signedIn() && rol() == 'ventas'; }
-    function rolValido(r) { return r in ['operador', 'supervisor', 'admin', 'owner', 'ventas']; }
+    function isApertura()   { return signedIn() && rol() == 'apertura'; }  // equipo que abre centros nuevos (team08)
+    function rolValido(r) { return r in ['operador', 'supervisor', 'admin', 'owner', 'ventas', 'apertura']; }
 
     // Usuario "aprovisionado": autenticado Y con un perfil en /usuarios creado por
     // un admin (create es solo-admin). Cierra el hueco de S-01: una cuenta huérfana
@@ -46,6 +47,22 @@ service cloud.firestore {
                  .hasOnly(['nombre', 'telefono', 'foto', 'passwordCambiado', 'estado', 'updatedAt', 'updatedBy', 'aceptoTerminos', 'correoPersonal']));
     }
 
+    // ---- Kit de team (apertura) ----
+    // El equipamiento del equipo de apertura (ROV, inventario, bitácora, roster,
+    // entregas) vive en teams/team08/... porque VIAJA con el equipo, no pertenece
+    // a ningún centro. Lo lee cualquier usuario aprovisionado; lo escribe el admin
+    // o el propio usuario de apertura de ESE team (aislamiento por team, como S-02).
+    match /teams/{teamId} {
+      allow read: if aprovisionado();
+      allow write: if isAdmin();
+      match /{document=**} {
+        allow read:  if aprovisionado();
+        allow write: if isAdmin()
+          || (isApertura()
+              && teamId == get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.teamId);
+      }
+    }
+
     // ---- Catálogos: cualquiera lee, solo admin escribe ----
     match /empresas/{id} {
       allow read:  if aprovisionado();
@@ -59,14 +76,25 @@ service cloud.firestore {
     // ---- Centros ----
     match /centros/{centroId} {
       allow read:          if aprovisionado();
-      allow create, delete: if isAdmin();
-      // El doc del centro solo lo edita el admin, EXCEPTO el campo `estado`,
-      // que se recalcula al cambiar stock: el taller, o el operador de ESE team.
+      // Admin crea cualquier centro. Apertura crea SOLO centros marcados como suyos
+      // (teamAsignado == 'team08'): así abre centros nuevos sin poder asignarlos a
+      // otro team.
+      allow create: if isAdmin()
+        || (isApertura() && request.resource.data.teamAsignado == 'team08');
+      allow delete: if isAdmin();
+      // El doc del centro solo lo edita el admin, EXCEPTO:
+      //  - `estado`, que se recalcula al cambiar stock: el taller, o el operador de ESE team.
+      //  - "Cerrar apertura": apertura suelta SU centro (team08 → null) tocando solo
+      //    teamAsignado/estadoCiclo; el centro queda registrado para su team definitivo.
       allow update: if isAdmin()
         || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['estado'])
             && (isSupervisor()
                 || (isOperador()
-                    && resource.data.teamAsignado == get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.teamId)));
+                    && resource.data.teamAsignado == get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.teamId)))
+        || (isApertura()
+            && resource.data.teamAsignado == 'team08'
+            && request.resource.data.teamAsignado == null
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['teamAsignado', 'estadoCiclo']));
 
       // Entregas de turno: handoff entre operadores del MISMO team; admin y taller también.
       match /entregas/{entregaId} {

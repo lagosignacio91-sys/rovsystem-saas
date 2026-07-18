@@ -3,6 +3,7 @@ import { ClipboardCheck, Plus, Download, Share2, Trash2, Settings, GripVertical,
 import { useEntregasTurno } from '../../hooks/useEntregasTurno'
 import { descargarPDF, compartirPDF } from '../../lib/generatePDF'
 import ModalEntregaTurno from '../turno/ModalEntregaTurno'
+import { kitBase } from '../../lib/kitScope'
 
 function formatFecha(iso) {
   if (!iso) return ''
@@ -89,12 +90,12 @@ const ms = {
 }
 
 export default function TabEntregaTurno({ centro, role }) {
-  const { entregas, itemsList, cargando, eliminarEntrega, guardarItemsList, guardarEntregaCompleta } = useEntregasTurno(centro.id)
+  const { entregas, itemsList, cargando, eliminarEntrega, guardarItemsList, guardarEntregaCompleta } = useEntregasTurno(centro.id, kitBase(centro))
   const [modalNueva,    setModalNueva]    = useState(false)
   const [modalInventario, setModalInv]   = useState(false)
   const [confirmDel,    setConfirmDel]   = useState(null)
 
-  const canCreate    = role === 'operador'
+  const canCreate    = role === 'operador' || role === 'apertura'
   const tieneReporte = entregas.length > 0
 
   if (cargando) return <p style={{ color: 'var(--gl-text-muted)', fontSize: 13 }}>Cargando...</p>

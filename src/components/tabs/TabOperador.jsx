@@ -5,6 +5,7 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 import { useAppConfig } from '../../hooks/useAppConfig'
 import { TIPOS_OPERADOR } from '../../config/appDefaults'
 import { logError } from '../../lib/logger'
+import { kitBase } from '../../lib/kitScope'
 
 function FormOperador({ titulo, form, setForm, fotoPreview, fileRef, handleFoto, onGuardar, onCerrar, campos }) {
   return (
@@ -106,7 +107,7 @@ export default function TabOperador({ centro, role }) {
   const fileRef = useRef()
 
   useEffect(() => {
-    const ref = doc(db, 'centros', centro.id, 'datos', 'operadores')
+    const ref = doc(db, ...kitBase(centro), 'datos', 'operadores')
     const unsub = onSnapshot(ref, snap => {
       if (snap.exists()) {
         const data = snap.data()
@@ -117,10 +118,11 @@ export default function TabOperador({ centro, role }) {
       setCargando(false)
     }, (e) => { logError('TabOperador/operadores', e); setCargando(false) })
     return () => unsub()
-  }, [centro.id])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [centro.id, centro.teamAsignado])
 
   const guardar = async (nuevaLista) => {
-    const ref = doc(db, 'centros', centro.id, 'datos', 'operadores')
+    const ref = doc(db, ...kitBase(centro), 'datos', 'operadores')
     await setDoc(ref, { lista: nuevaLista, op1: deleteField(), op2: deleteField() }, { merge: true })
   }
 

@@ -3,6 +3,7 @@ import { db } from '../../lib/firebase'
 import { doc, setDoc, getDoc } from 'firebase/firestore'
 import { logError } from '../../lib/logger'
 import { CAMPOS } from '../../config/camposRov'
+import { kitBase, esCentroApertura } from '../../lib/kitScope'
 
 function ModalFalla({ campo, valorActual, onConfirmar, onCerrar }) {
   const [razon, setRazon] = useState(valorActual ?? '')
@@ -55,8 +56,9 @@ function EquipoCard({ titulo, datos, onGuardar, role, fijo = false }) {
     setObsTemp(datos.observacion ?? '')
   }
 
-  // El taller (supervisor) ve fallas pero NO edita equipos ROV. Solo admin/operador editan.
-  const puedeEditar = role === 'admin' || role === 'operador'
+  // El taller (supervisor) ve fallas pero NO edita equipos ROV. Editan admin, operador
+  // y apertura (esta última opera su kit propio, que vive en teams/team08).
+  const puedeEditar = role === 'admin' || role === 'operador' || role === 'apertura'
   const tieneFalla = Object.values(form.estados ?? {}).some(e => e === 'falla')
 
   const handleGuardar = () => { onGuardar(form); setEditando(false) }
@@ -96,7 +98,7 @@ function EquipoCard({ titulo, datos, onGuardar, role, fijo = false }) {
       {abierto && (
         <div style={styles.cardBody}>
           <div style={styles.bodyHeader}>
-            {(role === 'admin' || role === 'operador') && (
+            {puedeEditar && (
               <button onClick={() => editando ? handleGuardar() : setEditando(true)} style={editando ? styles.btnSave : styles.btnEdit}>
                 {editando ? 'Guardar' : 'Editar'}
               </button>
@@ -169,7 +171,7 @@ export default function TabROV({ centro, role, sincronizarEstado }) {
   useEffect(() => {
     const cargar = async () => {
       try {
-        const ref  = doc(db, 'centros', centro.id, 'equipos', 'rov')
+        const ref  = doc(db, ...kitBase(centro), 'equipos', 'rov')
         const snap = await getDoc(ref)
         if (snap.exists()) {
           const p = snap.data().principal ?? {}
@@ -183,10 +185,13 @@ export default function TabROV({ centro, role, sincronizarEstado }) {
       }
     }
     cargar()
-  }, [centro.id])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [centro.id, centro.teamAsignado])
 
   const verificarEstadoCentro = async () => {
-    if (sincronizarEstado) await sincronizarEstado(centro.id)
+    // El estado de un centro EN APERTURA no se recalcula desde su ruta (su kit
+    // vive en teams/team08, no en el centro): se deja en su estado actual.
+    if (!esCentroApertura(centro) && sincronizarEstado) await sincronizarEstado(centro.id)
   }
 
   // T-03: se escribe SOLO la rama editada (merge:true deja intacta la hermana en
@@ -194,13 +199,13 @@ export default function TabROV({ centro, role, sincronizarEstado }) {
   // local cargado una vez con getDoc; si otro usuario editaba la rama hermana
   // entretanto, se pisaba con el valor rancio. Ahora eso no puede pasar.
   const guardarPrincipal = async (datos) => {
-    const ref = doc(db, 'centros', centro.id, 'equipos', 'rov')
+    const ref = doc(db, ...kitBase(centro), 'equipos', 'rov')
     await setDoc(ref, { principal: datos }, { merge: true })
     setPrincipal(datos); await verificarEstadoCentro()
   }
 
   const guardarBackup = async (datos) => {
-    const ref = doc(db, 'centros', centro.id, 'equipos', 'rov')
+    const ref = doc(db, ...kitBase(centro), 'equipos', 'rov')
     await setDoc(ref, { backup: datos }, { merge: true })
     setBackup(datos); await verificarEstadoCentro()
   }

@@ -47,10 +47,11 @@ export const NAV_DEFAULT = [
 export const NAV_META = {
   '/':           { to: '/',           icon: Map,       end: true },
   '/centros':         { to: '/centros',         icon: Building2,    roles: ['admin', 'supervisor'], badgeKey: 'centros' },
-  '/despachos':       { to: '/despachos',       icon: Package,      badgeKey: 'despachos' },
+  // Apertura solo ve el Mapa (crea/opera su centro actual desde ahí); se excluye de despachos/turnos.
+  '/despachos':       { to: '/despachos',       icon: Package,      roles: ['admin', 'supervisor', 'operador', 'owner', 'ventas'], badgeKey: 'despachos' },
   '/operadores':      { to: '/operadores',      icon: Users,        roles: ['admin', 'supervisor'] },
   '/bitacoras':       { to: '/bitacoras',       icon: BookOpen,    roles: ['admin', 'operador', 'owner', 'ventas'] },
-  '/turnos':          { to: '/turnos',          icon: ClipboardCheck },
+  '/turnos':          { to: '/turnos',          icon: ClipboardCheck, roles: ['admin', 'supervisor', 'operador', 'owner', 'ventas'] },
   '/bodega-virtual':  { to: '/bodega-virtual',  icon: Warehouse,    roles: ['supervisor'] },
   '/bodega-admin':    { to: '/bodega-admin',    icon: Warehouse,    roles: ['admin'] },
   '/reportes':        { to: '/reportes',        icon: BarChart2,    roles: ['admin', 'supervisor'] },

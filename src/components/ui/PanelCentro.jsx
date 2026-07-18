@@ -14,6 +14,7 @@ import TabInventario from '../tabs/TabInventario'
 import TabBitacora from '../tabs/TabBitacora'
 import PanelDespacho from '../dispatch/PanelDespacho'
 import TabEntregaTurno from '../tabs/TabEntregaTurno'
+import { kitBase, esCentroApertura } from '../../lib/kitScope'
 
 // Registro id → componente de pestaña (no serializable, vive en código).
 const TAB_COMPONENTES = {
@@ -31,13 +32,17 @@ const OCULTAS_OPERADOR = ['despacho', 'turno', 'bitacora']
 // El taller (supervisor) no debe ver bitácoras diarias ni turno (ya se entiende por el panel izquierdo);
 // solo ve operador, rov, inventario y despacho.
 const OCULTAS_SUPERVISOR = ['bitacora', 'turno']
+// Apertura monta el centro con su kit propio: opera operador/rov/inventario/turno/bitácora,
+// pero NO gestiona despachos (eso es del centro definitivo, no del equipo de apertura).
+const OCULTAS_APERTURA = ['despacho']
 
 export default memo(function PanelCentro({ centro, onCerrar, onEliminar, sincronizarEstado, actualizarCentro, role, uid, teamId }) {
   const { tabs, permiso } = useAppConfig()
   const tabsVisibles = tabs.filter(
     (tb) => !tb.hidden && TAB_COMPONENTES[tb.id] && permiso(tb.id, role) !== 'hidden'
       && !(role === 'operador' && OCULTAS_OPERADOR.includes(tb.id))
-      && !(role === 'supervisor' && OCULTAS_SUPERVISOR.includes(tb.id)),
+      && !(role === 'supervisor' && OCULTAS_SUPERVISOR.includes(tb.id))
+      && !(role === 'apertura' && OCULTAS_APERTURA.includes(tb.id)),
   )
   const [tabActiva, setTabActiva]   = useState(tabsVisibles[0]?.id ?? 'operator')
   // En modo "solo ver", pasamos un rol sin permisos de edición a la pestaña:
@@ -46,7 +51,14 @@ export default memo(function PanelCentro({ centro, onCerrar, onEliminar, sincron
   const [operadores, setOperadores]   = useState({ op1: {}, op2: {} })
   const [estadoActual, setEstadoActual] = useState(centro.estado)
   const [aEliminar, setAEliminar]     = useState(false)
+  const [aCerrarApertura, setACerrarApertura] = useState(false)
   const [expanded, setExpanded]       = useState(false)
+  const mostrarCerrarApertura = role === 'apertura' && esCentroApertura(centro)
+
+  const handleCerrarApertura = async () => {
+    setACerrarApertura(false)
+    if (actualizarCentro) await actualizarCentro(centro.id, { teamAsignado: null, estadoCiclo: 'registrado' })
+  }
   const [teams, setTeams]             = useState([])
   const [asignandoTeam, setAsignandoTeam] = useState(false)
 
@@ -69,11 +81,12 @@ export default memo(function PanelCentro({ centro, onCerrar, onEliminar, sincron
   useEffect(() => { setEstadoActual(centro.estado) }, [centro.estado])
 
   useEffect(() => {
-    const unsub = onSnapshot(doc(db, 'centros', centro.id, 'datos', 'operadores'), (snap) => {
+    const unsub = onSnapshot(doc(db, ...kitBase(centro), 'datos', 'operadores'), (snap) => {
       setOperadores(snap.exists() ? snap.data() : { op1: {}, op2: {} })
     }, (e) => logError('PanelCentro/operadores', e))
     return () => unsub()
-  }, [centro.id])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [centro.id, centro.teamAsignado])
 
   useEffect(() => {
     const unsub = onSnapshot(doc(db, 'centros', centro.id), (snap) => {
@@ -122,6 +135,12 @@ export default memo(function PanelCentro({ centro, onCerrar, onEliminar, sincron
           <div style={{ marginTop: 4 }}><EstadoBadge estado={estadoActual} /></div>
         </div>
         <div style={{ display: 'flex', gap: 4, flexShrink: 0, alignItems: 'center' }}>
+          {mostrarCerrarApertura && (
+            <button onClick={() => setACerrarApertura(true)}
+              style={{ background: t.brand, border: 'none', color: '#fff', borderRadius: 6, padding: '5px 10px', cursor: 'pointer', fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap' }}>
+              Cerrar apertura
+            </button>
+          )}
           {role === 'admin' && (
             <>
               {asignandoTeam ? (
@@ -197,6 +216,19 @@ export default memo(function PanelCentro({ centro, onCerrar, onEliminar, sincron
       >
         {TAB_COMPONENTES[tabActiva]?.({ centro, role: rolEfectivo, uid, teamId, sincronizarEstado })}
       </motion.div>
+
+      {aCerrarApertura && (
+        <Modal open title="Cerrar apertura" onClose={() => setACerrarApertura(false)} maxWidth={360}
+          footer={<>
+            <Button variant="secondary" size="lg" onClick={() => setACerrarApertura(false)}>Cancelar</Button>
+            <Button variant="primary" size="lg" onClick={handleCerrarApertura}>Cerrar apertura</Button>
+          </>}>
+          <p style={{ color: t.textSecondary, fontSize: t.textSm, margin: 0, lineHeight: 1.5 }}>
+            El centro <b style={{ color: t.textPrimary }}>{centro.nombre}</b> quedará <b>registrado</b> (nombre y ubicación),
+            sin team, listo para que un admin le asigne su team definitivo. Tu kit (equipos e inventario) sigue con tu equipo de apertura.
+          </p>
+        </Modal>
+      )}
 
       {aEliminar && (
         <Modal open title="Eliminar centro" onClose={() => setAEliminar(false)} maxWidth={340}
