@@ -194,6 +194,7 @@ export default function OperadoresPage() {
       {showImport && (
         <ImportarCSV
           onImportar={importarLista}
+          empresaId={empresaActiva?.id ?? null}
           onCerrar={() => setShowImport(false)}
         />
       )}

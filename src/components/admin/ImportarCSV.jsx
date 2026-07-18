@@ -21,7 +21,7 @@ function parsearCSV(texto) {
   }).filter(op => op.nombre)
 }
 
-export default function ImportarCSV({ onImportar, onCerrar }) {
+export default function ImportarCSV({ onImportar, empresaId = null, onCerrar }) {
   const [filas, setFilas]           = useState([])
   const [password, setPassword]     = useState('')
   const [importando, setImportando] = useState(false)
@@ -61,7 +61,7 @@ export default function ImportarCSV({ onImportar, onCerrar }) {
           )
           return
         }
-        setFilas(parsed.map(op => ({ ...op, esRelevo: false, estado: 'pendiente', password: '', incluir: true })))
+        setFilas(parsed.map(op => ({ ...op, empresaId, esRelevo: false, estado: 'pendiente', password: '', incluir: true })))
       } catch {
         setErrorArchivo('Error al leer el archivo. Asegúrate de exportar como CSV.')
       }
