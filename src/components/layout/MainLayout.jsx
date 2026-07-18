@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
-import { LogOut, Menu, X, SlidersHorizontal } from 'lucide-react'
+import { LogOut, Menu, X, SlidersHorizontal, KeyRound } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import { useCentros } from '../../hooks/useCentros'
 import { useDespachosGlobal } from '../../hooks/useDespachosGlobal'
@@ -12,6 +12,7 @@ import { t } from '../../theme/tokens'
 import ThemeToggle from '../kit/ThemeToggle'
 import SelectorEmpresa from '../ui/SelectorEmpresa'
 import ModalPersonalizar from '../admin/ModalPersonalizar'
+import ModalCambiarPassword from '../auth/ModalCambiarPassword'
 import { ToastProvider } from '../ui/Toast'
 import { toast } from '../ui/toastBus'
 import MobileUpsell from './MobileUpsell'
@@ -43,6 +44,7 @@ export default function MainLayout() {
   const [empresaActiva, setEmpresaActiva] = useState(null)
   const [drawerOpen, setDrawerOpen]       = useState(false)
   const [personalizar, setPersonalizar]   = useState(false)
+  const [cambiarClave, setCambiarClave]   = useState(false)
   const location                = useLocation()
 
   // Para operadores: auto-aplicar la empresa que les corresponde (sin que puedan
@@ -128,6 +130,7 @@ export default function MainLayout() {
             <div style={{ fontSize: 11, color: t.textPrimary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{usuarioLabel}</div>
             <div style={{ fontSize: 9, color: t.textMuted, textTransform: 'capitalize' }}>{role ?? '—'}</div>
           </div>
+          <button className="gl-icon-btn" onClick={() => setCambiarClave(true)} aria-label="Cambiar contraseña" title="Cambiar contraseña"><KeyRound size={16} /></button>
           <button className="gl-icon-btn" onClick={signOut} aria-label="Cerrar sesión" title="Cerrar sesión"><LogOut size={16} /></button>
         </div>
       </aside>
@@ -188,6 +191,7 @@ export default function MainLayout() {
       </div>
 
       {personalizar && <ModalPersonalizar onCerrar={() => setPersonalizar(false)} />}
+      {cambiarClave && <ModalCambiarPassword onCerrar={() => setCambiarClave(false)} />}
       <ToastProvider />
     </div>
   )

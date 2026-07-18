@@ -4,7 +4,10 @@ import { logError } from '../lib/logger'
 import {
   signInWithEmailAndPassword,
   signOut as firebaseSignOut,
-  onAuthStateChanged
+  onAuthStateChanged,
+  EmailAuthProvider,
+  reauthenticateWithCredential,
+  updatePassword,
 } from 'firebase/auth'
 import { doc, getDoc, updateDoc, serverTimestamp, collection, query, where, getDocs } from 'firebase/firestore'
 import { db } from '../lib/firebase'
@@ -85,6 +88,27 @@ export function useAuth() {
     await firebaseSignOut(auth)
   }
 
+  // Cambia la contraseña del usuario logueado. Firebase exige "login reciente"
+  // para operaciones sensibles, así que primero re-autenticamos con la clave
+  // actual (esto valida que sea correcta) y recién ahí actualizamos a la nueva.
+  const cambiarPassword = async (actual, nueva) => {
+    const u = auth.currentUser
+    if (!u || !u.email) return { error: { code: 'auth/no-user' } }
+    try {
+      const cred = EmailAuthProvider.credential(u.email, actual)
+      await reauthenticateWithCredential(u, cred)
+      await updatePassword(u, nueva)
+      // Marca que ya cambió la clave inicial (flag que crea `crearUsuario`).
+      // Es no-crítico: si falla, la clave igual quedó cambiada.
+      try { await updateDoc(doc(db, 'usuarios', u.uid), { passwordCambiado: true }) }
+      catch (e) { logError('useAuth/passwordCambiado', e) }
+      return { error: null }
+    } catch (error) {
+      logError('useAuth/cambiarPassword', error)
+      return { error }
+    }
+  }
+
   const aceptarTerminos = async (version = '1.0') => {
     if (!auth.currentUser) return
     await updateDoc(doc(db, 'usuarios', auth.currentUser.uid), {
@@ -121,5 +145,5 @@ export function useAuth() {
     }
   }
 
-  return { user, role, teamId, empresaId, nombre, movilHabilitado, aceptoTerminos, correoPersonal, isOwner: role === 'owner', isVentas: role === 'ventas', loading, authError, signIn, signOut, aceptarTerminos, guardarCorreoPersonal }
+  return { user, role, teamId, empresaId, nombre, movilHabilitado, aceptoTerminos, correoPersonal, isOwner: role === 'owner', isVentas: role === 'ventas', loading, authError, signIn, signOut, cambiarPassword, aceptarTerminos, guardarCorreoPersonal }
 }
