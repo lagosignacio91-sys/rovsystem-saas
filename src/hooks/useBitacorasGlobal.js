@@ -1,11 +1,19 @@
 import { useState, useEffect } from 'react'
 import { db } from '../lib/firebase'
-import { doc, onSnapshot, setDoc, arrayUnion } from 'firebase/firestore'
+import { doc, onSnapshot, setDoc, arrayUnion, deleteField } from 'firebase/firestore'
 import { logError } from '../lib/logger'
 
 // Agrega una entrada nueva a la bitácora del centro (nunca sobrescribe el historial).
+// Al finalizar limpia el borrador en curso (si lo había): una vez que la entrada
+// del día pasa al historial, no debe quedar un borrador huérfano precargándose.
 export async function guardarBitacora(centroId, entrada) {
-  await setDoc(doc(db, 'centros', centroId, 'datos', 'bitacora'), { lista: arrayUnion(entrada) }, { merge: true })
+  await setDoc(doc(db, 'centros', centroId, 'datos', 'bitacora'), { lista: arrayUnion(entrada), borrador: deleteField() }, { merge: true })
+}
+
+// Guarda/actualiza el borrador del día (trabajo a medias, ej. solo jornada AM).
+// No toca el historial `lista`. Pasar deleteField() como `borrador` lo descarta.
+export async function guardarBorrador(centroId, borrador) {
+  await setDoc(doc(db, 'centros', centroId, 'datos', 'bitacora'), { borrador }, { merge: true })
 }
 
 // Para cada centro retorna { centro, bitacora, ultima, operadores }

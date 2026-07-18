@@ -81,9 +81,13 @@ export default function BitacorasPage() {
   const handleEnviarWhatsApp = async (entrada, centro, key) => {
     setDescargando(key)
     try {
-      const snapRov = await getDoc(doc(db, 'centros', centro.id, 'equipos', 'rov'))
-      const rov = snapRov.exists() ? snapRov.data() : null
-      const texto = generarTextoBitacora(centro, entrada, rov)
+      const [snapRov, snapRedes] = await Promise.all([
+        getDoc(doc(db, 'centros', centro.id, 'equipos', 'rov')),
+        getDoc(doc(db, 'centros', centro.id, 'datos', 'redes')),
+      ])
+      const rov   = snapRov.exists()   ? snapRov.data()   : null
+      const redes = snapRedes.exists() ? snapRedes.data() : null
+      const texto = generarTextoBitacora(centro, entrada, rov, redes)
       window.location.href = `whatsapp://send?text=${encodeURIComponent(texto)}`
     } finally {
       setDescargando(null)
@@ -134,7 +138,7 @@ export default function BitacorasPage() {
                 <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
                   {role === 'operador' && (
                     <button
-                      onClick={() => setGenerarPara({ centro, ultima })}
+                      onClick={() => setGenerarPara({ centro, ultima, borrador: bitacora?.borrador ?? null })}
                       title="Generar bitácora diaria"
                       style={{ display: 'flex', alignItems: 'center', gap: 4, background: t.brand, color: '#fff', border: 'none', borderRadius: t.radiusMd, padding: '5px 9px', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
                       <Plus size={13} /> Generar bitácora diaria
@@ -197,6 +201,9 @@ export default function BitacorasPage() {
                       <Campo label="Jornada AM"    valor={b.jornadaAm} />
                       <Campo label="Jornada PM"    valor={b.jornadaPm} />
                       <Campo label="Observaciones" valor={b.observaciones} />
+                      {((Number(b.parchesInstalados) || 0) > 0 || (Number(b.costurasRealizadas) || 0) > 0) && (
+                        <Campo label="Redes" valor={`${b.parchesInstalados || 0} parches · ${b.costurasRealizadas || 0} costuras`} />
+                      )}
                     </div>
                     )
                   })}
@@ -261,6 +268,7 @@ export default function BitacorasPage() {
         <ModalGenerarBitacora
           centro={generarPara.centro}
           ultima={generarPara.ultima}
+          borrador={generarPara.borrador}
           onCerrar={() => setGenerarPara(null)}
         />
       )}

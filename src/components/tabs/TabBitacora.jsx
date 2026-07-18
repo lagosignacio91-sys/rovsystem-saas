@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { db, auth } from '../../lib/firebase'
-import { doc, setDoc, getDoc, onSnapshot, arrayUnion } from 'firebase/firestore'
+import { doc, setDoc, getDoc, onSnapshot, arrayUnion, deleteField } from 'firebase/firestore'
 import { Send, FileText, ChevronDown, ChevronUp, History } from 'lucide-react'
 import { logError } from '../../lib/logger'
 import { validarBitacora } from '../../lib/validaciones'
@@ -18,6 +18,15 @@ function formatFecha(iso) {
   if (!iso) return ''
   const [y, m, d] = iso.split('-')
   return `${d}/${m}/${String(y).slice(2)}`
+}
+
+// ISO → "18/07 13:42" para el banner de borrador.
+function formatGuardado(iso) {
+  if (!iso) return ''
+  const d = new Date(iso)
+  if (isNaN(d)) return ''
+  const p = (n) => String(n).padStart(2, '0')
+  return `${p(d.getDate())}/${p(d.getMonth() + 1)} ${p(d.getHours())}:${p(d.getMinutes())}`
 }
 
 function generarTexto({ centro, datos, rov, redes }) {
@@ -83,6 +92,9 @@ export default function TabBitacora({ centro, role }) {
   const [redes, setRedes]       = useState({ parchesStock: 0, costuraOperativa: true })
   const [cargando, setCargando] = useState(true)
   const [guardando, setGuardando] = useState(false)
+  const [guardandoBorrador, setGuardandoBorrador] = useState(false)
+  const [borradorInfo, setBorradorInfo] = useState(null) // guardadoEn del borrador en curso
+  const [avisoBorrador, setAvisoBorrador] = useState('')
   const [mostrarVista, setMostrarVista] = useState(false)
   const [mostrarHistorial, setMostrarHistorial] = useState(false)
 
@@ -101,11 +113,18 @@ export default function TabBitacora({ centro, role }) {
         setRedes({ parchesStock: d.parchesStock ?? 0, costuraOperativa: d.costuraOperativa ?? true })
       }
       if (snapBit.exists()) {
-        const lista = snapBit.data().lista ?? []
+        const dataBit = snapBit.data()
+        const lista = dataBit.lista ?? []
         setHistorial(lista)
         const ultima = lista[lista.length - 1]
         // Continuidad: piloto/team/área se prellenan de la última entrada; lo diario queda en blanco.
         if (ultima) setDatos(d => ({ ...d, piloto: ultima.piloto || d.piloto, team: ultima.team || '', area: ultima.area || '' }))
+        // Borrador en curso: precarga y manda sobre los pre-rellenos (sin arrastrar metadatos).
+        if (dataBit.borrador) {
+          const { guardadoEn, guardadoPor, ...campos } = dataBit.borrador
+          setDatos(d => ({ ...d, ...campos }))
+          setBorradorInfo(guardadoEn ?? null)
+        }
       }
       if (snapRov.exists()) setRov(snapRov.data())
       // Auto-piloto: siempre usa el operador en faena si existe
@@ -151,13 +170,44 @@ export default function TabBitacora({ centro, role }) {
     try {
       const uid = auth.currentUser?.uid ?? null
       const entrada = { ...datos, creadoPor: uid, creadoEn: new Date().toISOString() }
-      await setDoc(doc(db, ...kitBase(centro), 'datos', 'bitacora'), { lista: arrayUnion(entrada) }, { merge: true })
+      // Finaliza: agrega la entrada al historial y borra el borrador en curso en una sola escritura.
+      await setDoc(doc(db, ...kitBase(centro), 'datos', 'bitacora'), { lista: arrayUnion(entrada), borrador: deleteField() }, { merge: true })
       setHistorial(h => [...h, entrada])
+      setBorradorInfo(null)
+      setAvisoBorrador('')
       // Limpia los campos diarios; piloto/team/área se conservan (son de configuración, no diarios).
       setDatos(d => ({ ...d, fecha: hoy(), estadoPuerto: '', jornadaAm: '', jornadaPm: '', observaciones: '', parchesInstalados: 0, costurasRealizadas: 0 }))
       return true
     } finally {
       setGuardando(false)
+    }
+  }
+
+  // Guarda el trabajo a medias (ej. solo jornada AM) sin finalizar: no toca el historial,
+  // no limpia el formulario. Se precarga al reabrir para seguir en la tarde.
+  const guardarComoBorrador = async () => {
+    if (!validacion.ok) return
+    setGuardandoBorrador(true)
+    try {
+      const uid = auth.currentUser?.uid ?? null
+      const guardadoEn = new Date().toISOString()
+      await setDoc(doc(db, ...kitBase(centro), 'datos', 'bitacora'), { borrador: { ...datos, guardadoEn, guardadoPor: uid } }, { merge: true })
+      setBorradorInfo(guardadoEn)
+      setAvisoBorrador(`Borrador guardado ${formatGuardado(guardadoEn)}`)
+    } finally {
+      setGuardandoBorrador(false)
+    }
+  }
+
+  const descartarBorrador = async () => {
+    setGuardandoBorrador(true)
+    try {
+      await setDoc(doc(db, ...kitBase(centro), 'datos', 'bitacora'), { borrador: deleteField() }, { merge: true })
+      setBorradorInfo(null)
+      setAvisoBorrador('')
+      setDatos(d => ({ ...d, fecha: hoy(), estadoPuerto: '', jornadaAm: '', jornadaPm: '', observaciones: '', parchesInstalados: 0, costurasRealizadas: 0 }))
+    } finally {
+      setGuardandoBorrador(false)
     }
   }
 
@@ -183,6 +233,16 @@ export default function TabBitacora({ centro, role }) {
         <span style={s.fijoLabel}>Centro</span>
         <span style={s.fijoValor}>{centro.nombre}</span>
       </div>
+
+      {/* ---- Borrador en curso ---- */}
+      {borradorInfo && (
+        <div style={s.borradorBanner}>
+          <span style={s.borradorTxt}>📝 Borrador del {formatGuardado(borradorInfo)}</span>
+          {puedEditar && (
+            <button type="button" style={s.borradorBtn} disabled={guardandoBorrador} onClick={descartarBorrador}>Descartar</button>
+          )}
+        </div>
+      )}
 
       {/* ---- Campos de configuración del centro (piloto, team, área) ---- */}
       <Campo label="Piloto" valor={datos.piloto} onChange={v => set('piloto', v)} disabled={!puedEditar} placeholder="Nombre del piloto" />
@@ -250,13 +310,14 @@ export default function TabBitacora({ centro, role }) {
       {puedEditar && (
         <>
           <div style={s.acciones}>
-            <button onClick={guardar} disabled={guardando || !validacion.ok} style={{ ...s.btnGuardar, opacity: (guardando || !validacion.ok) ? 0.5 : 1, cursor: (guardando || !validacion.ok) ? 'not-allowed' : 'pointer' }}>
-              {guardando ? 'Guardando…' : 'Guardar borrador'}
+            <button onClick={guardarComoBorrador} disabled={guardando || guardandoBorrador || !validacion.ok} style={{ ...s.btnGuardar, opacity: (guardando || guardandoBorrador || !validacion.ok) ? 0.5 : 1, cursor: (guardando || guardandoBorrador || !validacion.ok) ? 'not-allowed' : 'pointer' }}>
+              {guardandoBorrador ? 'Guardando…' : 'Guardar borrador'}
             </button>
-            <button onClick={enviarWhatsApp} disabled={guardando || !validacion.ok} style={{ ...s.btnWpp, opacity: (guardando || !validacion.ok) ? 0.5 : 1, cursor: (guardando || !validacion.ok) ? 'not-allowed' : 'pointer' }}>
+            <button onClick={enviarWhatsApp} disabled={guardando || guardandoBorrador || !validacion.ok} style={{ ...s.btnWpp, opacity: (guardando || guardandoBorrador || !validacion.ok) ? 0.5 : 1, cursor: (guardando || guardandoBorrador || !validacion.ok) ? 'not-allowed' : 'pointer' }}>
               <Send size={14} /> Generar y enviar WhatsApp
             </button>
           </div>
+          {avisoBorrador && <p style={s.avisoOk}>{avisoBorrador}</p>}
           {!validacion.ok && <p style={s.aviso}>{validacion.motivo}</p>}
         </>
       )}
@@ -376,6 +437,10 @@ const s = {
   eqVal:      { fontSize: 11, color: 'var(--gl-text-primary)', textAlign: 'right' },
   acciones:   { display: 'flex', gap: 8, marginTop: 4 },
   aviso:      { fontSize: 11, color: 'var(--gl-fault)', margin: '6px 0 0', lineHeight: 1.4 },
+  avisoOk:    { fontSize: 11, color: 'var(--gl-ok)', margin: '6px 0 0', lineHeight: 1.4, fontWeight: 600 },
+  borradorBanner: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, background: 'var(--gl-bg-input)', border: '1px dashed var(--gl-border)', borderRadius: 8, padding: '7px 10px' },
+  borradorTxt: { fontSize: 12, fontWeight: 600, color: 'var(--gl-text-secondary)' },
+  borradorBtn: { background: 'transparent', border: '1px solid var(--gl-border)', color: 'var(--gl-fault)', borderRadius: 6, padding: '3px 9px', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
   btnGuardar: { flex: 1, background: 'transparent', border: '1px solid var(--gl-border)', color: 'var(--gl-text-secondary)', borderRadius: 8, padding: '9px 12px', cursor: 'pointer', fontSize: 12, fontWeight: 600 },
   btnWpp:     { flex: 2, background: '#25D366', border: 'none', color: '#fff', borderRadius: 8, padding: '9px 12px', cursor: 'pointer', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 },
   btnVista:   { display: 'flex', alignItems: 'center', gap: 5, background: 'none', border: '1px solid var(--gl-border)', borderRadius: 7, color: 'var(--gl-text-secondary)', fontSize: 11, padding: '6px 10px', cursor: 'pointer', fontFamily: 'inherit' },

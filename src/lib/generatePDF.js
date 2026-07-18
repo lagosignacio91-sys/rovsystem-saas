@@ -370,6 +370,34 @@ async function construirPDFBitacora(bitacora, centro) {
     y += lines.length * 5 + 2
   }
 
+  // Redes / parches (disponibles + herramienta en vivo; instalados/costuras de la entrada).
+  let redes = null
+  try {
+    const snapRedes = await getDoc(fsDoc(db, 'centros', centro.id, 'datos', 'redes'))
+    if (snapRedes.exists()) redes = snapRedes.data()
+  } catch { /* sin permiso o sin datos: se usan los defaults */ }
+
+  y += 4
+  doc.setFontSize(11)
+  doc.setFont('helvetica', 'bold')
+  doc.setTextColor(30)
+  doc.text('Redes / Parches', margin, y)
+  y += 6
+  const filasRedes = [
+    ['Parches disponibles',   String(redes?.parchesStock ?? 0)],
+    ['Herramienta de costura', redes?.costuraOperativa === false ? 'No operativa' : 'Operativa'],
+    ['Parches instalados hoy', String(bitacora.parchesInstalados ?? 0)],
+    ['Costuras realizadas hoy', String(bitacora.costurasRealizadas ?? 0)],
+  ]
+  for (const [label, valor] of filasRedes) {
+    doc.setFontSize(9)
+    doc.setFont('helvetica', 'bold')
+    doc.text(`${label}:`, margin + 4, y)
+    doc.setFont('helvetica', 'normal')
+    doc.text(String(valor), margin + 55, y)
+    y += 6
+  }
+
   // Equipos (estado actual, en vivo) al final de la bitácora.
   let rov = null
   try {

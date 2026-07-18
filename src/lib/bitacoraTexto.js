@@ -25,7 +25,8 @@ function bloqueEquipo(titulo, eq) {
 // Arma el texto de la bitácora diaria para enviar por WhatsApp.
 // `entrada`: una fila de centros/{id}/datos/bitacora.lista[].
 // `rov`: doc actual de centros/{id}/equipos/rov ({ principal, backup }), o null.
-export function generarTextoBitacora(centro, entrada, rov) {
+// `redes`: doc actual de centros/{id}/datos/redes ({ parchesStock, costuraOperativa }), o null.
+export function generarTextoBitacora(centro, entrada, rov, redes) {
   const lineas = [
     `Piloto: ${entrada.piloto || '—'}`,
     `Fecha: ${formatFechaCompleta(entrada.fecha)}`,
@@ -46,6 +47,16 @@ export function generarTextoBitacora(centro, entrada, rov) {
   if (entrada.observaciones) {
     lineas.push('', 'Observaciones', '', entrada.observaciones)
   }
+
+  // Redes / parches: siempre se reporta, aunque los números sean 0.
+  lineas.push(
+    '',
+    '🧵 REDES / PARCHES',
+    `Parches disponibles: ${redes?.parchesStock ?? 0}`,
+    `Herramienta de costura: ${redes?.costuraOperativa === false ? '⚠️ No operativa' : 'Operativa'}`,
+    `Parches instalados hoy: ${entrada.parchesInstalados || 0}`,
+    `Costuras realizadas hoy: ${entrada.costurasRealizadas || 0}`,
+  )
 
   const principal = bloqueEquipo('Equipo principal', rov?.principal)
   const backup    = bloqueEquipo('Equipo backup', rov?.backup)
