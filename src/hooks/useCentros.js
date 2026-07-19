@@ -5,6 +5,7 @@ import {
   collection, addDoc, onSnapshot,
   updateDoc, doc, getDoc, getDocs, writeBatch, setDoc
 } from 'firebase/firestore'
+import { TEAM_APERTURA } from '../lib/kitScope'
 
 // Sin teamAsignado por defecto: la asignación real de team a cada centro
 // la hace el admin manualmente desde la app (rota según licencias/turnos).
@@ -157,26 +158,28 @@ export function useCentros() {
     setCargando(false)
   }
 
-  // Pobla centros/{id}/datos/operadores.lista desde usuarios (por teamAsignado).
-  // Hace merge preservando campos operativos (faena/descanso, turnos, foto) por rut.
+  // Pobla el roster de operadores (`.../datos/operadores.lista`) desde `usuarios`:
+  //  - Centros normales: `centros/{id}/datos/operadores`, operadores del team (rol 'operador').
+  //  - Kit de apertura:  `teams/team08/datos/operadores`, equipo de apertura (rol 'apertura').
+  //    Se sincroniza SIEMPRE, no solo cuando hay un centro de apertura asignado — el roster
+  //    del kit vive en `teams/team08`, no en un centro, así que el loop de centros nunca lo
+  //    tocaba y quedaban "fantasmas" (uid de gente borrada/movida) al no limpiarse jamás.
+  // En ambos casos es un REEMPLAZO COMPLETO desde los usuarios vigentes: quien ya no matchea
+  // (borrado, o movido de team/rol) desaparece del roster. Los rosters son espejos de
+  // `usuarios` que no se limpian solos; esta función es la que los reconcilia.
   const sincronizarOperadoresCentros = async (usuarios) => {
     let operadoresAsignados = 0
     let centrosActualizados = 0
-    for (const centro of centros) {
-      if (!centro.teamAsignado) continue
-      const asignados = usuarios.filter(u => u.rol === 'operador' && u.teamId === centro.teamAsignado)
-      const ref       = doc(db, 'centros', centro.id, 'datos', 'operadores')
+
+    // Escribe un roster preservando campos operativos (faena/descanso, turnos, foto) por uid
+    // (fallback por rut para docs antiguos). S-03: NO se espejan datos personales sensibles
+    // (`rut`, `correoPersonal`) — solo nombre + contacto corporativo + estado operativo, porque
+    // este doc lo lee cualquier usuario aprovisionado (roster + popup de contacto del mapa).
+    const escribirRoster = async (ref, asignados) => {
       const prevSnap  = await getDoc(ref)
       const prevLista = prevSnap.exists() ? (prevSnap.data().lista ?? []) : []
       const lista = asignados.map(u => {
         const uid = u.uid ?? u.id ?? null
-        // S-03: este doc `operadores` lo lee cualquier usuario aprovisionado (roster +
-        // popup de contacto del mapa de centros ajenos), así que NO se espejan aquí datos
-        // personales sensibles: `rut` (cédula) ni `correoPersonal`. Esos viven solo en
-        // /usuarios (acceso restringido a admin/taller/self). Se conserva nombre + canales
-        // de contacto corporativos (telefono, correoCorp) + estado operativo.
-        // El match con la entrada previa pasa a ser por `uid` (antes por `rut`, que ya no
-        // se guarda); se deja un fallback por rut para docs antiguos aún sin migrar.
         const prev = prevLista.find(p => (p?.uid && p.uid === uid) || (p?.rut && u.rut && p.rut === u.rut))
         return {
           uid,
@@ -191,9 +194,22 @@ export function useCentros() {
         }
       })
       await setDoc(ref, { lista })
-      operadoresAsignados += lista.length
+      return lista.length
+    }
+
+    // Centros normales (rol 'operador'). Los centros de apertura (team08) se saltan aquí:
+    // su roster no vive en el centro sino en `teams/team08` (se hace abajo, siempre).
+    for (const centro of centros) {
+      if (!centro.teamAsignado || centro.teamAsignado === TEAM_APERTURA) continue
+      const asignados = usuarios.filter(u => u.rol === 'operador' && u.teamId === centro.teamAsignado)
+      operadoresAsignados += await escribirRoster(doc(db, 'centros', centro.id, 'datos', 'operadores'), asignados)
       centrosActualizados += 1
     }
+
+    // Kit de apertura (SIEMPRE): `teams/team08/datos/operadores`, equipo con rol 'apertura'.
+    const apertura = usuarios.filter(u => u.rol === 'apertura' && u.teamId === TEAM_APERTURA)
+    operadoresAsignados += await escribirRoster(doc(db, 'teams', TEAM_APERTURA, 'datos', 'operadores'), apertura)
+
     return { centrosActualizados, operadoresAsignados }
   }
 
