@@ -84,7 +84,12 @@ export default function CentrosPage() {
     const q = busca.toLowerCase()
     lista = lista.filter(c => c.nombre?.toLowerCase().includes(q) || c.empresaNombre?.toLowerCase().includes(q))
   }
-  lista = [...lista].sort((a, b) => (a.nombre ?? '').localeCompare(b.nombre ?? ''))
+  // Orden por número de team (team01 → último); sin-team al final; nombre como desempate.
+  const numTeam = (c) => {
+    const n = c.teamAsignado ? parseInt(c.teamAsignado.replace(/\D/g, ''), 10) : NaN
+    return Number.isNaN(n) ? Infinity : n
+  }
+  lista = [...lista].sort((a, b) => (numTeam(a) - numTeam(b)) || (a.nombre ?? '').localeCompare(b.nombre ?? ''))
 
   // Agrupar por empresa
   const porEmpresa = lista.reduce((acc, c) => {
