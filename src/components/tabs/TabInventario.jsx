@@ -234,6 +234,139 @@ function RedesParchesCostura({ centro, role }) {
   )
 }
 
+// ---- Modal nombre de esencial (agregar / renombrar catálogo global, solo admin) ----
+function ModalEsencial({ inicial = '', titulo, onGuardar, onCerrar }) {
+  const [nombre, setNombre] = useState(inicial)
+  const handleSubmit = (e) => {
+    e.preventDefault()
+    const n = nombre.trim()
+    if (!n) return
+    onGuardar(n)
+  }
+  return (
+    <div style={s.modalOverlay}>
+      <div style={s.modal}>
+        <h3 style={s.modalTitulo}>{titulo}</h3>
+        <p style={s.avisoGlobal}>⚠️ Esta lista es única para toda la flota: el cambio afecta a todos los centros.</p>
+        <form onSubmit={handleSubmit}>
+          <label style={s.label}>Nombre del esencial</label>
+          <input style={s.input} value={nombre} onChange={e => setNombre(e.target.value)}
+            placeholder="Ej: Bengala de mano" autoFocus required />
+          <div style={s.modalBtns}>
+            <button type="button" onClick={onCerrar} style={s.btnCancelar}>Cancelar</button>
+            <button type="submit"                     style={s.btnConfirmar}>Guardar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+// ---- Esenciales: lista fija global que debe existir sí o sí (por centro — o por team en apertura) ----
+// Catálogo (labels) global en config/esenciales, editable solo por admin. Cantidad por kit en
+// {kitBase}/datos/esenciales, editable solo por operador/apertura. Semáforo derivado: Ok si ≥1, Falta si 0.
+function Esenciales({ centro, role }) {
+  const [catalogo, setCatalogo]     = useState([])   // [{ id, label }]
+  const [cantidades, setCantidades] = useState({})   // { [id]: number }
+  const [cargando, setCargando]     = useState(true)
+  const [abierto, setAbierto]       = useState(false)
+  const [modal, setModal]           = useState(null) // { modo:'agregar' } | { modo:'renombrar', item }
+  const puedeEditarCantidad = role === 'operador' || role === 'apertura'
+  const esAdmin = role === 'admin'
+
+  // Catálogo global (config/esenciales)
+  useEffect(() => {
+    const unsub = onSnapshot(doc(db, 'config', 'esenciales'), (snap) => {
+      setCatalogo(snap.exists() ? (snap.data().lista ?? []) : [])
+      setCargando(false)
+    }, (e) => { logError('TabInventario/esenciales-cat', e); setCargando(false) })
+    return () => unsub()
+  }, [])
+
+  // Cantidades del kit ({kitBase}/datos/esenciales)
+  useEffect(() => {
+    const ref = doc(db, ...kitBase(centro), 'datos', 'esenciales')
+    const unsub = onSnapshot(ref, (snap) => {
+      setCantidades(snap.exists() ? (snap.data().cantidades ?? {}) : {})
+    }, (e) => logError('TabInventario/esenciales-cant', e))
+    return () => unsub()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [centro.id, centro.teamAsignado])
+
+  const setCantidad = (id, v) => {
+    const n = Math.max(0, Number(v) || 0)
+    setCantidades(c => ({ ...c, [id]: n }))
+    setDoc(doc(db, ...kitBase(centro), 'datos', 'esenciales'), { cantidades: { [id]: n } }, { merge: true })
+  }
+
+  const guardarCatalogo = (lista) => setDoc(doc(db, 'config', 'esenciales'), { lista }, { merge: true })
+  const agregarEsencial   = (label)     => { guardarCatalogo([...catalogo, { id: String(Date.now()), label }]); setModal(null) }
+  const renombrarEsencial = (id, label) => { guardarCatalogo(catalogo.map(i => i.id === id ? { ...i, label } : i)); setModal(null) }
+  const quitarEsencial    = (id)        => guardarCatalogo(catalogo.filter(i => i.id !== id))
+
+  return (
+    <div style={s.seccion}>
+      <div style={s.secHeaderClick} onClick={() => setAbierto(a => !a)}>
+        <span style={s.secTitulo}>Esenciales</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          {esAdmin && (
+            <button onClick={(e) => { e.stopPropagation(); setModal({ modo: 'agregar' }) }} style={s.btnAgregar}>+ Agregar</button>
+          )}
+          <span style={s.chevron}>{abierto ? '▲' : '▼'}</span>
+        </div>
+      </div>
+      {abierto && (
+        <>
+          {cargando && <p style={s.vacio}>Cargando...</p>}
+          {!cargando && catalogo.length === 0 && <p style={s.vacio}>Sin esenciales definidos.</p>}
+          <div style={s.listaItems}>
+            {catalogo.map(item => {
+              const cant = cantidades[item.id] ?? 0
+              const ok = cant >= 1
+              return (
+                <div key={item.id} style={s.filaEstuche}>
+                  <span style={s.itemNombre}>{item.label}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    {puedeEditarCantidad ? (
+                      <input type="number" min={0} value={cant}
+                        onChange={e => setCantidad(item.id, e.target.value)} style={s.inputCant} />
+                    ) : (
+                      <span style={s.cantBadge}>Cant: {cant}</span>
+                    )}
+                    <span style={{
+                      ...s.estadoBadge,
+                      color: ok ? 'var(--gl-ok)' : 'var(--gl-fault)',
+                      background: ok ? 'var(--gl-ok-tint)' : 'var(--gl-fault-tint)',
+                    }}>
+                      {ok ? '● Ok' : '⚠️ Falta'}
+                    </span>
+                    {esAdmin && (
+                      <>
+                        <button onClick={() => setModal({ modo: 'renombrar', item })} style={s.btnEliminar} title="Renombrar">✏️</button>
+                        <button onClick={() => quitarEsencial(item.id)}             style={s.btnEliminar} title="Quitar de todos">🗑️</button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+          {esAdmin && catalogo.length > 0 && (
+            <p style={s.avisoGlobalInline}>⚠️ Agregar, renombrar o quitar un esencial afecta a todos los centros.</p>
+          )}
+        </>
+      )}
+      {modal?.modo === 'agregar' && (
+        <ModalEsencial titulo="Agregar esencial" onGuardar={agregarEsencial} onCerrar={() => setModal(null)} />
+      )}
+      {modal?.modo === 'renombrar' && (
+        <ModalEsencial titulo="Renombrar esencial" inicial={modal.item.label}
+          onGuardar={(n) => renombrarEsencial(modal.item.id, n)} onCerrar={() => setModal(null)} />
+      )}
+    </div>
+  )
+}
+
 export default function TabInventario({ centro, role, sincronizarEstado }) {
   const [estadoPrincipal, setEstadoPrincipal] = useState({})
   const [estadoBackup, setEstadoBackup]       = useState({})
@@ -264,6 +397,8 @@ export default function TabInventario({ centro, role, sincronizarEstado }) {
       <div style={s.divider} />
       <EquipoHerramientas titulo="Equipo Backup" estado={estadoBackup}
         puedeEditar={puedeEditar} onCambiar={(id, valor) => cambiarEstado('backup', id, valor)} />
+      <div style={s.divider} />
+      <Esenciales centro={centro} role={role} />
       <div style={s.divider} />
       <CajaHerramientas centro={centro} role={role} />
       <div style={s.divider} />
@@ -298,4 +433,6 @@ const s = {
   modalBtns:    { display: 'flex', gap: 12, marginTop: 20 },
   btnCancelar:  { flex: 1, background: 'transparent', border: '1px solid var(--gl-border)', color: 'var(--gl-text-secondary)', borderRadius: 8, padding: 10, cursor: 'pointer', fontSize: 14 },
   btnConfirmar: { flex: 1, background: 'var(--gl-brand)', border: 'none', color: '#fff', borderRadius: 8, padding: 10, cursor: 'pointer', fontSize: 14, fontWeight: 600 },
+  avisoGlobal:       { color: 'var(--gl-fault)', fontSize: 12, margin: '0 0 14px', lineHeight: 1.4, fontWeight: 500 },
+  avisoGlobalInline: { color: 'var(--gl-text-muted)', fontSize: 11, margin: '8px 0 0', lineHeight: 1.4 },
 }

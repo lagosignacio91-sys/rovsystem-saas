@@ -137,9 +137,9 @@ service cloud.firestore {
                   && get(/databases/$(database)/documents/centros/$(centroId)).data.teamAsignado
                      == get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.teamId));
         // El operador solo escribe en centros de SU team (anti cross-tenant).
-        allow write: if (isAdmin()      && doc in ['estucheHerramientas', 'cajaHerramientas', 'operadores', 'redes'])
-          || (isSupervisor() && doc in ['estucheHerramientas', 'cajaHerramientas', 'operadores', 'redes'])
-          || (isOperador()   && doc in ['estucheHerramientas', 'cajaHerramientas', 'operadores', 'bitacora', 'redes']
+        allow write: if (isAdmin()      && doc in ['estucheHerramientas', 'cajaHerramientas', 'operadores', 'redes', 'esenciales'])
+          || (isSupervisor() && doc in ['estucheHerramientas', 'cajaHerramientas', 'operadores', 'redes', 'esenciales'])
+          || (isOperador()   && doc in ['estucheHerramientas', 'cajaHerramientas', 'operadores', 'bitacora', 'redes', 'esenciales']
               && get(/databases/$(database)/documents/centros/$(centroId)).data.teamAsignado
                  == get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.teamId);
       }
