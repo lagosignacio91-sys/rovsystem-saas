@@ -376,9 +376,11 @@ function MapInner({ centros, onMapClick, onCentroClick, role, userTeamId, centro
     const point = mapRef.current.latLngToContainerPoint([centro.lat, centro.lng])
     setPopupCentro(centro)
     setPopupPos({ x: point.x, y: point.y })
-    // El operador siempre ve el popup de contacto (en faena), incluso en su propio centro,
-    // ya que el panel completo de su centro queda fijo a la derecha (ver MapaPage).
-    setPopupTipo(role === 'operador' ? 'ajeno' : 'propio')
+    // El popup de fallas agrupadas es solo para admin y taller (supervisor): son los
+    // roles de supervisión que miran muchos centros. El resto (operador, apertura,
+    // owner, ventas) ve el popup de contacto — a quién llamar — no las fallas.
+    // El operador además tiene el panel de su centro fijo a la derecha (ver MapaPage).
+    setPopupTipo((role === 'admin' || role === 'supervisor') ? 'propio' : 'ajeno')
   }
   const handleMapClick = (latlng) => {
     setPopupCentro(null); setPopupPos(null)
