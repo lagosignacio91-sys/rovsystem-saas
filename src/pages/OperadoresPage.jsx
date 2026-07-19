@@ -63,7 +63,11 @@ export default function OperadoresPage() {
     const q = busca.toLowerCase()
     ops = ops.filter(o => o.nombre?.toLowerCase().includes(q) || o.centroNombre?.toLowerCase().includes(q))
   }
-  ops = [...ops].sort((a, b) => (a.nombre ?? '').localeCompare(b.nombre ?? ''))
+  // Primero los que están en faena, luego en descanso; nombre como desempate.
+  ops = [...ops].sort((a, b) =>
+    ((a.estado === 'faena' ? 0 : 1) - (b.estado === 'faena' ? 0 : 1))
+    || (a.nombre ?? '').localeCompare(b.nombre ?? '')
+  )
 
   const enFaenaCount   = ops.filter(o => o.estado === 'faena').length
   const enDescansoCount = ops.filter(o => o.estado !== 'faena').length
