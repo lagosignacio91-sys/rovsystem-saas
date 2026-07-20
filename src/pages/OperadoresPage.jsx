@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { useOutletContext } from 'react-router-dom'
-import { Search, Mail, Phone, Gamepad2, Coffee, Users, AtSign, Upload, UserPlus, Pencil, Trash2 } from 'lucide-react'
+import { Search, Mail, Phone, Gamepad2, Coffee, Users, AtSign, Upload, UserPlus, Pencil, Trash2, HardHat } from 'lucide-react'
 import { t } from '../theme/tokens'
 import { useOperadoresGlobal } from '../hooks/useOperadoresGlobal'
 import { useUsuarios } from '../hooks/useUsuarios'
 import ImportarCSV from '../components/admin/ImportarCSV'
 import FormOperador from '../components/admin/FormOperador'
+import ModalEpp from '../components/epp/ModalEpp'
 
 function ContactoRow({ icon: Icon, valor, href }) {
   const base = { fontSize: 10, display: 'flex', alignItems: 'center', gap: 6, overflow: 'hidden' }
@@ -36,6 +37,11 @@ export default function OperadoresPage() {
   const [aBorrar, setABorrar]       = useState(null)   // doc de usuarios a borrar
   const [showCuentas, setShowCuentas] = useState(false)
   const [resultado, setResultado]   = useState(null)
+  const [eppDe, setEppDe]           = useState(null) // { uid, nombre } — operador cuyo EPP se está viendo
+
+  // uid -> usuario, para leer epp.faltantes sin queries nuevas (useUsuarios ya carga todo).
+  const usuariosPorUid = {}
+  usuarios.forEach(u => { usuariosPorUid[u.id] = u })
 
   const handleCrear = async (form, password) => {
     const r = await crearOperador(form, password)
@@ -132,6 +138,8 @@ export default function OperadoresPage() {
           {ops.map((o, i) => {
             const enFaena = o.estado === 'faena'
             const inicial = (o.nombre?.[0] ?? '?').toUpperCase()
+            const eppFaltantes = usuariosPorUid[o.uid]?.epp?.faltantes ?? {}
+            const eppFaltanCount = Object.values(eppFaltantes).filter(Boolean).length
             return (
               <div key={o.centroId + i} style={{ background: t.bgElevated, border: `1px solid ${t.border}`, borderRadius: t.radiusLg, padding: 13 }}>
                 <div style={{ display: 'flex', gap: 11, alignItems: 'center' }}>
@@ -155,6 +163,12 @@ export default function OperadoresPage() {
                   <ContactoRow icon={Mail} valor={o.correoPersonal} href={o.correoPersonal ? `mailto:${o.correoPersonal}` : null} />
                   <ContactoRow icon={AtSign} valor={o.correoCorp} href={o.correoCorp ? `mailto:${o.correoCorp}` : null} />
                 </div>
+                {role === 'admin' && o.uid && (
+                  <button onClick={() => setEppDe({ uid: o.uid, nombre: o.nombre })}
+                    style={{ display: 'flex', alignItems: 'center', gap: 5, width: '100%', marginTop: 8, background: eppFaltanCount > 0 ? t.faultTint : t.okTint, color: eppFaltanCount > 0 ? t.fault : t.ok, border: 'none', borderRadius: t.radiusMd, padding: '5px 9px', fontSize: 10, fontWeight: 700, cursor: 'pointer' }}>
+                    <HardHat size={12} /> {eppFaltanCount > 0 ? `EPP · faltan ${eppFaltanCount}` : 'EPP · OK'}
+                  </button>
+                )}
               </div>
             )
           })}
@@ -217,6 +231,10 @@ export default function OperadoresPage() {
           onGuardar={handleEditar}
           onCerrar={() => setEditUser(null)}
         />
+      )}
+
+      {eppDe && (
+        <ModalEpp uid={eppDe.uid} nombre={eppDe.nombre} role="admin" onCerrar={() => setEppDe(null)} />
       )}
 
       {aBorrar && (
