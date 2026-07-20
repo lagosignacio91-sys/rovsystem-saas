@@ -100,6 +100,7 @@ export default function TabBitacora({ centro, role }) {
   const [guardandoBorrador, setGuardandoBorrador] = useState(false)
   const [borradorInfo, setBorradorInfo] = useState(null) // guardadoEn del borrador en curso
   const [avisoBorrador, setAvisoBorrador] = useState('')
+  const [errorGuardado, setErrorGuardado] = useState('')
   const [mostrarVista, setMostrarVista] = useState(false)
   const [mostrarHistorial, setMostrarHistorial] = useState(false)
 
@@ -172,6 +173,7 @@ export default function TabBitacora({ centro, role }) {
     // Defensa en profundidad: no persistir una bitácora vacía (LV-03).
     if (!validarBitacora(datos).ok) return false
     setGuardando(true)
+    setErrorGuardado('')
     try {
       const uid = auth.currentUser?.uid ?? null
       const entrada = { ...datos, creadoPor: uid, creadoEn: new Date().toISOString() }
@@ -183,6 +185,10 @@ export default function TabBitacora({ centro, role }) {
       // Limpia los campos diarios; piloto/team/área se conservan (son de configuración, no diarios).
       setDatos(d => ({ ...d, fecha: hoy(), estadoPuerto: '', jornadaAm: '', jornadaPm: '', observaciones: '', parchesInstalados: 0, costurasRealizadas: 0 }))
       return true
+    } catch (e) {
+      logError('TabBitacora/guardar', e)
+      setErrorGuardado('No se pudo guardar la bitácora. Revisa tu conexión e intenta de nuevo.')
+      return false
     } finally {
       setGuardando(false)
     }
@@ -193,12 +199,16 @@ export default function TabBitacora({ centro, role }) {
   const guardarComoBorrador = async () => {
     if (!validacion.ok) return
     setGuardandoBorrador(true)
+    setErrorGuardado('')
     try {
       const uid = auth.currentUser?.uid ?? null
       const guardadoEn = new Date().toISOString()
       await setDoc(doc(db, ...kitBase(centro), 'datos', 'bitacora'), { borrador: { ...datos, guardadoEn, guardadoPor: uid } }, { merge: true })
       setBorradorInfo(guardadoEn)
       setAvisoBorrador(`Borrador guardado ${formatGuardado(guardadoEn)}`)
+    } catch (e) {
+      logError('TabBitacora/guardarComoBorrador', e)
+      setErrorGuardado('No se pudo guardar el borrador. Revisa tu conexión e intenta de nuevo.')
     } finally {
       setGuardandoBorrador(false)
     }
@@ -206,11 +216,15 @@ export default function TabBitacora({ centro, role }) {
 
   const descartarBorrador = async () => {
     setGuardandoBorrador(true)
+    setErrorGuardado('')
     try {
       await setDoc(doc(db, ...kitBase(centro), 'datos', 'bitacora'), { borrador: deleteField() }, { merge: true })
       setBorradorInfo(null)
       setAvisoBorrador('')
       setDatos(d => ({ ...d, fecha: hoy(), estadoPuerto: '', jornadaAm: '', jornadaPm: '', observaciones: '', parchesInstalados: 0, costurasRealizadas: 0 }))
+    } catch (e) {
+      logError('TabBitacora/descartarBorrador', e)
+      setErrorGuardado('No se pudo descartar el borrador. Revisa tu conexión e intenta de nuevo.')
     } finally {
       setGuardandoBorrador(false)
     }
@@ -323,6 +337,7 @@ export default function TabBitacora({ centro, role }) {
             </button>
           </div>
           {avisoBorrador && <p style={s.avisoOk}>{avisoBorrador}</p>}
+          {errorGuardado && <p style={s.aviso}>{errorGuardado}</p>}
           {!validacion.ok && <p style={s.aviso}>{validacion.motivo}</p>}
         </>
       )}

@@ -6,6 +6,7 @@ import { t } from '../../theme/tokens'
 import { guardarBitacora, guardarBorrador } from '../../hooks/useBitacorasGlobal'
 import { validarBitacora } from '../../lib/validaciones'
 import { kitBase } from '../../lib/kitScope'
+import { logError } from '../../lib/logger'
 
 // Fecha LOCAL (no UTC): con UTC, cualquier bitácora cerrada de noche en Chile
 // (después de las ~20:00-21:00 hora local, según DST) quedaba fechada al día
@@ -49,6 +50,7 @@ export default function ModalGenerarBitacora({ centro, ultima, borrador, onCerra
   const [guardandoBorrador, setGuardandoBorrador] = useState(false)
   const [borradorInfo, setBorradorInfo] = useState(borrador?.guardadoEn ?? null)
   const [avisoBorrador, setAvisoBorrador] = useState('')
+  const [errorGuardado, setErrorGuardado] = useState('')
 
   useEffect(() => {
     // El piloto del borrador manda; si no había borrador, se autocompleta con el operador en faena.
@@ -81,6 +83,7 @@ export default function ModalGenerarBitacora({ centro, ultima, borrador, onCerra
     // Defensa en profundidad: aunque el botón esté deshabilitado, no guardar vacío (LV-03).
     if (!validarBitacora(datos).ok) return
     setGuardando(true)
+    setErrorGuardado('')
     try {
       const uid = auth.currentUser?.uid ?? null
       await guardarBitacora(centro, {
@@ -88,6 +91,9 @@ export default function ModalGenerarBitacora({ centro, ultima, borrador, onCerra
         creadoPor: uid, creadoEn: new Date().toISOString(),
       })
       onCerrar()
+    } catch (e) {
+      logError('ModalGenerarBitacora/guardar', e)
+      setErrorGuardado('No se pudo guardar la bitácora. Revisa tu conexión e intenta de nuevo.')
     } finally {
       setGuardando(false)
     }
@@ -96,12 +102,16 @@ export default function ModalGenerarBitacora({ centro, ultima, borrador, onCerra
   const guardarComoBorrador = async () => {
     if (!validacion.ok) return
     setGuardandoBorrador(true)
+    setErrorGuardado('')
     try {
       const uid = auth.currentUser?.uid ?? null
       const guardadoEn = new Date().toISOString()
       await guardarBorrador(centro, { ...datos, piloto, team, fecha, guardadoEn, guardadoPor: uid })
       setBorradorInfo(guardadoEn)
       setAvisoBorrador(`Borrador guardado ${formatGuardado(guardadoEn)}`)
+    } catch (e) {
+      logError('ModalGenerarBitacora/guardarComoBorrador', e)
+      setErrorGuardado('No se pudo guardar el borrador. Revisa tu conexión e intenta de nuevo.')
     } finally {
       setGuardandoBorrador(false)
     }
@@ -109,12 +119,16 @@ export default function ModalGenerarBitacora({ centro, ultima, borrador, onCerra
 
   const descartarBorrador = async () => {
     setGuardandoBorrador(true)
+    setErrorGuardado('')
     try {
       await guardarBorrador(centro, deleteField())
       setBorradorInfo(null)
       setAvisoBorrador('')
       setPiloto('')
       setDatos({ area: ultima?.area ?? '', estadoPuerto: '', jornadaAm: '', jornadaPm: '', observaciones: '', parchesInstalados: 0, costurasRealizadas: 0 })
+    } catch (e) {
+      logError('ModalGenerarBitacora/descartarBorrador', e)
+      setErrorGuardado('No se pudo descartar el borrador. Revisa tu conexión e intenta de nuevo.')
     } finally {
       setGuardandoBorrador(false)
     }
@@ -173,6 +187,7 @@ export default function ModalGenerarBitacora({ centro, ultima, borrador, onCerra
         </div>
 
         {avisoBorrador && <p style={s.avisoOk}>{avisoBorrador}</p>}
+        {errorGuardado && <p style={s.aviso}>{errorGuardado}</p>}
         {!validacion.ok && <p style={s.aviso}>{validacion.motivo}</p>}
       </div>
     </Modal>
