@@ -5,6 +5,7 @@ import { t } from '../theme/tokens'
 import { useEntregasTurno } from '../hooks/useEntregasTurno'
 import ModalEntregaTurno from '../components/turno/ModalEntregaTurno'
 import { descargarPDF, compartirPDF } from '../lib/generatePDF'
+import { kitBase } from '../lib/kitScope'
 
 function EntregaCard({ entrega, onEliminar, role }) {
   const [abierta, setAbierta] = useState(false)
@@ -48,7 +49,7 @@ function EntregaCard({ entrega, onEliminar, role }) {
 // Cuerpo del centro: aquí vive useEntregasTurno (2 listeners). Al montarse SOLO
 // cuando el centro está expandido (T-05), evitamos abrir 2×N listeners de golpe.
 function CentroTurnosBody({ centro, role }) {
-  const { entregas, itemsList, cargando, eliminarEntrega, guardarEntregaCompleta } = useEntregasTurno(centro.id)
+  const { entregas, itemsList, cargando, eliminarEntrega, guardarEntregaCompleta } = useEntregasTurno(centro.id, kitBase(centro))
   const [modal, setModal] = useState(false)
 
   const canCreate    = role === 'operador'

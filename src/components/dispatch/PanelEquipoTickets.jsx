@@ -148,7 +148,7 @@ function TicketCard({ ticket, role, teamId, bloqueado, onDespachar, onEnviarReem
 }
 
 export default function PanelEquipoTickets({ centro, role, teamId, sincronizarEstado }) {
-  const { tickets, fallasSinTicket, cargando, solicitarBaja, marcarDespachadoTaller, marcarReemplazoEnviado, confirmarRecepcion, eliminarTicket } = useEquipoTickets(centro.id, teamId)
+  const { tickets, fallasSinTicket, cargando, solicitarBaja, marcarDespachadoTaller, marcarReemplazoEnviado, confirmarRecepcion, eliminarTicket } = useEquipoTickets(centro, teamId)
   const [fallaModal, setFallaModal] = useState(null)
   // Bloquea TODAS las acciones del panel mientras una escritura está en curso, para que
   // un doble clic (o reabrir el modal) no pueda generar dos tickets/acciones repetidas.

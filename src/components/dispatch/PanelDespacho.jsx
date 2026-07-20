@@ -235,7 +235,7 @@ function DespachoCard({ d, role, bloqueado, onEnviarPendientes, onConfirmarRecep
 }
 
 export default function PanelDespacho({ centro, role, teamId, sincronizarEstado }) {
-  const { despachos, itemsPendientes, cargando, crearDespacho, enviarItemsPendientes, confirmarRecepcion, eliminarDespacho } = useDespachos(centro.id, teamId)
+  const { despachos, itemsPendientes, cargando, crearDespacho, enviarItemsPendientes, confirmarRecepcion, eliminarDespacho } = useDespachos(centro, teamId)
   const [modalItems, setModalItems] = useState(false)
   // Bloquea las acciones del panel mientras una escritura está en curso, para que un
   // doble clic no pueda generar dos despachos o repetir la misma acción.

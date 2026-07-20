@@ -12,20 +12,28 @@ import { doc, runTransaction, arrayUnion, updateDoc } from 'firebase/firestore'
 import { logError } from './logger'
 import { calcularEstadoCentro } from '../hooks/useCentros'
 import { calcularEstadoDespacho, claveItem, normalizarItemsLegacy } from './despachos'
+import { kitBase, esCentroApertura } from './kitScope'
 
 export async function confirmarRecepcionItems(despachoId, itemKeys, { observacion } = {}) {
   const uid = auth.currentUser?.uid ?? null
   const ts  = new Date().toISOString()
   const despRef = doc(db, 'despachos', despachoId)
   let centroId = null
+  let centroEsApertura = false
 
   await runTransaction(db, async (tx) => {
     const despSnap = await tx.get(despRef)
     if (!despSnap.exists()) throw new Error('Despacho no existe')
     const desp = despSnap.data()
     centroId = desp.centroId
-    const estRef  = doc(db, 'centros', centroId, 'datos', 'estucheHerramientas')
-    const cajaRef = doc(db, 'centros', centroId, 'datos', 'cajaHerramientas')
+    // El estuche/caja de herramientas de un centro en apertura vive en teams/team08,
+    // no en centros/{id} (ver kitScope.js) — hay que leer el centro para saber cuál es.
+    const centroSnap = await tx.get(doc(db, 'centros', centroId))
+    const centroData = centroSnap.exists() ? centroSnap.data() : {}
+    centroEsApertura = esCentroApertura(centroData)
+    const base = kitBase({ id: centroId, teamAsignado: centroData.teamAsignado })
+    const estRef  = doc(db, ...base, 'datos', 'estucheHerramientas')
+    const cajaRef = doc(db, ...base, 'datos', 'cajaHerramientas')
     const [estSnap, cajaSnap] = await Promise.all([tx.get(estRef), tx.get(cajaRef)])
 
     const estData = estSnap.exists() ? { principal: {}, backup: {}, ...estSnap.data() } : { principal: {}, backup: {} }
@@ -70,7 +78,7 @@ export async function confirmarRecepcionItems(despachoId, itemKeys, { observacio
     })
   })
 
-  if (centroId) {
+  if (centroId && !centroEsApertura) {
     try {
       const estado = await calcularEstadoCentro(centroId)
       await updateDoc(doc(db, 'centros', centroId), { estado })

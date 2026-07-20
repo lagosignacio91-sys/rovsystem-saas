@@ -8,11 +8,15 @@ import { confirmarRecepcionItems } from '../lib/recepcion'
 import { calcularEstadoDespacho, claveItem, normalizarItemsLegacy } from '../lib/despachos'
 import { HERRAMIENTAS_BASICAS_DEFAULT } from '../config/appDefaults'
 import { logError } from '../lib/logger'
+import { kitBase } from '../lib/kitScope'
 
 // `teamId`: opcional. Cuando viene presente (operador con team propio), se agrega como
 // filtro extra de la query — la regla de Firestore exige que el `where` lo demuestre
 // para poder listar. Admin/supervisor no tienen `teamId` propio, así que no se ven afectados.
-export function useDespachos(centroId, teamId) {
+// Recibe el `centro` completo (no solo el id): el estuche/caja de un centro en apertura
+// vive en teams/team08, no en centros/{id} (ver kitScope.js).
+export function useDespachos(centro, teamId) {
+  const centroId = centro?.id ?? null
   const [despachos, setDespachos]       = useState([])
   const [itemsPendientes, setItemsPendientes] = useState([])
   const [cargando, setCargando]         = useState(true)
@@ -70,17 +74,18 @@ export function useDespachos(centroId, teamId) {
     }
     recalcRef.current = recalc
 
-    const unsubEst  = onSnapshot(doc(db, 'centros', centroId, 'datos', 'estucheHerramientas'), snap => {
+    const unsubEst  = onSnapshot(doc(db, ...kitBase(centro), 'datos', 'estucheHerramientas'), snap => {
       const d = snap.exists() ? snap.data() : {}
       estucheData = { principal: d.principal ?? {}, backup: d.backup ?? {} }
       recalc()
     }, (e) => logError('useDespachos/estuche', e))
-    const unsubCaja = onSnapshot(doc(db, 'centros', centroId, 'datos', 'cajaHerramientas'), snap => {
+    const unsubCaja = onSnapshot(doc(db, ...kitBase(centro), 'datos', 'cajaHerramientas'), snap => {
       cajaLista = snap.exists() ? (snap.data().lista ?? []) : []
       recalc()
     }, (e) => logError('useDespachos/caja', e))
     return () => { unsubEst(); unsubCaja(); recalcRef.current = null }
-  }, [centroId])
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- se re-suscribe por id/team del centro, no por la referencia
+  }, [centroId, centro?.teamAsignado])
 
   const crearDespacho = async ({ centroId, centroNombre, items, teamAsignado }) => {
     const uid = auth.currentUser?.uid ?? null

@@ -86,10 +86,10 @@ function AnimatedRoutes() {
       <Route path="/" element={<PrivateRoute user={user} role={role} loading={loading} authError={authError} signOut={signOut} aceptoTerminos={aceptoTerminos} correoPersonal={correoPersonal}><MainLayout /></PrivateRoute>}>
         <Route index element={<MapaPage />} />
         <Route path="centros"    element={<RoleRoute roles={['admin', 'supervisor']} role={role} loading={loading}><CentrosPage /></RoleRoute>} />
-        <Route path="despachos"  element={<DespachosPage />} />
+        <Route path="despachos"  element={<RoleRoute roles={['admin', 'supervisor', 'operador', 'owner', 'ventas']} role={role} loading={loading}><DespachosPage /></RoleRoute>} />
         <Route path="operadores" element={<RoleRoute roles={['admin', 'supervisor']} role={role} loading={loading}><OperadoresPage /></RoleRoute>} />
         <Route path="bitacoras"       element={<RoleRoute roles={['admin', 'operador', 'owner', 'ventas']} role={role} loading={loading}><BitacorasPage /></RoleRoute>} />
-        <Route path="turnos"          element={<TurnosPage />} />
+        <Route path="turnos"          element={<RoleRoute roles={['admin', 'supervisor', 'operador', 'owner', 'ventas']} role={role} loading={loading}><TurnosPage /></RoleRoute>} />
         <Route path="bodega-virtual"  element={<RoleRoute roles={['supervisor']} role={role} loading={loading}><BodegaVirtualPage /></RoleRoute>} />
         <Route path="bodega-admin"    element={<RoleRoute roles={['admin']}      role={role} loading={loading}><BodegaAdminPage   /></RoleRoute>} />
         <Route path="reportes"        element={<RoleRoute roles={['admin', 'supervisor']} role={role} loading={loading}><ReportesPage /></RoleRoute>} />

@@ -8,10 +8,14 @@ import { confirmarRecepcionEquipo } from '../lib/equipoRecepcion'
 import { claveFalla } from '../lib/equipoTickets'
 import { CAMPOS } from '../config/camposRov'
 import { logError } from '../lib/logger'
+import { kitBase } from '../lib/kitScope'
 
 // `teamId`: opcional, mismo criterio que useDespachos.js (operador con team propio filtra,
 // admin/supervisor no).
-export function useEquipoTickets(centroId, teamId) {
+// Recibe el `centro` completo (no solo el id): equipos/rov de un centro en apertura
+// vive en teams/team08, no en centros/{id} (ver kitScope.js).
+export function useEquipoTickets(centro, teamId) {
+  const centroId = centro?.id ?? null
   const [tickets, setTickets]           = useState([])
   const [fallasSinTicket, setFallasSinTicket] = useState([])
   const [cargando, setCargando]         = useState(true)
@@ -62,13 +66,14 @@ export function useEquipoTickets(centroId, teamId) {
     }
     recalcRef.current = recalc
 
-    const unsub = onSnapshot(doc(db, 'centros', centroId, 'equipos', 'rov'), snap => {
+    const unsub = onSnapshot(doc(db, ...kitBase(centro), 'equipos', 'rov'), snap => {
       const d = snap.exists() ? snap.data() : {}
       rovData = { principal: d.principal ?? {}, backup: d.backup ?? {} }
       recalc()
     }, (e) => logError('useEquipoTickets/rov', e))
     return () => { unsub(); recalcRef.current = null }
-  }, [centroId])
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- se re-suscribe por id/team del centro, no por la referencia
+  }, [centroId, centro?.teamAsignado])
 
   const solicitarBaja = async ({ centroId, centroNombre, teamAsignado, equipo, campo, campoLabel, fallaMotivo }) => {
     const uid = auth.currentUser?.uid ?? null
