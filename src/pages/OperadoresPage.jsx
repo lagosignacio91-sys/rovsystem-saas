@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useOutletContext } from 'react-router-dom'
-import { Search, Mail, Phone, Gamepad2, Coffee, Users, AtSign, Upload, UserPlus, Pencil, Trash2, HardHat } from 'lucide-react'
+import { Search, Mail, Phone, Gamepad2, Coffee, Users, AtSign, Upload, UserPlus, Pencil, Trash2, HardHat, ChevronDown, ChevronUp } from 'lucide-react'
 import { t } from '../theme/tokens'
 import { useOperadoresGlobal } from '../hooks/useOperadoresGlobal'
 import { useUsuarios } from '../hooks/useUsuarios'
@@ -39,6 +39,7 @@ export default function OperadoresPage() {
   const [resultado, setResultado]   = useState(null)
   const [eppDe, setEppDe]           = useState(null) // { uid, nombre } — operador cuyo EPP se está viendo
   const [gestionarEpp, setGestionarEpp] = useState(false) // catálogo general de EPP (sin operador puntual)
+  const [verDescanso, setVerDescanso] = useState(false) // desplegar los "en descanso", colapsados por defecto
 
   // uid -> usuario, para leer epp.faltantes sin queries nuevas (useUsuarios ya carga todo).
   const usuariosPorUid = {}
@@ -78,6 +79,11 @@ export default function OperadoresPage() {
 
   const enFaenaCount   = ops.filter(o => o.estado === 'faena').length
   const enDescansoCount = ops.filter(o => o.estado !== 'faena').length
+
+  // Colapsar "en descanso" por defecto (foco en faena) — pero si hay búsqueda activa,
+  // se muestra todo lo que matchea sin importar el estado.
+  const buscando = !!busca.trim()
+  const opsVisibles = buscando ? ops : ops.filter(o => o.estado === 'faena' || verDescanso)
 
   return (
     <div style={{ height: '100%', overflowY: 'auto', padding: t.space5 }}>
@@ -141,7 +147,7 @@ export default function OperadoresPage() {
         )}
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 11 }}>
-          {ops.map((o, i) => {
+          {opsVisibles.map((o, i) => {
             const enFaena = o.estado === 'faena'
             const inicial = (o.nombre?.[0] ?? '?').toUpperCase()
             const eppFaltantes = usuariosPorUid[o.uid]?.epp?.faltantes ?? {}
@@ -179,6 +185,14 @@ export default function OperadoresPage() {
             )
           })}
         </div>
+
+        {!buscando && enDescansoCount > 0 && (
+          <button onClick={() => setVerDescanso(v => !v)}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%', justifyContent: 'center', marginTop: t.space4, background: t.bgInput, border: `1px solid ${t.border}`, borderRadius: t.radiusMd, padding: '9px 13px', cursor: 'pointer', fontSize: t.textSm, color: t.textSecondary, fontWeight: 600 }}>
+            {verDescanso ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+            {verDescanso ? 'Ocultar en descanso' : `Ver ${enDescansoCount} en descanso`}
+          </button>
+        )}
 
         {/* Cuentas del sistema — editar/borrar (solo admin) */}
         {role === 'admin' && (
