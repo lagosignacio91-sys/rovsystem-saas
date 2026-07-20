@@ -38,6 +38,7 @@ export default function OperadoresPage() {
   const [showCuentas, setShowCuentas] = useState(false)
   const [resultado, setResultado]   = useState(null)
   const [eppDe, setEppDe]           = useState(null) // { uid, nombre } — operador cuyo EPP se está viendo
+  const [gestionarEpp, setGestionarEpp] = useState(false) // catálogo general de EPP (sin operador puntual)
 
   // uid -> usuario, para leer epp.faltantes sin queries nuevas (useUsuarios ya carga todo).
   const usuariosPorUid = {}
@@ -94,6 +95,11 @@ export default function OperadoresPage() {
               onClick={() => setShowForm(true)}
               style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'transparent', border: `1px solid ${t.brand}`, color: t.brandSoft, borderRadius: t.radiusMd, padding: '7px 14px', cursor: 'pointer', fontSize: t.textSm, fontWeight: 600 }}>
               <UserPlus size={14} /> Nuevo operador
+            </button>
+            <button
+              onClick={() => setGestionarEpp(true)}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'transparent', border: `1px solid ${t.border}`, color: t.textSecondary, borderRadius: t.radiusMd, padding: '7px 14px', cursor: 'pointer', fontSize: t.textSm, fontWeight: 600 }}>
+              <HardHat size={14} /> Gestionar EPP
             </button>
             <span style={{ marginLeft: 'auto', alignSelf: 'center', fontSize: t.textXs, color: t.textMuted }}>
               {usuarios.length} cuentas en sistema
@@ -235,6 +241,10 @@ export default function OperadoresPage() {
 
       {eppDe && (
         <ModalEpp uid={eppDe.uid} nombre={eppDe.nombre} role="admin" onCerrar={() => setEppDe(null)} />
+      )}
+
+      {gestionarEpp && (
+        <ModalEpp role="admin" onCerrar={() => setGestionarEpp(false)} />
       )}
 
       {aBorrar && (

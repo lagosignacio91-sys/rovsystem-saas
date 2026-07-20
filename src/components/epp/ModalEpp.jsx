@@ -38,7 +38,14 @@ function ModalItemEpp({ inicial = '', titulo, onGuardar, onCerrar }) {
 // (ausencia de la clave = tiene el ítem). Vive en la ficha de la persona, no en el roster
 // del centro, porque "Sincronizar operadores" reescribe ese roster completo y borraría
 // cualquier campo ajeno a los suyos.
-export default function ModalEpp({ uid, nombre, role, onCerrar }) {
+//
+// Dos modos según si recibe `uid`:
+//  - Con uid: vista de UN operador puntual — solo su estado Tengo/Me falta (editable por
+//    él mismo o por admin para corregir). Sin controles de catálogo.
+//  - Sin uid: "Catálogo de EPP" — gestión general (+Agregar/renombrar/quitar), afecta a
+//    todos. Sin estado de nadie, porque no hay un operador puntual al que mostrárselo.
+export default function ModalEpp({ uid = null, nombre, role, onCerrar }) {
+  const modoCatalogo = !uid
   const [catalogo, setCatalogo]     = useState([])   // [{ id, label }]
   const [faltantes, setFaltantes]   = useState({})   // { [id]: true }
   const [cargando, setCargando]     = useState(true)
@@ -75,10 +82,10 @@ export default function ModalEpp({ uid, nombre, role, onCerrar }) {
   const totalFaltan = catalogo.filter(item => faltantes[item.id]).length
 
   return (
-    <Modal open title={`EPP${nombre ? ' — ' + nombre : ''}`} onClose={onCerrar} maxWidth={420}
+    <Modal open title={modoCatalogo ? 'Catálogo de EPP' : `EPP — ${nombre}`} onClose={onCerrar} maxWidth={420}
       footer={<Button variant="secondary" size="lg" onClick={onCerrar}>Cerrar</Button>}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {esAdmin && (
+        {modoCatalogo && esAdmin && (
           <button onClick={() => setModal({ modo: 'agregar' })} style={s.btnAgregar}>+ Agregar ítem</button>
         )}
 
@@ -92,22 +99,25 @@ export default function ModalEpp({ uid, nombre, role, onCerrar }) {
               <div key={item.id} style={s.filaEstuche}>
                 <span style={s.itemNombre}>{item.label}</span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <button
-                    onClick={puedeEditar ? () => toggleFalta(item.id, !enFalta) : undefined}
-                    style={{
-                      ...s.estadoBadge,
-                      color: enFalta ? 'var(--gl-fault)' : 'var(--gl-ok)',
-                      background: enFalta ? 'var(--gl-fault-tint)' : 'var(--gl-ok-tint)',
-                      cursor: puedeEditar ? 'pointer' : 'default',
-                    }}
-                  >
-                    {enFalta ? '⚠️ Me falta' : '● Tengo'}
-                  </button>
-                  {esAdmin && (
-                    <>
-                      <button onClick={() => setModal({ modo: 'renombrar', item })} style={s.btnEliminar} title="Renombrar">✏️</button>
-                      <button onClick={() => quitarItem(item.id)}                  style={s.btnEliminar} title="Quitar de todos">🗑️</button>
-                    </>
+                  {modoCatalogo ? (
+                    esAdmin && (
+                      <>
+                        <button onClick={() => setModal({ modo: 'renombrar', item })} style={s.btnEliminar} title="Renombrar">✏️</button>
+                        <button onClick={() => quitarItem(item.id)}                  style={s.btnEliminar} title="Quitar de todos">🗑️</button>
+                      </>
+                    )
+                  ) : (
+                    <button
+                      onClick={puedeEditar ? () => toggleFalta(item.id, !enFalta) : undefined}
+                      style={{
+                        ...s.estadoBadge,
+                        color: enFalta ? 'var(--gl-fault)' : 'var(--gl-ok)',
+                        background: enFalta ? 'var(--gl-fault-tint)' : 'var(--gl-ok-tint)',
+                        cursor: puedeEditar ? 'pointer' : 'default',
+                      }}
+                    >
+                      {enFalta ? '⚠️ Me falta' : '● Tengo'}
+                    </button>
                   )}
                 </div>
               </div>
@@ -115,10 +125,13 @@ export default function ModalEpp({ uid, nombre, role, onCerrar }) {
           })}
         </div>
 
-        {!cargando && catalogo.length > 0 && (
+        {!modoCatalogo && !cargando && catalogo.length > 0 && (
           <p style={{ ...s.avisoGlobalInline, color: totalFaltan > 0 ? t.fault : t.textMuted }}>
             {totalFaltan > 0 ? `⚠️ Le falta ${totalFaltan} ítem${totalFaltan > 1 ? 's' : ''}.` : '✅ Tiene todo su EPP.'}
           </p>
+        )}
+        {modoCatalogo && esAdmin && catalogo.length > 0 && (
+          <p style={s.avisoGlobalInline}>⚠️ Agregar, renombrar o quitar un ítem afecta a todos los operadores.</p>
         )}
       </div>
 
