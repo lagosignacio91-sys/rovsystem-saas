@@ -116,10 +116,15 @@ function CentroTurnos({ centro, role, defaultOpen }) {
 export default function TurnosPage() {
   const { centros, role, teamId, empresaActiva } = useOutletContext()
 
+  // Orden por número de team (team01 → último); sin-team al final; nombre como desempate.
+  const numTeam = (c) => {
+    const n = c.teamAsignado ? parseInt(c.teamAsignado.replace(/\D/g, ''), 10) : NaN
+    return Number.isNaN(n) ? Infinity : n
+  }
   const lista = (() => {
     let base = empresaActiva ? centros.filter(c => c.empresaId === empresaActiva.id) : centros
     if (role === 'operador' && teamId) base = base.filter(c => c.teamAsignado === teamId)
-    return [...base].sort((a, b) => (a.nombre ?? '').localeCompare(b.nombre ?? ''))
+    return [...base].sort((a, b) => (numTeam(a) - numTeam(b)) || (a.nombre ?? '').localeCompare(b.nombre ?? ''))
   })()
 
   return (
