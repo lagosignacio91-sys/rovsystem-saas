@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useOutletContext } from 'react-router-dom'
-import { FileDown, ExternalLink, MessageCircle, NotebookText, Phone, Trash2, Plus } from 'lucide-react'
+import { FileDown, ExternalLink, MessageCircle, NotebookText, Phone, Trash2, Plus, Eye, CheckCircle2, AlertCircle } from 'lucide-react'
 import { t } from '../theme/tokens'
 import { useBitacorasGlobal } from '../hooks/useBitacorasGlobal'
 import { descargarPDFBitacora } from '../lib/generatePDF'
@@ -18,11 +18,16 @@ function formatFecha(iso) {
   return `${d}/${m}/${String(y).slice(2)}`
 }
 
-// Local, no UTC (ver hoy() en TabBitacora.jsx / ModalGenerarBitacora.jsx): de noche
-// en Chile, .toISOString() ya está "mañana" en UTC y filtraba mal "este mes".
-function mesActual() {
+// Local, no UTC (mismo patrón que TabBitacora.jsx / ModalGenerarBitacora.jsx): de noche
+// en Chile, .toISOString() ya está "mañana" en UTC y compararía mal contra `ultima.fecha`.
+function hoy() {
   const d = new Date()
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+  const p = (n) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`
+}
+
+function mesActual() {
+  return hoy().slice(0, 7)
 }
 
 function Campo({ label, valor }) {
@@ -35,7 +40,7 @@ function Campo({ label, valor }) {
   )
 }
 
-function OpRow({ op }) {
+function OpRow({ op, enviadaHoy }) {
   if (!op?.nombre) return null
   const tel = op.telefono?.replace(/[^\d+]/g, '') ?? ''
   const msg = encodeURIComponent('se solicita su bitácora diaria')
@@ -54,11 +59,14 @@ function OpRow({ op }) {
           </div>
         )}
       </div>
-      <a href={waHref} target="_blank" rel="noopener noreferrer"
-        title="Solicitar bitácora por WhatsApp"
-        style={{ display: 'flex', alignItems: 'center', gap: 4, background: '#22c55e18', color: '#16a34a', border: '1px solid #22c55e40', borderRadius: t.radiusMd, padding: '4px 8px', fontSize: 10, fontWeight: 600, textDecoration: 'none', flexShrink: 0 }}>
-        <MessageCircle size={13} /> WA
-      </a>
+      {/* Ya envió hoy: no tiene sentido solicitarla de nuevo. */}
+      {!enviadaHoy && (
+        <a href={waHref} target="_blank" rel="noopener noreferrer"
+          title="Solicitar bitácora por WhatsApp"
+          style={{ display: 'flex', alignItems: 'center', gap: 4, background: '#22c55e18', color: '#16a34a', border: '1px solid #22c55e40', borderRadius: t.radiusMd, padding: '4px 8px', fontSize: 10, fontWeight: 600, textDecoration: 'none', flexShrink: 0 }}>
+          <MessageCircle size={13} /> WA
+        </a>
+      )}
     </div>
   )
 }
@@ -74,6 +82,7 @@ export default function BitacorasPage() {
   const [aEliminar, setAEliminar]         = useState(null) // { centro, entrada }
   const [eliminando, setEliminando]       = useState(false)
   const [generarPara, setGenerarPara]     = useState(null) // { centro, ultima }
+  const [detalleAbierto, setDetalleAbierto] = useState(null) // { centro, entrada }
 
   const centroVivo = centroActivo ? centros.find(c => c.id === centroActivo.id) ?? centroActivo : null
 
@@ -130,6 +139,9 @@ export default function BitacorasPage() {
               .filter(b => (b.fecha ?? '').slice(0, 7) === mesActual())
               .slice()
               .reverse()
+            // "Enviada" es un chequeo diario: solo cuenta si la última entrada es de HOY,
+            // no si el centro tiene historial de días anteriores.
+            const enviadaHoy = ultima?.fecha === hoy()
 
             return (
             <div key={centro.id} style={{ background: t.bgElevated, border: `1px solid ${t.border}`, borderRadius: t.radiusLg, padding: 15 }}>
@@ -154,23 +166,6 @@ export default function BitacorasPage() {
                       title="Abrir panel del centro"
                       style={{ display: 'flex', alignItems: 'center', gap: 4, background: t.brandTint, color: t.brandSoft, border: `1px solid ${t.border}`, borderRadius: t.radiusMd, padding: '5px 9px', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
                       <ExternalLink size={13} /> Panel
-                    </button>
-                  )}
-                  {(role === 'admin' || role === 'supervisor') && ultima && (
-                    <button
-                      onClick={() => handleDescargar(ultima, centro)}
-                      disabled={descargando === centro.id}
-                      title="Descargar PDF de la última bitácora"
-                      style={{ display: 'flex', alignItems: 'center', gap: 4, background: t.bgInput, color: t.textPrimary, border: `1px solid ${t.border}`, borderRadius: t.radiusMd, padding: '5px 9px', fontSize: 11, fontWeight: 600, cursor: 'pointer', opacity: descargando === centro.id ? 0.6 : 1 }}>
-                      <FileDown size={13} /> {descargando === centro.id ? '…' : 'PDF'}
-                    </button>
-                  )}
-                  {role === 'admin' && ultima && (
-                    <button
-                      onClick={() => setAEliminar({ centro, entrada: ultima })}
-                      title="Eliminar la última entrada"
-                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: t.faultTint, color: t.fault, border: `1px solid ${t.fault}40`, borderRadius: t.radiusMd, padding: '5px 8px', cursor: 'pointer' }}>
-                      <Trash2 size={13} />
                     </button>
                   )}
                 </div>
@@ -212,26 +207,33 @@ export default function BitacorasPage() {
                     )
                   })}
                 </div>
-              ) : ultima ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 10 }}>
-                  <Campo label="Fecha"         valor={ultima.fecha} />
-                  <Campo label="Piloto"        valor={ultima.piloto} />
-                  <Campo label="Team"          valor={ultima.team} />
-                  <Campo label="Área"          valor={ultima.area} />
-                  <Campo label="Estado puerto" valor={ultima.estadoPuerto} />
-                  <Campo label="Jornada AM"    valor={ultima.jornadaAm} />
-                  <Campo label="Jornada PM"    valor={ultima.jornadaPm} />
-                  <Campo label="Observaciones" valor={ultima.observaciones} />
-                </div>
               ) : (
-                <div style={{ fontSize: t.textXs, color: t.textMuted, fontStyle: 'italic', marginBottom: 10 }}>Sin bitácora registrada.</div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 10 }}>
+                  {enviadaHoy ? (
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: t.ok, fontSize: t.textXs, fontWeight: 600 }}>
+                      <CheckCircle2 size={14} /> Enviada hoy
+                    </span>
+                  ) : (
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: t.fault, fontSize: t.textXs, fontWeight: 600 }}>
+                      <AlertCircle size={14} /> Sin enviar
+                    </span>
+                  )}
+                  {ultima && (
+                    <button
+                      onClick={() => setDetalleAbierto({ centro, entrada: ultima })}
+                      title="Ver la última bitácora registrada"
+                      style={{ display: 'flex', alignItems: 'center', gap: 4, background: t.bgInput, color: t.textPrimary, border: `1px solid ${t.border}`, borderRadius: t.radiusMd, padding: '5px 9px', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
+                      <Eye size={13} /> Ver bitácora
+                    </button>
+                  )}
+                </div>
               )}
 
               {/* Operadores: "solicitar bitácora" es una acción de admin/supervisor hacia el operador, no algo que el operador vea de sí mismo */}
               {role !== 'operador' && (
                 <>
-                  <OpRow op={operadores?.op1} />
-                  <OpRow op={operadores?.op2} />
+                  <OpRow op={operadores?.op1} enviadaHoy={enviadaHoy} />
+                  <OpRow op={operadores?.op2} enviadaHoy={enviadaHoy} />
                 </>
               )}
             </div>
@@ -252,6 +254,38 @@ export default function BitacorasPage() {
             onEliminar={() => setCentroActivo(null)}
           />
         </div>
+      )}
+
+      {detalleAbierto && (
+        <Modal open title={`Bitácora — ${detalleAbierto.centro.nombre}`} onClose={() => setDetalleAbierto(null)} maxWidth={420}
+          footer={<>
+            <Button variant="secondary" size="lg" onClick={() => setDetalleAbierto(null)}>Cerrar</Button>
+            <Button variant="secondary" size="lg"
+              disabled={descargando === detalleAbierto.centro.id}
+              onClick={() => handleDescargar(detalleAbierto.entrada, detalleAbierto.centro)}>
+              <FileDown size={14} /> {descargando === detalleAbierto.centro.id ? 'Descargando…' : 'PDF'}
+            </Button>
+            {role === 'admin' && (
+              <Button variant="primary" size="lg" style={{ background: t.fault }}
+                onClick={() => { setAEliminar({ centro: detalleAbierto.centro, entrada: detalleAbierto.entrada }); setDetalleAbierto(null) }}>
+                <Trash2 size={14} /> Eliminar
+              </Button>
+            )}
+          </>}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <Campo label="Fecha"         valor={detalleAbierto.entrada.fecha} />
+            <Campo label="Piloto"        valor={detalleAbierto.entrada.piloto} />
+            <Campo label="Team"          valor={detalleAbierto.entrada.team} />
+            <Campo label="Área"          valor={detalleAbierto.entrada.area} />
+            <Campo label="Estado puerto" valor={detalleAbierto.entrada.estadoPuerto} />
+            <Campo label="Jornada AM"    valor={detalleAbierto.entrada.jornadaAm} />
+            <Campo label="Jornada PM"    valor={detalleAbierto.entrada.jornadaPm} />
+            <Campo label="Observaciones" valor={detalleAbierto.entrada.observaciones} />
+            {((Number(detalleAbierto.entrada.parchesInstalados) || 0) > 0 || (Number(detalleAbierto.entrada.costurasRealizadas) || 0) > 0) && (
+              <Campo label="Redes" valor={`${detalleAbierto.entrada.parchesInstalados || 0} parches · ${detalleAbierto.entrada.costurasRealizadas || 0} costuras`} />
+            )}
+          </div>
+        </Modal>
       )}
 
       {aEliminar && (
