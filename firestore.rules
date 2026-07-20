@@ -128,11 +128,13 @@ service cloud.firestore {
       match /datos/{doc} {
         // La bitácora solo la lee el operador si es de SU propio team (anti cross-tenant).
         // El taller (supervisor) no debe ver bitácoras diarias, ni siquiera vía lectura directa.
+        // Apertura tampoco: su propia bitácora vive en teams/team08 (ver match de arriba),
+        // nunca en centros/{id}, así que no necesita ni debe leer la de ningún centro aquí.
         // estucheHerramientas/cajaHerramientas/operadores siguen abiertas a cualquier autenticado
         // (ej. popup de contacto de centros ajenos en el Mapa).
         allow read:  if aprovisionado()
           && (doc != 'bitacora'
-              || (!isOperador() && !isSupervisor())
+              || (!isOperador() && !isSupervisor() && !isApertura())
               || (isOperador()
                   && get(/databases/$(database)/documents/centros/$(centroId)).data.teamAsignado
                      == get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.teamId));

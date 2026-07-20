@@ -10,6 +10,7 @@ import ModalGenerarBitacora from '../components/bitacora/ModalGenerarBitacora'
 import { Modal, Button } from '../components/kit'
 import { db } from '../lib/firebase'
 import { doc, getDoc, updateDoc, arrayRemove } from 'firebase/firestore'
+import { kitBase } from '../lib/kitScope'
 
 function formatFecha(iso) {
   if (!iso) return ''
@@ -17,8 +18,11 @@ function formatFecha(iso) {
   return `${d}/${m}/${String(y).slice(2)}`
 }
 
+// Local, no UTC (ver hoy() en TabBitacora.jsx / ModalGenerarBitacora.jsx): de noche
+// en Chile, .toISOString() ya está "mañana" en UTC y filtraba mal "este mes".
 function mesActual() {
-  return new Date().toISOString().slice(0, 7)
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
 }
 
 function Campo({ label, valor }) {
@@ -82,8 +86,8 @@ export default function BitacorasPage() {
     setDescargando(key)
     try {
       const [snapRov, snapRedes] = await Promise.all([
-        getDoc(doc(db, 'centros', centro.id, 'equipos', 'rov')),
-        getDoc(doc(db, 'centros', centro.id, 'datos', 'redes')),
+        getDoc(doc(db, ...kitBase(centro), 'equipos', 'rov')),
+        getDoc(doc(db, ...kitBase(centro), 'datos', 'redes')),
       ])
       const rov   = snapRov.exists()   ? snapRov.data()   : null
       const redes = snapRedes.exists() ? snapRedes.data() : null
@@ -99,7 +103,7 @@ export default function BitacorasPage() {
     if (!aEliminar) return
     setEliminando(true)
     try {
-      await updateDoc(doc(db, 'centros', aEliminar.centro.id, 'datos', 'bitacora'), {
+      await updateDoc(doc(db, ...kitBase(aEliminar.centro), 'datos', 'bitacora'), {
         lista: arrayRemove(aEliminar.entrada),
       })
     } finally {

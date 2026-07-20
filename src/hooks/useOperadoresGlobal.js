@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { db } from '../lib/firebase'
 import { doc, onSnapshot } from 'firebase/firestore'
 import { logError } from '../lib/logger'
+import { kitBase } from '../lib/kitScope'
 
 export function useOperadoresGlobal(centros) {
   const [operadores, setOperadores] = useState([])
@@ -19,7 +20,7 @@ export function useOperadoresGlobal(centros) {
     const firedSet = new Set()
 
     const unsubs = centros.map(c =>
-      onSnapshot(doc(db, 'centros', c.id, 'datos', 'operadores'), snap => {
+      onSnapshot(doc(db, ...kitBase(c), 'datos', 'operadores'), snap => {
         if (!active) return
         const raw  = snap.exists() ? (snap.data().lista ?? [snap.data().op1, snap.data().op2].filter(Boolean)) : []
         dataMap.set(c.id, raw.filter(op => op?.nombre).map(op => ({

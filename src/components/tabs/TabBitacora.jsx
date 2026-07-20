@@ -6,8 +6,13 @@ import { logError } from '../../lib/logger'
 import { validarBitacora } from '../../lib/validaciones'
 import { kitBase } from '../../lib/kitScope'
 
+// Fecha LOCAL (no UTC): con UTC, cualquier bitácora cerrada de noche en Chile
+// (después de las ~20:00-21:00 hora local, según DST) quedaba fechada al día
+// siguiente porque ya era "mañana" en UTC.
 function hoy() {
-  return new Date().toISOString().slice(0, 10)
+  const d = new Date()
+  const p = (n) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`
 }
 
 function mesActual() {

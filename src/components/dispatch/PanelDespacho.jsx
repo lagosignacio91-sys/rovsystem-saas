@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useDespachos } from '../../hooks/useDespachos'
 import { claveItem, normalizarItemsLegacy } from '../../lib/despachos'
+import { esCentroApertura } from '../../lib/kitScope'
 import PanelEquipoTickets from './PanelEquipoTickets'
 
 function origenLabel(i) {
@@ -259,7 +260,7 @@ export default function PanelDespacho({ centro, role, teamId, sincronizarEstado 
     setProcesando(true)
     try {
       await enviarItemsPendientes(id, itemKeys)
-      if (sincronizarEstado) await sincronizarEstado(centro.id)
+      if (sincronizarEstado && !esCentroApertura(centro)) await sincronizarEstado(centro.id)
     } catch (e) {
       console.error('[PanelDespacho/enviarPendientes]', e)
       alert('No se pudo marcar como enviado. Intenta de nuevo.')
@@ -273,7 +274,7 @@ export default function PanelDespacho({ centro, role, teamId, sincronizarEstado 
     setProcesando(true)
     try {
       await confirmarRecepcion(id, itemKeys, observacion)
-      if (sincronizarEstado) await sincronizarEstado(centro.id)
+      if (sincronizarEstado && !esCentroApertura(centro)) await sincronizarEstado(centro.id)
     } catch (e) {
       console.error('[PanelDespacho/confirmarRecepcion]', e)
       alert('No se pudo confirmar la recepción. Intenta de nuevo.')

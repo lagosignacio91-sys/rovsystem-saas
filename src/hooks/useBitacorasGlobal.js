@@ -2,18 +2,21 @@ import { useState, useEffect } from 'react'
 import { db } from '../lib/firebase'
 import { doc, onSnapshot, setDoc, arrayUnion, deleteField } from 'firebase/firestore'
 import { logError } from '../lib/logger'
+import { kitBase } from '../lib/kitScope'
 
 // Agrega una entrada nueva a la bitácora del centro (nunca sobrescribe el historial).
 // Al finalizar limpia el borrador en curso (si lo había): una vez que la entrada
 // del día pasa al historial, no debe quedar un borrador huérfano precargándose.
-export async function guardarBitacora(centroId, entrada) {
-  await setDoc(doc(db, 'centros', centroId, 'datos', 'bitacora'), { lista: arrayUnion(entrada), borrador: deleteField() }, { merge: true })
+// `centro` (no solo el id): un centro en apertura guarda su bitácora en
+// teams/team08, no en centros/{id} (ver kitScope.js).
+export async function guardarBitacora(centro, entrada) {
+  await setDoc(doc(db, ...kitBase(centro), 'datos', 'bitacora'), { lista: arrayUnion(entrada), borrador: deleteField() }, { merge: true })
 }
 
 // Guarda/actualiza el borrador del día (trabajo a medias, ej. solo jornada AM).
 // No toca el historial `lista`. Pasar deleteField() como `borrador` lo descarta.
-export async function guardarBorrador(centroId, borrador) {
-  await setDoc(doc(db, 'centros', centroId, 'datos', 'bitacora'), { borrador }, { merge: true })
+export async function guardarBorrador(centro, borrador) {
+  await setDoc(doc(db, ...kitBase(centro), 'datos', 'bitacora'), { borrador }, { merge: true })
 }
 
 // Para cada centro retorna { centro, bitacora, ultima, operadores }
@@ -52,13 +55,13 @@ export function useBitacorasGlobal(centros) {
     for (const centro of centros) {
       if (!state[centro.id]) state[centro.id] = {}
 
-      const refBit = doc(db, 'centros', centro.id, 'datos', 'bitacora')
+      const refBit = doc(db, ...kitBase(centro), 'datos', 'bitacora')
       unsubs.push(onSnapshot(refBit, snap => {
         state[centro.id].bitacora = snap.exists() ? snap.data() : null
         flush()
       }, (e) => { logError('useBitacorasGlobal/bitacora', e); setCargando(false) }))
 
-      const refOps = doc(db, 'centros', centro.id, 'datos', 'operadores')
+      const refOps = doc(db, ...kitBase(centro), 'datos', 'operadores')
       unsubs.push(onSnapshot(refOps, snap => {
         const lista = snap.exists() ? (snap.data().lista ?? []) : []
         state[centro.id].operadores = {

@@ -5,9 +5,15 @@ import { Modal, Button } from '../kit'
 import { t } from '../../theme/tokens'
 import { guardarBitacora, guardarBorrador } from '../../hooks/useBitacorasGlobal'
 import { validarBitacora } from '../../lib/validaciones'
+import { kitBase } from '../../lib/kitScope'
 
+// Fecha LOCAL (no UTC): con UTC, cualquier bitácora cerrada de noche en Chile
+// (después de las ~20:00-21:00 hora local, según DST) quedaba fechada al día
+// siguiente porque ya era "mañana" en UTC.
 function hoy() {
-  return new Date().toISOString().slice(0, 10)
+  const d = new Date()
+  const p = (n) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`
 }
 
 function formatTeam(teamAsignado) {
@@ -47,23 +53,25 @@ export default function ModalGenerarBitacora({ centro, ultima, borrador, onCerra
   useEffect(() => {
     // El piloto del borrador manda; si no había borrador, se autocompleta con el operador en faena.
     if (borrador?.piloto) return
-    getDoc(doc(db, 'centros', centro.id, 'datos', 'operadores')).then(snap => {
+    getDoc(doc(db, ...kitBase(centro), 'datos', 'operadores')).then(snap => {
       if (!snap.exists()) return
       const ops = snap.data()
       const listaOps = ops.lista ?? [ops.op1, ops.op2].filter(Boolean)
       const enFaena = listaOps.find(op => op?.estado === 'faena' && op?.nombre)
       if (enFaena) setPiloto(enFaena.nombre)
     })
-  }, [centro.id, borrador?.piloto])
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- se re-corre por id/team del centro, no por la referencia
+  }, [centro.id, centro.teamAsignado, borrador?.piloto])
 
   useEffect(() => {
     // Referencia viva del kit de redes (parches disponibles / herramienta de costura).
-    getDoc(doc(db, 'centros', centro.id, 'datos', 'redes')).then(snap => {
+    getDoc(doc(db, ...kitBase(centro), 'datos', 'redes')).then(snap => {
       if (!snap.exists()) return
       const d = snap.data()
       setRedes({ parchesStock: d.parchesStock ?? 0, costuraOperativa: d.costuraOperativa ?? true })
     }).catch(() => {})
-  }, [centro.id])
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- se re-corre por id/team del centro, no por la referencia
+  }, [centro.id, centro.teamAsignado])
 
   const set = (campo, valor) => setDatos(d => ({ ...d, [campo]: valor }))
 
@@ -75,7 +83,7 @@ export default function ModalGenerarBitacora({ centro, ultima, borrador, onCerra
     setGuardando(true)
     try {
       const uid = auth.currentUser?.uid ?? null
-      await guardarBitacora(centro.id, {
+      await guardarBitacora(centro, {
         ...datos, piloto, team, fecha,
         creadoPor: uid, creadoEn: new Date().toISOString(),
       })
@@ -91,7 +99,7 @@ export default function ModalGenerarBitacora({ centro, ultima, borrador, onCerra
     try {
       const uid = auth.currentUser?.uid ?? null
       const guardadoEn = new Date().toISOString()
-      await guardarBorrador(centro.id, { ...datos, piloto, team, fecha, guardadoEn, guardadoPor: uid })
+      await guardarBorrador(centro, { ...datos, piloto, team, fecha, guardadoEn, guardadoPor: uid })
       setBorradorInfo(guardadoEn)
       setAvisoBorrador(`Borrador guardado ${formatGuardado(guardadoEn)}`)
     } finally {
@@ -102,7 +110,7 @@ export default function ModalGenerarBitacora({ centro, ultima, borrador, onCerra
   const descartarBorrador = async () => {
     setGuardandoBorrador(true)
     try {
-      await guardarBorrador(centro.id, deleteField())
+      await guardarBorrador(centro, deleteField())
       setBorradorInfo(null)
       setAvisoBorrador('')
       setPiloto('')

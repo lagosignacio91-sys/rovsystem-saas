@@ -64,13 +64,18 @@ export default memo(function PanelCentro({ centro, onCerrar, onEliminar, sincron
 
   const toggleExpanded = useCallback(() => setExpanded(v => !v), [])
 
-  // Teams fijos Team 01–11
+  // Teams fijos Team 01–11, EXCEPTO team08: ese número está reservado para el kit
+  // de apertura (ver kitScope.js) y se asigna solo desde el flujo dedicado de
+  // "Crear centro de apertura" — nunca desde este selector genérico, para que un
+  // admin no pueda mezclar por error un centro normal con el kit de apertura.
   useEffect(() => {
     if (role !== 'admin') return
-    setTeams(Array.from({ length: 11 }, (_, i) => ({
-      uid:    `team${String(i + 1).padStart(2, '0')}`,
-      nombre: `Team ${String(i + 1).padStart(2, '0')}`,
-    })))
+    setTeams(Array.from({ length: 11 }, (_, i) => i + 1)
+      .filter(n => n !== 8)
+      .map(n => ({
+        uid:    `team${String(n).padStart(2, '0')}`,
+        nombre: `Team ${String(n).padStart(2, '0')}`,
+      })))
   }, [role])
 
   const handleAsignarTeam = async (team) => {

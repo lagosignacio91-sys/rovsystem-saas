@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useEquipoTickets } from '../../hooks/useEquipoTickets'
 import { claveFalla, TICKET_ESTADO_LABEL } from '../../lib/equipoTickets'
+import { esCentroApertura } from '../../lib/kitScope'
 
 function equipoLabel(equipo) { return equipo === 'backup' ? 'Backup' : 'Principal' }
 
@@ -201,7 +202,7 @@ export default function PanelEquipoTickets({ centro, role, teamId, sincronizarEs
     setProcesando(true)
     try {
       await confirmarRecepcion(id, { observacion })
-      if (sincronizarEstado) await sincronizarEstado(centro.id)
+      if (sincronizarEstado && !esCentroApertura(centro)) await sincronizarEstado(centro.id)
     } catch (e) {
       console.error('[PanelEquipoTickets/confirmarRecepcion]', e)
       alert('No se pudo confirmar la recepción. Intenta de nuevo.')
