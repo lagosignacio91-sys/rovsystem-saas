@@ -86,9 +86,12 @@ function generarTexto({ centro, datos, rov, redes }) {
 }
 
 export default function TabBitacora({ centro, role }) {
+  // `fecha: null` = "auto = hoy". Se resuelve al día real recién en guardar(): así,
+  // aunque la app quede abierta de un día para otro sin refrescar, la fecha nunca queda
+  // pegada en un día viejo. Si el operador la edita a mano, `fecha` pasa a ser ese string.
   const [datos, setDatos]       = useState({
     piloto: '', team: '', area: '',
-    fecha: hoy(), estadoPuerto: '',
+    fecha: null, estadoPuerto: '',
     jornadaAm: '', jornadaPm: '', observaciones: '',
     parchesInstalados: 0, costurasRealizadas: 0,
   })
@@ -176,14 +179,17 @@ export default function TabBitacora({ centro, role }) {
     setErrorGuardado('')
     try {
       const uid = auth.currentUser?.uid ?? null
-      const entrada = { ...datos, creadoPor: uid, creadoEn: new Date().toISOString() }
+      // Fecha autoritativa AL GUARDAR: hoy() si está en auto (null), o la que editó a mano.
+      const fecha = datos.fecha ?? hoy()
+      const entrada = { ...datos, fecha, creadoPor: uid, creadoEn: new Date().toISOString() }
       // Finaliza: agrega la entrada al historial y borra el borrador en curso en una sola escritura.
       await setDoc(doc(db, ...kitBase(centro), 'datos', 'bitacora'), { lista: arrayUnion(entrada), borrador: deleteField() }, { merge: true })
       setHistorial(h => [...h, entrada])
       setBorradorInfo(null)
       setAvisoBorrador('')
       // Limpia los campos diarios; piloto/team/área se conservan (son de configuración, no diarios).
-      setDatos(d => ({ ...d, fecha: hoy(), estadoPuerto: '', jornadaAm: '', jornadaPm: '', observaciones: '', parchesInstalados: 0, costurasRealizadas: 0 }))
+      // fecha vuelve a null (auto = hoy) para la próxima entrada.
+      setDatos(d => ({ ...d, fecha: null, estadoPuerto: '', jornadaAm: '', jornadaPm: '', observaciones: '', parchesInstalados: 0, costurasRealizadas: 0 }))
       return true
     } catch (e) {
       logError('TabBitacora/guardar', e)
@@ -221,7 +227,7 @@ export default function TabBitacora({ centro, role }) {
       await setDoc(doc(db, ...kitBase(centro), 'datos', 'bitacora'), { borrador: deleteField() }, { merge: true })
       setBorradorInfo(null)
       setAvisoBorrador('')
-      setDatos(d => ({ ...d, fecha: hoy(), estadoPuerto: '', jornadaAm: '', jornadaPm: '', observaciones: '', parchesInstalados: 0, costurasRealizadas: 0 }))
+      setDatos(d => ({ ...d, fecha: null, estadoPuerto: '', jornadaAm: '', jornadaPm: '', observaciones: '', parchesInstalados: 0, costurasRealizadas: 0 }))
     } catch (e) {
       logError('TabBitacora/descartarBorrador', e)
       setErrorGuardado('No se pudo descartar el borrador. Revisa tu conexión e intenta de nuevo.')
@@ -234,7 +240,8 @@ export default function TabBitacora({ centro, role }) {
     // El texto se arma con `datos` actuales; guardar() los limpia al terminar, así
     // que capturamos el texto ANTES de guardar y solo enviamos si el guardado ocurrió.
     if (!validacion.ok) return
-    const texto = generarTexto({ centro, datos, rov, redes })
+    // Resolver la fecha (auto=hoy) para que el texto salga con la fecha real, igual que lo guardado.
+    const texto = generarTexto({ centro, datos: { ...datos, fecha: datos.fecha ?? hoy() }, rov, redes })
     const guardado = await guardar()
     if (!guardado) return
     const url = `whatsapp://send?text=${encodeURIComponent(texto)}`
@@ -243,7 +250,7 @@ export default function TabBitacora({ centro, role }) {
 
   if (cargando) return <p style={{ color: 'var(--gl-text-muted)', fontSize: 13 }}>Cargando...</p>
 
-  const textoGenerado = generarTexto({ centro, datos, rov, redes })
+  const textoGenerado = generarTexto({ centro, datos: { ...datos, fecha: datos.fecha ?? hoy() }, rov, redes })
 
   return (
     <div style={s.wrap}>
@@ -271,7 +278,7 @@ export default function TabBitacora({ centro, role }) {
       <div style={s.divider} />
 
       {/* ---- Campos diarios (edita el operador) ---- */}
-      <Campo label="Fecha" tipo="date" valor={datos.fecha} onChange={v => set('fecha', v)} disabled={!puedEditar} />
+      <Campo label="Fecha" tipo="date" valor={datos.fecha ?? hoy()} onChange={v => set('fecha', v)} disabled={!puedEditar} />
       <Campo label="Estado de puerto" valor={datos.estadoPuerto} onChange={v => set('estadoPuerto', v)} disabled={!puedEditar} placeholder="Ej: Habilitado / Cerrado" />
 
       <div style={s.divider} />

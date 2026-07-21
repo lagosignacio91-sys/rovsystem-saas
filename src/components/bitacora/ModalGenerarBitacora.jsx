@@ -32,8 +32,10 @@ function formatGuardado(iso) {
 }
 
 export default function ModalGenerarBitacora({ centro, ultima, borrador, onCerrar }) {
-  const fecha = hoy()
   const team  = formatTeam(centro.teamAsignado)
+  // Fecha editable: `fechaManual = null` es "auto = hoy" y se resuelve al día real recién
+  // al guardar (no queda pegada si el modal se abrió otro día). Si la edita, manda su valor.
+  const [fechaManual, setFechaManual] = useState(borrador?.fecha ?? null)
   // Si hay borrador en curso, se precarga; si no, área desde la última entrada.
   const [piloto, setPiloto] = useState(borrador?.piloto ?? '')
   const [datos, setDatos] = useState({
@@ -86,6 +88,8 @@ export default function ModalGenerarBitacora({ centro, ultima, borrador, onCerra
     setErrorGuardado('')
     try {
       const uid = auth.currentUser?.uid ?? null
+      // Fecha autoritativa AL GUARDAR: hoy() si está en auto, o la editada a mano.
+      const fecha = fechaManual ?? hoy()
       await guardarBitacora(centro, {
         ...datos, piloto, team, fecha,
         creadoPor: uid, creadoEn: new Date().toISOString(),
@@ -106,7 +110,8 @@ export default function ModalGenerarBitacora({ centro, ultima, borrador, onCerra
     try {
       const uid = auth.currentUser?.uid ?? null
       const guardadoEn = new Date().toISOString()
-      await guardarBorrador(centro, { ...datos, piloto, team, fecha, guardadoEn, guardadoPor: uid })
+      // El borrador guarda la fecha tal cual (null=auto o la editada); se resuelve a hoy al finalizar.
+      await guardarBorrador(centro, { ...datos, piloto, team, fecha: fechaManual, guardadoEn, guardadoPor: uid })
       setBorradorInfo(guardadoEn)
       setAvisoBorrador(`Borrador guardado ${formatGuardado(guardadoEn)}`)
     } catch (e) {
@@ -125,6 +130,7 @@ export default function ModalGenerarBitacora({ centro, ultima, borrador, onCerra
       setBorradorInfo(null)
       setAvisoBorrador('')
       setPiloto('')
+      setFechaManual(null)
       setDatos({ area: ultima?.area ?? '', estadoPuerto: '', jornadaAm: '', jornadaPm: '', observaciones: '', parchesInstalados: 0, costurasRealizadas: 0 })
     } catch (e) {
       logError('ModalGenerarBitacora/descartarBorrador', e)
@@ -156,9 +162,9 @@ export default function ModalGenerarBitacora({ centro, ultima, borrador, onCerra
         <div style={s.fijosRow}>
           <CampoFijo label="Piloto" valor={piloto || '—'} />
           <CampoFijo label="Team" valor={team} />
-          <CampoFijo label="Fecha" valor={fecha} />
         </div>
 
+        <Campo label="Fecha" tipo="date" valor={fechaManual ?? hoy()} onChange={setFechaManual} />
         <Campo label="Área" valor={datos.area} onChange={v => set('area', v)} placeholder="Ej: Aguirre, Canal Darwin" />
         <Campo label="Estado de puerto" valor={datos.estadoPuerto} onChange={v => set('estadoPuerto', v)} placeholder="Ej: Habilitado / Cerrado" />
 
