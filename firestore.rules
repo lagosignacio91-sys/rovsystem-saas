@@ -40,11 +40,14 @@ service cloud.firestore {
       allow create: if isAdmin() && rolValido(request.resource.data.rol);
       allow delete: if isAdmin();
       // Admin edita todo (con rol válido). El propio usuario solo campos seguros:
-      // nunca rol, teamId ni empresaId (evita auto-escalar o cambiarse de empresa).
+      // nunca rol ni empresaId (evita auto-escalar o cambiarse de empresa).
+      // `teamId`/`teamOrigen`/`coberturas` SÍ los puede auto-editar: es la cobertura de
+      // turnos (el operador se ingresa a otro centro y vuelve al suyo). Cambiar el team no
+      // escala privilegios (sigue rol operador); solo lo reubica en un centro que puede operar.
       allow update: if (isAdmin() && rolValido(request.resource.data.rol))
         || (request.auth.uid == uid
             && request.resource.data.diff(resource.data).affectedKeys()
-                 .hasOnly(['nombre', 'telefono', 'foto', 'passwordCambiado', 'estado', 'updatedAt', 'updatedBy', 'aceptoTerminos', 'correoPersonal', 'epp']));
+                 .hasOnly(['nombre', 'telefono', 'foto', 'passwordCambiado', 'estado', 'updatedAt', 'updatedBy', 'aceptoTerminos', 'correoPersonal', 'epp', 'teamId', 'teamOrigen', 'coberturas']));
     }
 
     // ---- Kit de team (apertura) ----

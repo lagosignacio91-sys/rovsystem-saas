@@ -39,7 +39,7 @@ export function useUsuarios() {
     try {
       const CAMPOS_EDITABLES = [
         'nombre', 'rut', 'telefono', 'correoCorporativo', 'foto',
-        'teamId', 'empresaId', 'esRelevo', 'area', 'proveedor', 'estado', 'rol',
+        'teamId', 'teamOrigen', 'coberturas', 'empresaId', 'esRelevo', 'area', 'proveedor', 'estado', 'rol',
         'passwordCambiado', 'movilHabilitado',
       ]
       const patch = Object.fromEntries(

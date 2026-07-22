@@ -1,12 +1,15 @@
 import { useState } from 'react'
 import { useOutletContext } from 'react-router-dom'
-import { Search, Mail, Phone, Gamepad2, Coffee, Users, AtSign, Upload, UserPlus, Pencil, Trash2, HardHat, ChevronDown, ChevronUp } from 'lucide-react'
+import { Search, Mail, Phone, Gamepad2, Coffee, Users, AtSign, Upload, UserPlus, Pencil, Trash2, HardHat, ChevronDown, ChevronUp, MapPinned, RotateCcw, CalendarClock } from 'lucide-react'
 import { t } from '../theme/tokens'
 import { useOperadoresGlobal } from '../hooks/useOperadoresGlobal'
 import { useUsuarios } from '../hooks/useUsuarios'
+import { moverACentro, devolverACentro } from '../lib/cobertura'
 import ImportarCSV from '../components/admin/ImportarCSV'
 import FormOperador from '../components/admin/FormOperador'
 import ModalEpp from '../components/epp/ModalEpp'
+import ModalMoverCentro from '../components/cobertura/ModalMoverCentro'
+import ModalDiasExtras from '../components/cobertura/ModalDiasExtras'
 
 function ContactoRow({ icon: Icon, valor, href }) {
   const base = { fontSize: 10, display: 'flex', alignItems: 'center', gap: 6, overflow: 'hidden' }
@@ -40,6 +43,13 @@ export default function OperadoresPage() {
   const [eppDe, setEppDe]           = useState(null) // { uid, nombre } — operador cuyo EPP se está viendo
   const [gestionarEpp, setGestionarEpp] = useState(false) // catálogo general de EPP (sin operador puntual)
   const [verDescanso, setVerDescanso] = useState(false) // desplegar los "en descanso", colapsados por defecto
+  const [moverUser, setMoverUser]   = useState(null) // usuario (doc) que el admin va a mover a otro centro
+  const [diasDe, setDiasDe]         = useState(null) // usuario cuyos días extras se están viendo
+
+  const handleDevolverAdmin = async (usuario) => {
+    try { await devolverACentro(usuario, centros); setResultado({ ok: true, msg: `↩️ ${usuario.nombre} volvió a su centro` }) }
+    catch { setResultado({ ok: false, msg: `❌ No se pudo devolver a ${usuario.nombre}` }) }
+  }
 
   // uid -> usuario, para leer epp.faltantes sin queries nuevas (useUsuarios ya carga todo).
   const usuariosPorUid = {}
@@ -150,8 +160,12 @@ export default function OperadoresPage() {
           {opsVisibles.map((o, i) => {
             const enFaena = o.estado === 'faena'
             const inicial = (o.nombre?.[0] ?? '?').toUpperCase()
-            const eppFaltantes = usuariosPorUid[o.uid]?.epp?.faltantes ?? {}
+            const usuario = usuariosPorUid[o.uid]
+            const eppFaltantes = usuario?.epp?.faltantes ?? {}
             const eppFaltanCount = Object.values(eppFaltantes).filter(Boolean).length
+            const esOperador = usuario?.rol === 'operador'
+            const cubriendo = !!usuario?.teamOrigen
+            const centroOrigen = cubriendo ? centros.find(c => c.teamAsignado === usuario.teamOrigen) : null
             return (
               <div key={o.centroId + i} style={{ background: t.bgElevated, border: `1px solid ${t.border}`, borderRadius: t.radiusLg, padding: 13 }}>
                 <div style={{ display: 'flex', gap: 11, alignItems: 'center' }}>
@@ -180,6 +194,32 @@ export default function OperadoresPage() {
                     style={{ display: 'flex', alignItems: 'center', gap: 5, width: '100%', marginTop: 8, background: eppFaltanCount > 0 ? t.faultTint : t.okTint, color: eppFaltanCount > 0 ? t.fault : t.ok, border: 'none', borderRadius: t.radiusMd, padding: '5px 9px', fontSize: 10, fontWeight: 700, cursor: 'pointer' }}>
                     <HardHat size={12} /> {eppFaltanCount > 0 ? `EPP · faltan ${eppFaltanCount}` : 'EPP · OK'}
                   </button>
+                )}
+                {role === 'admin' && esOperador && (
+                  <>
+                    {cubriendo && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 8, fontSize: 10, fontWeight: 600, color: t.ok }}>
+                        <MapPinned size={11} /> Cubriendo{centroOrigen ? ` · vuelve a ${centroOrigen.nombre}` : ''}
+                      </div>
+                    )}
+                    <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+                      {cubriendo ? (
+                        <button onClick={() => handleDevolverAdmin(usuario)}
+                          style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, background: t.brandTint, color: t.brandSoft, border: `1px solid ${t.border}`, borderRadius: t.radiusMd, padding: '5px 8px', fontSize: 10, fontWeight: 700, cursor: 'pointer' }}>
+                          <RotateCcw size={11} /> Devolver
+                        </button>
+                      ) : (
+                        <button onClick={() => setMoverUser(usuario)}
+                          style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, background: t.bgInput, color: t.textSecondary, border: `1px solid ${t.border}`, borderRadius: t.radiusMd, padding: '5px 8px', fontSize: 10, fontWeight: 700, cursor: 'pointer' }}>
+                          <MapPinned size={11} /> Mover
+                        </button>
+                      )}
+                      <button onClick={() => setDiasDe(usuario)}
+                        style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, background: t.bgInput, color: t.textSecondary, border: `1px solid ${t.border}`, borderRadius: t.radiusMd, padding: '5px 8px', fontSize: 10, fontWeight: 700, cursor: 'pointer' }}>
+                        <CalendarClock size={11} /> Días extras
+                      </button>
+                    </div>
+                  </>
                 )}
               </div>
             )
@@ -259,6 +299,20 @@ export default function OperadoresPage() {
 
       {gestionarEpp && (
         <ModalEpp role="admin" onCerrar={() => setGestionarEpp(false)} />
+      )}
+
+      {moverUser && (
+        <ModalMoverCentro
+          nombre={moverUser.nombre}
+          centros={centros}
+          teamActual={moverUser.teamId ?? null}
+          onElegir={(centro) => moverACentro(moverUser, centro, centros)}
+          onCerrar={() => setMoverUser(null)}
+        />
+      )}
+
+      {diasDe && (
+        <ModalDiasExtras nombre={diasDe.nombre} coberturas={diasDe.coberturas ?? []} onCerrar={() => setDiasDe(null)} />
       )}
 
       {aBorrar && (

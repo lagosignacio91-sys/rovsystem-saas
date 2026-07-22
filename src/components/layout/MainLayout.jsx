@@ -1,6 +1,8 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
-import { LogOut, Menu, X, SlidersHorizontal, KeyRound, HardHat } from 'lucide-react'
+import { LogOut, Menu, X, SlidersHorizontal, KeyRound, HardHat, MapPinned, RotateCcw, CalendarClock } from 'lucide-react'
+import { doc, onSnapshot } from 'firebase/firestore'
+import { db } from '../../lib/firebase'
 import { useAuth } from '../../hooks/useAuth'
 import { useCentros } from '../../hooks/useCentros'
 import { useDespachosGlobal } from '../../hooks/useDespachosGlobal'
@@ -9,11 +11,15 @@ import { useAppConfig } from '../../hooks/useAppConfig'
 import { useEmpresas } from '../../hooks/useEmpresas'
 import { NAV_META } from '../../config/appDefaults'
 import { t } from '../../theme/tokens'
+import { logError } from '../../lib/logger'
+import { moverACentro, devolverACentro } from '../../lib/cobertura'
 import ThemeToggle from '../kit/ThemeToggle'
 import SelectorEmpresa from '../ui/SelectorEmpresa'
 import ModalPersonalizar from '../admin/ModalPersonalizar'
 import ModalCambiarPassword from '../auth/ModalCambiarPassword'
 import ModalEpp from '../epp/ModalEpp'
+import ModalMoverCentro from '../cobertura/ModalMoverCentro'
+import ModalDiasExtras from '../cobertura/ModalDiasExtras'
 import { ToastProvider } from '../ui/Toast'
 import { toast } from '../ui/toastBus'
 import MobileUpsell from './MobileUpsell'
@@ -47,7 +53,27 @@ export default function MainLayout() {
   const [personalizar, setPersonalizar]   = useState(false)
   const [cambiarClave, setCambiarClave]   = useState(false)
   const [miEpp, setMiEpp]                 = useState(false)
+  const [moverCentro, setMoverCentro]     = useState(false)
+  const [diasExtras, setDiasExtras]       = useState(false)
+  const [miDoc, setMiDoc]                 = useState(null) // doc propio de usuarios (teamOrigen/coberturas en vivo)
   const location                = useLocation()
+
+  // Suscripción al doc propio para la cobertura de turnos (solo operador/apertura).
+  const esCampo = role === 'operador' || role === 'apertura'
+  useEffect(() => {
+    if (!user?.uid || !esCampo) return
+    const unsub = onSnapshot(doc(db, 'usuarios', user.uid),
+      (snap) => setMiDoc(snap.exists() ? { id: snap.id, ...snap.data() } : null),
+      (e) => logError('MainLayout/miDoc', e))
+    return () => unsub()
+  }, [user?.uid, esCampo])
+
+  const cubriendo    = !!miDoc?.teamOrigen
+  const centroActualCobertura = cubriendo ? centrosState.centros.find(c => c.teamAsignado === miDoc.teamId) : null
+  const handleVolver = async () => {
+    try { await devolverACentro(miDoc, centrosState.centros); toast.solicitud('Volviste a tu centro') }
+    catch (e) { logError('MainLayout/volver', e) }
+  }
 
   // Para operadores: auto-aplicar la empresa que les corresponde (sin que puedan
   // cambiarla). Se ajusta durante el render al tener los datos —guardado por
@@ -126,6 +152,32 @@ export default function MainLayout() {
           {navItems(() => setDrawerOpen(false))}
         </nav>
 
+        {/* Cobertura de turnos (operador/apertura): ingresarse a otro centro y volver. */}
+        {esCampo && (
+          <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 6, paddingTop: 12, borderTop: `1px solid ${t.border}` }}>
+            {cubriendo ? (
+              <>
+                <div style={{ fontSize: 10, color: t.ok, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <MapPinned size={12} /> Cubriendo{centroActualCobertura ? ` en ${centroActualCobertura.nombre}` : ''}
+                </div>
+                <button onClick={handleVolver}
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, background: t.brandTint, border: `1px solid ${t.border}`, color: t.brandSoft, borderRadius: t.radiusMd, padding: '7px 10px', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>
+                  <RotateCcw size={13} /> Volver a mi centro
+                </button>
+              </>
+            ) : (
+              <button onClick={() => setMoverCentro(true)}
+                style={{ display: 'flex', alignItems: 'center', gap: 6, background: t.brandTint, border: `1px solid ${t.border}`, color: t.brandSoft, borderRadius: t.radiusMd, padding: '7px 10px', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>
+                <MapPinned size={13} /> Ingresarme a otro centro
+              </button>
+            )}
+            <button onClick={() => setDiasExtras(true)}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'transparent', border: `1px solid ${t.border}`, color: t.textSecondary, borderRadius: t.radiusMd, padding: '7px 10px', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>
+              <CalendarClock size={13} /> Mis días extras
+            </button>
+          </div>
+        )}
+
         <div style={userBox}>
           <div style={avatar}>{inicial}</div>
           <div style={{ flex: 1, lineHeight: 1.25, minWidth: 0 }}>
@@ -198,6 +250,16 @@ export default function MainLayout() {
       {personalizar && <ModalPersonalizar onCerrar={() => setPersonalizar(false)} />}
       {cambiarClave && <ModalCambiarPassword onCerrar={() => setCambiarClave(false)} />}
       {miEpp && <ModalEpp uid={user?.uid} nombre={nombre} role={role} onCerrar={() => setMiEpp(false)} />}
+      {moverCentro && (
+        <ModalMoverCentro
+          nombre={nombre}
+          centros={centrosState.centros}
+          teamActual={miDoc?.teamId ?? null}
+          onElegir={(centro) => moverACentro(miDoc, centro, centrosState.centros)}
+          onCerrar={() => setMoverCentro(false)}
+        />
+      )}
+      {diasExtras && <ModalDiasExtras nombre={nombre} coberturas={miDoc?.coberturas ?? []} onCerrar={() => setDiasExtras(false)} />}
       <ToastProvider />
     </div>
   )
