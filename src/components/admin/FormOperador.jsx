@@ -168,6 +168,24 @@ export default function FormOperador({ inicial, esEdicion, onGuardar, onCerrar }
           </label>
         </div>
 
+        {/* WhatsApp de bitácora (por operador) */}
+        <div style={styles.movilBox}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={form.whatsappBitacora !== false}
+              onChange={e => set('whatsappBitacora', e.target.checked)}
+              style={{ accentColor: '#22c55e', width: '18px', height: '18px' }}
+            />
+            <span>
+              <span style={{ display: 'block', color: '#f1f5f9', fontSize: '13px', fontWeight: 600 }}>📲 Enviar bitácora por WhatsApp</span>
+              <span style={{ display: 'block', color: '#64748b', fontSize: '11px', marginTop: '2px' }}>
+                Si está apagado, este operador no verá el botón de WhatsApp en su bitácora (igual queda registrada).
+              </span>
+            </span>
+          </label>
+        </div>
+
         {errorLocal && <p style={styles.error}>{errorLocal}</p>}
 
         <div style={styles.btns}>

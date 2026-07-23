@@ -19,6 +19,7 @@ export function useAuth() {
   const [empresaId,  setEmpresaId]  = useState(null)
   const [nombre,     setNombre]     = useState(null)
   const [movilHabilitado, setMovilHabilitado] = useState(false)
+  const [whatsappBitacora, setWhatsappBitacora] = useState(true)
   const [aceptoTerminos,  setAceptoTerminos]  = useState(false)
   const [correoPersonal,  setCorreoPersonal]  = useState(null)
   const [loading,    setLoading]    = useState(true)
@@ -46,6 +47,8 @@ export function useAuth() {
           setEmpresaId(data.empresaId || null)
           setNombre(data.nombre || null)
           setMovilHabilitado(data.movilHabilitado === true)
+          // Default-on: se muestra el WhatsApp de bitácora salvo que el admin lo apague (=== false).
+          setWhatsappBitacora(data.whatsappBitacora !== false)
           setAceptoTerminos(!!data.aceptoTerminos?.fecha)
           setCorreoPersonal(data.correoPersonal || null)
         } catch (e) {
@@ -65,6 +68,7 @@ export function useAuth() {
         setEmpresaId(null)
         setNombre(null)
         setMovilHabilitado(false)
+        setWhatsappBitacora(true)
         setAceptoTerminos(false)
         setCorreoPersonal(null)
         setAuthError(null)
@@ -145,5 +149,5 @@ export function useAuth() {
     }
   }
 
-  return { user, role, teamId, empresaId, nombre, movilHabilitado, aceptoTerminos, correoPersonal, isOwner: role === 'owner', isVentas: role === 'ventas', loading, authError, signIn, signOut, cambiarPassword, aceptarTerminos, guardarCorreoPersonal }
+  return { user, role, teamId, empresaId, nombre, movilHabilitado, whatsappBitacora, aceptoTerminos, correoPersonal, isOwner: role === 'owner', isVentas: role === 'ventas', loading, authError, signIn, signOut, cambiarPassword, aceptarTerminos, guardarCorreoPersonal }
 }
