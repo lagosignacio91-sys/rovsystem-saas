@@ -28,7 +28,7 @@ import Reloj from './Reloj'
 import './layout.css'
 
 export default function MainLayout() {
-  const { user, role, teamId, empresaId, nombre, movilHabilitado, signOut } = useAuth()
+  const { user, role, teamId, empresaId, nombre, movilHabilitado, whatsappBitacora, signOut } = useAuth()
   const { nav, branding }       = useAppConfig()
   const esMovil                 = useIsMobile(899)
   const centrosState            = useCentros()
@@ -234,7 +234,7 @@ export default function MainLayout() {
           </div>
         ) : (
           <main className="gl-content">
-            <Outlet context={{ ...centrosState, role, uid: user?.uid, teamId, empresaActiva, centrosConFaltantes }} />
+            <Outlet context={{ ...centrosState, role, uid: user?.uid, teamId, empresaActiva, centrosConFaltantes, whatsappBitacora }} />
           </main>
         )}
 

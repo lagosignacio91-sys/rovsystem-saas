@@ -72,7 +72,7 @@ function OpRow({ op, enviadaHoy }) {
 }
 
 export default function BitacorasPage() {
-  const { centros, role, uid, teamId, sincronizarEstado, actualizarCentro, empresaActiva } = useOutletContext()
+  const { centros, role, uid, teamId, sincronizarEstado, actualizarCentro, empresaActiva, whatsappBitacora } = useOutletContext()
   const base = role === 'operador'
     ? centros.filter(c => c.teamAsignado === teamId)
     : (empresaActiva ? centros.filter(c => c.empresaId === empresaActiva.id) : centros)
@@ -198,11 +198,15 @@ export default function BitacorasPage() {
                             style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 44, gap: 4, background: t.bgInput, border: `1px solid ${t.border}`, color: t.textSecondary, borderRadius: t.radiusMd, padding: '4px 10px', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
                             <Pencil size={12} /> Editar
                           </button>
-                          <button onClick={() => handleEnviarWhatsApp(b, centro, key)} disabled={descargando === key}
-                            title="Enviar por WhatsApp"
-                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 44, gap: 4, background: '#22c55e18', border: '1px solid #22c55e40', color: '#16a34a', borderRadius: t.radiusMd, padding: '4px 12px', fontSize: 11, fontWeight: 600, cursor: 'pointer', opacity: descargando === key ? 0.6 : 1 }}>
-                            <MessageCircle size={12} /> {descargando === key ? '…' : 'Enviar por WhatsApp'}
-                          </button>
+                          {/* El admin puede ocultar el WhatsApp por operador (whatsappBitacora=false).
+                              La bitácora igual se genera/guarda; solo desaparece este botón de compartir. */}
+                          {whatsappBitacora !== false && (
+                            <button onClick={() => handleEnviarWhatsApp(b, centro, key)} disabled={descargando === key}
+                              title="Enviar por WhatsApp"
+                              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 44, gap: 4, background: '#22c55e18', border: '1px solid #22c55e40', color: '#16a34a', borderRadius: t.radiusMd, padding: '4px 12px', fontSize: 11, fontWeight: 600, cursor: 'pointer', opacity: descargando === key ? 0.6 : 1 }}>
+                              <MessageCircle size={12} /> {descargando === key ? '…' : 'Enviar por WhatsApp'}
+                            </button>
+                          )}
                           <button onClick={() => setAEliminar({ centro, entrada: b })}
                             title="Eliminar esta bitácora"
                             style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 44, minWidth: 44, background: t.faultTint, color: t.fault, border: `1px solid ${t.fault}40`, borderRadius: t.radiusMd, padding: '4px 8px', cursor: 'pointer' }}>

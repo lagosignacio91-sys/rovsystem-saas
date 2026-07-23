@@ -40,7 +40,7 @@ export function useUsuarios() {
       const CAMPOS_EDITABLES = [
         'nombre', 'rut', 'telefono', 'correoCorporativo', 'foto',
         'teamId', 'teamOrigen', 'coberturas', 'empresaId', 'esRelevo', 'area', 'proveedor', 'estado', 'rol',
-        'passwordCambiado', 'movilHabilitado',
+        'passwordCambiado', 'movilHabilitado', 'whatsappBitacora',
       ]
       const patch = Object.fromEntries(
         Object.entries(datos).filter(([k]) => CAMPOS_EDITABLES.includes(k))
