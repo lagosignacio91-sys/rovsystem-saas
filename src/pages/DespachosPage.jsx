@@ -44,6 +44,7 @@ function DespachoCard({ d, role, marcarEnviado, enviarItemsPendientes, onAbrirRe
   const recibido = d.estado === 'recibido'
   const items = normalizarItemsLegacy(d)
   const pendientesItems = items.filter(i => i.estadoItem === 'pendiente')
+  const enviadosItems   = items.filter(i => i.estadoItem === 'enviado')
   // Evita que un doble clic dispare "Marcar enviado" dos veces para el mismo despacho.
   const [enviando, setEnviando] = useState(false)
 
@@ -106,14 +107,21 @@ function DespachoCard({ d, role, marcarEnviado, enviarItemsPendientes, onAbrirRe
       {!recibido && (
         <div style={{ display: 'flex', gap: 7, marginTop: 10, paddingTop: 9, borderTop: `1px solid ${t.border}`, flexWrap: 'wrap' }}>
           {(role === 'admin' || role === 'supervisor') && d.estado === 'pendiente' && (
-            <>
-              <Button size="sm" icon={Send} onClick={enviarWhatsApp} style={{ background: '#22c55e', color: '#06240f' }}>WhatsApp</Button>
-              <Button size="sm" variant="secondary" icon={Truck} onClick={handleMarcarEnviado} disabled={enviando}>
-                {enviando ? 'Enviando...' : 'Marcar enviado'}
-              </Button>
-            </>
+            <Button size="sm" icon={Send} onClick={enviarWhatsApp} style={{ background: '#22c55e', color: '#06240f' }}>WhatsApp</Button>
           )}
-          {(role === 'admin' || role === 'operador') && (d.estado === 'enviado' || d.estado === 'parcial') && (
+          {/* El botón de envío sigue a los ítems PENDIENTES (no al estado global): así un
+              despacho "parcial" con un ítem que quedó pendiente sí se puede completar
+              (antes solo aparecía si estado==='pendiente' → quedaba atascado). */}
+          {(role === 'admin' || role === 'supervisor') && pendientesItems.length > 0 && (
+            <Button size="sm" variant="secondary" icon={Truck} onClick={handleMarcarEnviado} disabled={enviando}>
+              {enviando ? 'Enviando...'
+                : pendientesItems.length === items.length ? 'Marcar enviado'
+                : `Enviar pendientes (${pendientesItems.length})`}
+            </Button>
+          )}
+          {/* Recepción solo si hay algo en camino (estadoItem 'enviado'): evita el modal
+              vacío cuando lo único que resta está en 'pendiente'. */}
+          {(role === 'admin' || role === 'operador') && enviadosItems.length > 0 && (
             <Button size="sm" variant="secondary" icon={CircleCheck} onClick={() => onAbrirRecepcion(d)} style={{ borderColor: t.ok, color: t.ok }}>Confirmar recepción</Button>
           )}
           {(role === 'admin' || role === 'supervisor') && (
