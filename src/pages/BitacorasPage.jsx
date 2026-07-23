@@ -63,7 +63,7 @@ function OpRow({ op, enviadaHoy }) {
       {!enviadaHoy && (
         <a href={waHref} target="_blank" rel="noopener noreferrer"
           title="Solicitar bitácora por WhatsApp"
-          style={{ display: 'flex', alignItems: 'center', gap: 4, background: '#22c55e18', color: '#16a34a', border: '1px solid #22c55e40', borderRadius: t.radiusMd, padding: '4px 8px', fontSize: 10, fontWeight: 600, textDecoration: 'none', flexShrink: 0 }}>
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 44, gap: 4, background: '#22c55e18', color: '#16a34a', border: '1px solid #22c55e40', borderRadius: t.radiusMd, padding: '4px 10px', fontSize: 10, fontWeight: 600, textDecoration: 'none', flexShrink: 0 }}>
           <MessageCircle size={13} /> WA
         </a>
       )}
@@ -164,7 +164,7 @@ export default function BitacorasPage() {
                     <button
                       onClick={() => setGenerarPara({ centro, ultima, borrador: bitacora?.borrador ?? null })}
                       title="Generar bitácora diaria"
-                      style={{ display: 'flex', alignItems: 'center', gap: 4, background: t.brand, color: '#fff', border: 'none', borderRadius: t.radiusMd, padding: '5px 9px', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
+                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 44, gap: 4, background: t.brand, color: '#fff', border: 'none', borderRadius: t.radiusMd, padding: '5px 12px', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
                       <Plus size={13} /> Generar bitácora diaria
                     </button>
                   )}
@@ -172,7 +172,7 @@ export default function BitacorasPage() {
                     <button
                       onClick={() => setCentroActivo(centro)}
                       title="Abrir panel del centro"
-                      style={{ display: 'flex', alignItems: 'center', gap: 4, background: t.brandTint, color: t.brandSoft, border: `1px solid ${t.border}`, borderRadius: t.radiusMd, padding: '5px 9px', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
+                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 44, gap: 4, background: t.brandTint, color: t.brandSoft, border: `1px solid ${t.border}`, borderRadius: t.radiusMd, padding: '5px 12px', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
                       <ExternalLink size={13} /> Panel
                     </button>
                   )}
@@ -194,12 +194,12 @@ export default function BitacorasPage() {
                         <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
                           <button onClick={() => handleEnviarWhatsApp(b, centro, key)} disabled={descargando === key}
                             title="Enviar por WhatsApp"
-                            style={{ display: 'flex', alignItems: 'center', gap: 4, background: '#22c55e18', border: '1px solid #22c55e40', color: '#16a34a', borderRadius: t.radiusMd, padding: '4px 9px', fontSize: 11, fontWeight: 600, cursor: 'pointer', opacity: descargando === key ? 0.6 : 1 }}>
+                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 44, gap: 4, background: '#22c55e18', border: '1px solid #22c55e40', color: '#16a34a', borderRadius: t.radiusMd, padding: '4px 12px', fontSize: 11, fontWeight: 600, cursor: 'pointer', opacity: descargando === key ? 0.6 : 1 }}>
                             <MessageCircle size={12} /> {descargando === key ? '…' : 'Enviar por WhatsApp'}
                           </button>
                           <button onClick={() => setAEliminar({ centro, entrada: b })}
                             title="Eliminar esta bitácora"
-                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: t.faultTint, color: t.fault, border: `1px solid ${t.fault}40`, borderRadius: t.radiusMd, padding: '4px 8px', cursor: 'pointer' }}>
+                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 44, minWidth: 44, background: t.faultTint, color: t.fault, border: `1px solid ${t.fault}40`, borderRadius: t.radiusMd, padding: '4px 8px', cursor: 'pointer' }}>
                             <Trash2 size={12} />
                           </button>
                         </div>
@@ -230,7 +230,7 @@ export default function BitacorasPage() {
                     <button
                       onClick={() => setDetalleAbierto({ centro, entrada: ultima })}
                       title="Ver la última bitácora registrada"
-                      style={{ display: 'flex', alignItems: 'center', gap: 4, background: t.bgInput, color: t.textPrimary, border: `1px solid ${t.border}`, borderRadius: t.radiusMd, padding: '5px 9px', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
+                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 44, gap: 4, background: t.bgInput, color: t.textPrimary, border: `1px solid ${t.border}`, borderRadius: t.radiusMd, padding: '5px 12px', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
                       <Eye size={13} /> Ver bitácora
                     </button>
                   )}

@@ -195,8 +195,8 @@ export default function TabEntregaTurno({ centro, role }) {
 const s = {
   topBar:     { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   titulo:     { fontSize: 14, fontWeight: 600, color: 'var(--gl-text-primary)' },
-  btnIcon:    { background: 'var(--gl-bg-input)', border: '1px solid var(--gl-border)', borderRadius: 7, color: 'var(--gl-text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '5px 7px' },
-  btnPrimary: { background: 'var(--gl-brand)', border: 'none', color: '#fff', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 },
+  btnIcon:    { background: 'var(--gl-bg-input)', border: '1px solid var(--gl-border)', borderRadius: 7, color: 'var(--gl-text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 44, minWidth: 44, padding: '5px 7px' },
+  btnPrimary: { background: 'var(--gl-brand)', border: 'none', color: '#fff', borderRadius: 8, padding: '6px 14px', cursor: 'pointer', fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 44, gap: 4 },
   card:       { background: 'var(--gl-bg-input)', border: '1px solid var(--gl-border)', borderRadius: 10, padding: '10px 12px' },
   cardTop:    { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 },
   fecha:      { fontSize: 11, color: 'var(--gl-text-muted)' },

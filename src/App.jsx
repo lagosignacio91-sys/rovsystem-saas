@@ -102,7 +102,7 @@ function AnimatedRoutes() {
 export default function App() {
   return (
     <ErrorBoundary>
-      <BrowserRouter>
+      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <AnimatedRoutes />
       </BrowserRouter>
     </ErrorBoundary>

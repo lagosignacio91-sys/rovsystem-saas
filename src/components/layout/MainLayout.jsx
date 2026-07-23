@@ -84,6 +84,10 @@ export default function MainLayout() {
   }
 
   const usuarioLabel = nombre || user?.email?.split('@')[0] || ''
+  // Nombres largos ("RICHARD MIGUEL LAGOS COÑOECAR") no caben en el pie del drawer junto
+  // a los iconos: mostrar primer nombre + último apellido.
+  const partesNombre = usuarioLabel.trim().split(/\s+/)
+  const nombreCorto  = partesNombre.length > 2 ? `${partesNombre[0]} ${partesNombre[partesNombre.length - 1]}` : usuarioLabel
   const inicial = (usuarioLabel[0] ?? '?').toUpperCase()
   const badges  = { despachos: pendientes.length, centros: totalCentrosConFaltantes }
 
@@ -138,7 +142,7 @@ export default function MainLayout() {
       <div className={`gl-drawer-scrim ${drawerOpen ? 'open' : ''}`} onClick={() => setDrawerOpen(false)} />
 
       {/* Sidebar / Drawer */}
-      <aside className={`gl-sidebar ${drawerOpen ? 'open' : ''}`}>
+      <aside className={`gl-sidebar ${drawerOpen ? 'open' : ''}`} {...(esMovil && !drawerOpen ? { inert: true, 'aria-hidden': 'true' } : {})}>
         <div style={brandBox}>
           <div style={logoWrap}><img src={branding.logoDataUrl || '/logo.png'} alt="GL" style={logoImg} /></div>
           <div style={{ lineHeight: 1.25 }}>
@@ -181,7 +185,7 @@ export default function MainLayout() {
         <div style={userBox}>
           <div style={avatar}>{inicial}</div>
           <div style={{ flex: 1, lineHeight: 1.25, minWidth: 0 }}>
-            <div style={{ fontSize: 11, color: t.textPrimary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{usuarioLabel}</div>
+            <div style={{ fontSize: 11, color: t.textPrimary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{nombreCorto}</div>
             <div style={{ fontSize: 9, color: t.textMuted, textTransform: 'capitalize' }}>{role ?? '—'}</div>
           </div>
           {(role === 'operador' || role === 'apertura') && (
