@@ -59,7 +59,7 @@ function CentroTurnosBody({ centro, role }) {
     <>
       {(canCreate && !tieneReporte) && (
         <button onClick={() => setModal(true)}
-          style={{ display: 'flex', alignItems: 'center', gap: 5, background: t.brand, border: 'none', color: '#fff', borderRadius: t.radiusMd, padding: '6px 13px', cursor: 'pointer', fontSize: t.textSm, fontWeight: 600, marginBottom: 10 }}>
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 44, gap: 5, background: t.brand, border: 'none', color: '#fff', borderRadius: t.radiusMd, padding: '6px 13px', cursor: 'pointer', fontSize: t.textSm, fontWeight: 600, marginBottom: 10 }}>
           <Plus size={14} /> Nueva entrega
         </button>
       )}

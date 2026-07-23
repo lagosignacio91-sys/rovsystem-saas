@@ -118,9 +118,10 @@ export default function Login() {
 
 const s = {
   wrapper: {
-    minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
+    minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center',
     position: 'relative', overflow: 'hidden', padding: 20,
-    background: `url('/fifish-ego.jpg') center/cover no-repeat`,
+    // Capa de oscurecimiento sobre la foto para garantizar contraste del texto (WCAG AA).
+    background: `linear-gradient(rgba(3,7,15,0.55), rgba(3,7,15,0.72)), url('/fifish-ego.jpg') center/cover no-repeat`,
   },
   form: {
     position: 'relative', zIndex: 1, width: '100%', maxWidth: 340,
@@ -138,9 +139,9 @@ const s = {
     transform: 'perspective(400px) rotateX(6deg) scale(1.05)',
     transformOrigin: 'center bottom',
   },
-  title:   { color: 'rgba(255,255,255,0.55)', fontSize: 32, fontWeight: 700, margin: '0 0 4px', textShadow: '0 2px 12px rgba(0,0,0,0.6)', letterSpacing: '-0.5px' },
-  titleSub:{ color: 'rgba(255,255,255,0.55)', fontWeight: 400, fontSize: 22 },
-  sub:     { color: '#000', margin: 0, fontSize: 13, fontWeight: 600 },
+  title:   { color: 'rgba(255,255,255,0.82)', fontSize: 32, fontWeight: 700, margin: '0 0 4px', textShadow: '0 2px 12px rgba(0,0,0,0.6)', letterSpacing: '-0.5px' },
+  titleSub:{ color: 'rgba(255,255,255,0.7)', fontWeight: 400, fontSize: 22 },
+  sub:     { color: 'rgba(255,255,255,0.9)', margin: 0, fontSize: 13, fontWeight: 600, textShadow: '0 1px 6px rgba(0,0,0,0.7)' },
   inputBox: (err) => ({
     display: 'flex', alignItems: 'center', gap: 10,
     background: 'rgba(0,0,0,0.35)',
@@ -151,7 +152,7 @@ const s = {
     boxShadow: err ? '0 0 0 2px rgba(255,107,107,0.3)' : 'none',
   }),
   input:   { flex: 1, background: 'transparent', border: 'none', outline: 'none', color: '#fff', fontSize: 15, minWidth: 0 },
-  eyeBtn:  { background: 'none', border: 'none', cursor: 'pointer', padding: 2, display: 'flex', alignItems: 'center' },
+  eyeBtn:  { background: 'none', border: 'none', cursor: 'pointer', padding: 2, minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center' },
   errorBox:{ display: 'flex', alignItems: 'center', gap: 7, background: 'rgba(255,107,107,0.15)', border: '1px solid rgba(255,107,107,0.4)', borderRadius: 8, padding: '8px 11px' },
   submitBtn: {
     marginTop: 4, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
@@ -168,6 +169,6 @@ const s = {
   iosCard: { background: t.bgElevated, border: `1px solid ${t.border}`, borderRadius: t.radiusLg, width: '100%', maxWidth: 340, padding: 18 },
   iosHead: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
   iosList: { margin: 0, paddingLeft: 20, color: t.textSecondary, fontSize: t.textSm, lineHeight: 1.7 },
-  legalLinks: { marginTop: 18, textAlign: 'center', fontSize: 11, color: '#000' },
-  legalLink:  { color: '#000', textDecoration: 'underline', textUnderlineOffset: 2 },
+  legalLinks: { marginTop: 18, textAlign: 'center', fontSize: 11, color: 'rgba(255,255,255,0.6)' },
+  legalLink:  { color: 'rgba(255,255,255,0.8)', textDecoration: 'underline', textUnderlineOffset: 2 },
 }

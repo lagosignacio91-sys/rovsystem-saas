@@ -38,6 +38,7 @@
   align-items: center;
   gap: var(--gl-space-3);
   padding: 10px 12px;
+  min-height: 44px;
   border-radius: var(--gl-radius-md);
   color: var(--gl-text-secondary);
   font-size: var(--gl-text-sm);
@@ -118,9 +119,15 @@
     justify-content: space-around;
     padding: 0 4px;
     padding-bottom: env(safe-area-inset-bottom, 0);
+    /* Con muchas secciones (admin/supervisor) los ítems no caben: se desliza en
+       horizontal en vez de comprimirse. Con pocos ítems, flex-grow los expande. */
+    overflow-x: auto;
+    scrollbar-width: none;
   }
+  .gl-bottomnav::-webkit-scrollbar { display: none; }
   .gl-bottomnav-item {
-    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    flex: 1 0 auto; min-width: 62px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
     gap: 3px; color: var(--gl-text-muted); background: transparent; border: none; cursor: pointer;
     font-size: 11px; position: relative;
   }
@@ -254,6 +261,9 @@
     width: 100% !important;
     max-width: 100% !important;
     height: 300px;
+    /* Nunca más alto que el espacio libre (topbar + barra inferior + áreas seguras):
+       en horizontal evita que la cabecera del panel quede recortada arriba. */
+    max-height: calc(100dvh - 56px - var(--gl-bottomnav-h) - env(safe-area-inset-top) - env(safe-area-inset-bottom)) !important;
     border-left: none !important;
     border-top: 1px solid var(--gl-border);
     border-radius: var(--gl-radius-xl) var(--gl-radius-xl) 0 0 !important;

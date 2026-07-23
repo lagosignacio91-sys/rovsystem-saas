@@ -478,7 +478,7 @@ const leyenda = {
   fila:  { display: 'flex', alignItems: 'center', gap: 7 },
   punto: { width: 8, height: 8, borderRadius: '50%', flexShrink: 0 },
   label: { fontSize: 11, color: 'var(--gl-text-secondary)', whiteSpace: 'nowrap' },
-  btn:   { display: 'flex', alignItems: 'center', gap: 4, borderRadius: 'var(--gl-radius-md)', padding: '6px 9px', cursor: 'pointer', boxShadow: 'var(--gl-shadow-sm)' },
+  btn:   { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, minHeight: 44, minWidth: 44, borderRadius: 'var(--gl-radius-md)', padding: '6px 11px', cursor: 'pointer', boxShadow: 'var(--gl-shadow-sm)' },
 }
 const stats = {
   box:   { position: 'absolute', bottom: 14, left: 14, zIndex: 600, borderRadius: 'var(--gl-radius-md)', padding: '7px 4px 7px 10px', display: 'flex', gap: 0, boxShadow: 'var(--gl-shadow-md)' },

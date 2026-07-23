@@ -51,9 +51,15 @@ export default function MobileUpsell({ branding = {}, nombre, correo, onSignOut 
           <MessageCircle size={20} /> Activar por WhatsApp
         </a>
       ) : (
-        <div style={{ fontSize: t.textSm, color: t.textMuted, maxWidth: 300, lineHeight: 1.6 }}>
-          Contacta a <b style={{ color: t.brandSoft }}>HyperionX</b> para activar la versión móvil de tu usuario.
-        </div>
+        <a href={`mailto:contacto@hyperionx.tech?subject=${encodeURIComponent('Activar versión móvil RovSystem')}&body=${mensaje}`}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 10, textDecoration: 'none',
+            background: t.brand, color: '#fff', fontWeight: 700, fontSize: t.textBase,
+            padding: '14px 24px', borderRadius: t.radiusFull, boxShadow: '0 6px 20px rgba(0,0,0,0.35)',
+            minHeight: 48,
+          }}>
+          <MessageCircle size={20} /> Escribir a HyperionX
+        </a>
       )}
 
       {/* Recordatorio: en computador sí funciona */}
