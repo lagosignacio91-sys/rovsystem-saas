@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
 import { db, auth } from '../../lib/firebase'
 import { doc, setDoc, getDoc, onSnapshot, arrayUnion, deleteField } from 'firebase/firestore'
-import { Send, FileText, ChevronDown, ChevronUp, History } from 'lucide-react'
+import { Send, FileText, ChevronDown, ChevronUp, History, Pencil } from 'lucide-react'
 import { logError } from '../../lib/logger'
 import { validarBitacora } from '../../lib/validaciones'
 import { kitBase } from '../../lib/kitScope'
+import ModalGenerarBitacora from '../bitacora/ModalGenerarBitacora'
 
 // Fecha LOCAL (no UTC): con UTC, cualquier bitácora cerrada de noche en Chile
 // (después de las ~20:00-21:00 hora local, según DST) quedaba fechada al día
@@ -106,8 +107,18 @@ export default function TabBitacora({ centro, role }) {
   const [errorGuardado, setErrorGuardado] = useState('')
   const [mostrarVista, setMostrarVista] = useState(false)
   const [mostrarHistorial, setMostrarHistorial] = useState(false)
+  const [editando, setEditando] = useState(null) // entrada del historial que se está corrigiendo
 
   const puedEditar = role === 'operador' || role === 'apertura'
+
+  // Al cerrar el modal de edición, refrescar el historial (este tab lee por getDoc, no live).
+  const cerrarEdicion = async () => {
+    setEditando(null)
+    try {
+      const snap = await getDoc(doc(db, ...kitBase(centro), 'datos', 'bitacora'))
+      if (snap.exists()) setHistorial(snap.data().lista ?? [])
+    } catch (e) { logError('TabBitacora/refrescarHistorial', e) }
+  }
 
   useEffect(() => {
     const cargar = async () => {
@@ -378,7 +389,15 @@ export default function TabBitacora({ centro, role }) {
           )}
           {historialMes.map((b, i) => (
             <div key={i} style={s.historialItem}>
-              <div style={s.historialFecha}>{formatFecha(b.fecha)} — {b.piloto || 'Sin piloto'}</div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 4 }}>
+                <div style={{ ...s.historialFecha, marginBottom: 0 }}>{formatFecha(b.fecha)} — {b.piloto || 'Sin piloto'}</div>
+                {puedEditar && (
+                  <button onClick={() => setEditando(b)} title="Editar bitácora"
+                    style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 4, minHeight: 40, background: 'var(--gl-bg-elevated)', border: '1px solid var(--gl-border)', color: 'var(--gl-text-secondary)', borderRadius: 6, padding: '4px 10px', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}>
+                    <Pencil size={12} /> Editar
+                  </button>
+                )}
+              </div>
               {b.estadoPuerto && <div style={s.historialLinea}><b>Puerto:</b> {b.estadoPuerto}</div>}
               {b.jornadaAm && <div style={s.historialLinea}><b>AM:</b> {b.jornadaAm}</div>}
               {b.jornadaPm && <div style={s.historialLinea}><b>PM:</b> {b.jornadaPm}</div>}
@@ -389,6 +408,14 @@ export default function TabBitacora({ centro, role }) {
             </div>
           ))}
         </div>
+      )}
+
+      {editando && (
+        <ModalGenerarBitacora
+          centro={centro}
+          editando={editando}
+          onCerrar={cerrarEdicion}
+        />
       )}
     </div>
   )

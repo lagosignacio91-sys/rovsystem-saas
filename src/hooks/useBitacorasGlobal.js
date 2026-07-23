@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
-import { db } from '../lib/firebase'
-import { doc, onSnapshot, setDoc, arrayUnion, deleteField } from 'firebase/firestore'
+import { db, auth } from '../lib/firebase'
+import { doc, onSnapshot, setDoc, arrayUnion, deleteField, runTransaction } from 'firebase/firestore'
 import { logError } from '../lib/logger'
 import { kitBase } from '../lib/kitScope'
 
@@ -11,6 +11,25 @@ import { kitBase } from '../lib/kitScope'
 // teams/team08, no en centros/{id} (ver kitScope.js).
 export async function guardarBitacora(centro, entrada) {
   await setDoc(doc(db, ...kitBase(centro), 'datos', 'bitacora'), { lista: arrayUnion(entrada), borrador: deleteField() }, { merge: true })
+}
+
+// Edita EN SU LUGAR una entrada ya existente del historial (para corregir errores).
+// Ubica la entrada por su `creadoEn` (único por entrada) y reemplaza solo sus campos,
+// conservando `creadoEn`/`creadoPor` y dejando huella de la edición (`editadoEn`/`editadoPor`).
+// Va en transacción para no pisar el resto del historial ni un borrador concurrente.
+export async function editarBitacora(centro, entradaOriginal, campos) {
+  const uid = auth.currentUser?.uid ?? null
+  const ref = doc(db, ...kitBase(centro), 'datos', 'bitacora')
+  await runTransaction(db, async (tx) => {
+    const snap = await tx.get(ref)
+    if (!snap.exists()) throw new Error('La bitácora ya no existe')
+    const lista = snap.data().lista ?? []
+    const idx = lista.findIndex(e => e.creadoEn && e.creadoEn === entradaOriginal.creadoEn)
+    if (idx === -1) throw new Error('No se encontró la entrada a editar (¿se modificó en otro dispositivo?)')
+    const nueva = [...lista]
+    nueva[idx] = { ...lista[idx], ...campos, editadoEn: new Date().toISOString(), editadoPor: uid }
+    tx.update(ref, { lista: nueva })
+  })
 }
 
 // Guarda/actualiza el borrador del día (trabajo a medias, ej. solo jornada AM).

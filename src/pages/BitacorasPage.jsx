@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useOutletContext } from 'react-router-dom'
-import { FileDown, ExternalLink, MessageCircle, NotebookText, Phone, Trash2, Plus, Eye, CheckCircle2, AlertCircle } from 'lucide-react'
+import { FileDown, ExternalLink, MessageCircle, NotebookText, Phone, Trash2, Plus, Eye, CheckCircle2, AlertCircle, Pencil } from 'lucide-react'
 import { t } from '../theme/tokens'
 import { useBitacorasGlobal } from '../hooks/useBitacorasGlobal'
 import { descargarPDFBitacora } from '../lib/generatePDF'
@@ -90,6 +90,7 @@ export default function BitacorasPage() {
   const [aEliminar, setAEliminar]         = useState(null) // { centro, entrada }
   const [eliminando, setEliminando]       = useState(false)
   const [generarPara, setGenerarPara]     = useState(null) // { centro, ultima }
+  const [editarPara, setEditarPara]       = useState(null) // { centro, entrada } — corregir una entrada existente
   const [detalleAbierto, setDetalleAbierto] = useState(null) // { centro, entrada }
 
   const centroVivo = centroActivo ? centros.find(c => c.id === centroActivo.id) ?? centroActivo : null
@@ -192,6 +193,11 @@ export default function BitacorasPage() {
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
                         <div style={{ fontSize: t.textXs, fontWeight: 700, color: t.textPrimary }}>{formatFecha(b.fecha)} — {b.piloto || 'Sin piloto'}</div>
                         <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                          <button onClick={() => setEditarPara({ centro, entrada: b })}
+                            title="Editar bitácora"
+                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 44, gap: 4, background: t.bgInput, border: `1px solid ${t.border}`, color: t.textSecondary, borderRadius: t.radiusMd, padding: '4px 10px', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
+                            <Pencil size={12} /> Editar
+                          </button>
                           <button onClick={() => handleEnviarWhatsApp(b, centro, key)} disabled={descargando === key}
                             title="Enviar por WhatsApp"
                             style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 44, gap: 4, background: '#22c55e18', border: '1px solid #22c55e40', color: '#16a34a', borderRadius: t.radiusMd, padding: '4px 12px', fontSize: 11, fontWeight: 600, cursor: 'pointer', opacity: descargando === key ? 0.6 : 1 }}>
@@ -316,6 +322,14 @@ export default function BitacorasPage() {
           ultima={generarPara.ultima}
           borrador={generarPara.borrador}
           onCerrar={() => setGenerarPara(null)}
+        />
+      )}
+
+      {editarPara && (
+        <ModalGenerarBitacora
+          centro={editarPara.centro}
+          editando={editarPara.entrada}
+          onCerrar={() => setEditarPara(null)}
         />
       )}
     </div>

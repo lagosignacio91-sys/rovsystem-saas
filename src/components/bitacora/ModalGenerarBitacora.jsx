@@ -3,7 +3,7 @@ import { db, auth } from '../../lib/firebase'
 import { doc, getDoc, deleteField } from 'firebase/firestore'
 import { Modal, Button } from '../kit'
 import { t } from '../../theme/tokens'
-import { guardarBitacora, guardarBorrador } from '../../hooks/useBitacorasGlobal'
+import { guardarBitacora, guardarBorrador, editarBitacora } from '../../hooks/useBitacorasGlobal'
 import { validarBitacora } from '../../lib/validaciones'
 import { kitBase } from '../../lib/kitScope'
 import { logError } from '../../lib/logger'
@@ -31,21 +31,24 @@ function formatGuardado(iso) {
   return `${p(d.getDate())}/${p(d.getMonth() + 1)} ${p(d.getHours())}:${p(d.getMinutes())}`
 }
 
-export default function ModalGenerarBitacora({ centro, ultima, borrador, onCerrar }) {
-  const team  = formatTeam(centro.teamAsignado)
+export default function ModalGenerarBitacora({ centro, ultima, borrador, editando, onCerrar }) {
+  // Modo edición: se corrige una entrada YA existente del historial (prop `editando`).
+  // Prevalece sobre borrador/última: precarga todos los campos de esa entrada.
+  const esEdicion = !!editando
+  const team  = editando?.team ?? formatTeam(centro.teamAsignado)
   // Fecha editable: `fechaManual = null` es "auto = hoy" y se resuelve al día real recién
   // al guardar (no queda pegada si el modal se abrió otro día). Si la edita, manda su valor.
-  const [fechaManual, setFechaManual] = useState(borrador?.fecha ?? null)
+  const [fechaManual, setFechaManual] = useState(editando?.fecha ?? borrador?.fecha ?? null)
   // Si hay borrador en curso, se precarga; si no, área desde la última entrada.
-  const [piloto, setPiloto] = useState(borrador?.piloto ?? '')
+  const [piloto, setPiloto] = useState(editando?.piloto ?? borrador?.piloto ?? '')
   const [datos, setDatos] = useState({
-    area: borrador?.area ?? ultima?.area ?? '',
-    estadoPuerto: borrador?.estadoPuerto ?? '',
-    jornadaAm: borrador?.jornadaAm ?? '',
-    jornadaPm: borrador?.jornadaPm ?? '',
-    observaciones: borrador?.observaciones ?? '',
-    parchesInstalados: borrador?.parchesInstalados ?? 0,
-    costurasRealizadas: borrador?.costurasRealizadas ?? 0,
+    area: editando?.area ?? borrador?.area ?? ultima?.area ?? '',
+    estadoPuerto: editando?.estadoPuerto ?? borrador?.estadoPuerto ?? '',
+    jornadaAm: editando?.jornadaAm ?? borrador?.jornadaAm ?? '',
+    jornadaPm: editando?.jornadaPm ?? borrador?.jornadaPm ?? '',
+    observaciones: editando?.observaciones ?? borrador?.observaciones ?? '',
+    parchesInstalados: editando?.parchesInstalados ?? borrador?.parchesInstalados ?? 0,
+    costurasRealizadas: editando?.costurasRealizadas ?? borrador?.costurasRealizadas ?? 0,
   })
   const [redes, setRedes] = useState({ parchesStock: 0, costuraOperativa: true })
   const [guardando, setGuardando] = useState(false)
@@ -55,6 +58,8 @@ export default function ModalGenerarBitacora({ centro, ultima, borrador, onCerra
   const [errorGuardado, setErrorGuardado] = useState('')
 
   useEffect(() => {
+    // En edición, el piloto de la entrada manda: no autocompletar con el operador en faena.
+    if (esEdicion) return
     // El piloto del borrador manda; si no había borrador, se autocompleta con el operador en faena.
     if (borrador?.piloto) return
     getDoc(doc(db, ...kitBase(centro), 'datos', 'operadores')).then(snap => {
@@ -90,14 +95,21 @@ export default function ModalGenerarBitacora({ centro, ultima, borrador, onCerra
       const uid = auth.currentUser?.uid ?? null
       // Fecha autoritativa AL GUARDAR: hoy() si está en auto, o la editada a mano.
       const fecha = fechaManual ?? hoy()
-      await guardarBitacora(centro, {
-        ...datos, piloto, team, fecha,
-        creadoPor: uid, creadoEn: new Date().toISOString(),
-      })
+      if (esEdicion) {
+        // Corrige la entrada existente en su lugar (conserva creadoEn/creadoPor).
+        await editarBitacora(centro, editando, { ...datos, piloto, team, fecha })
+      } else {
+        await guardarBitacora(centro, {
+          ...datos, piloto, team, fecha,
+          creadoPor: uid, creadoEn: new Date().toISOString(),
+        })
+      }
       onCerrar()
     } catch (e) {
       logError('ModalGenerarBitacora/guardar', e)
-      setErrorGuardado('No se pudo guardar la bitácora. Revisa tu conexión e intenta de nuevo.')
+      setErrorGuardado(esEdicion
+        ? 'No se pudieron guardar los cambios. Revisa tu conexión e intenta de nuevo.'
+        : 'No se pudo guardar la bitácora. Revisa tu conexión e intenta de nuevo.')
     } finally {
       setGuardando(false)
     }
@@ -141,18 +153,20 @@ export default function ModalGenerarBitacora({ centro, ultima, borrador, onCerra
   }
 
   return (
-    <Modal open title={`Generar bitácora diaria — ${centro.nombre}`} onClose={onCerrar} maxWidth={440}
+    <Modal open title={`${esEdicion ? 'Editar bitácora' : 'Generar bitácora diaria'} — ${centro.nombre}`} onClose={onCerrar} maxWidth={440}
       footer={<>
         <Button variant="secondary" size="lg" onClick={onCerrar}>Cerrar</Button>
-        <Button variant="secondary" size="lg" disabled={guardando || guardandoBorrador || !validacion.ok} onClick={guardarComoBorrador}>
-          {guardandoBorrador ? 'Guardando…' : 'Guardar borrador'}
-        </Button>
+        {!esEdicion && (
+          <Button variant="secondary" size="lg" disabled={guardando || guardandoBorrador || !validacion.ok} onClick={guardarComoBorrador}>
+            {guardandoBorrador ? 'Guardando…' : 'Guardar borrador'}
+          </Button>
+        )}
         <Button variant="primary" size="lg" disabled={guardando || guardandoBorrador || !validacion.ok} onClick={guardar}>
-          {guardando ? 'Guardando…' : 'Guardar'}
+          {guardando ? 'Guardando…' : esEdicion ? 'Guardar cambios' : 'Guardar'}
         </Button>
       </>}>
       <div style={s.wrap}>
-        {borradorInfo && (
+        {!esEdicion && borradorInfo && (
           <div style={s.borradorBanner}>
             <span style={s.borradorTxt}>📝 Borrador del {formatGuardado(borradorInfo)}</span>
             <button type="button" style={s.borradorBtn} disabled={guardandoBorrador} onClick={descartarBorrador}>Descartar</button>
