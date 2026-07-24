@@ -12,6 +12,7 @@
 import { db } from './firebase'
 import { doc, getDoc, setDoc } from 'firebase/firestore'
 import { logError } from './logger'
+import { kitBase } from './kitScope'
 
 // Fecha LOCAL (no UTC), mismo criterio que las bitácoras.
 function hoy() {
@@ -116,4 +117,66 @@ export async function devolverACentro(user, centros) {
   // 3. Agregarse al roster del hogar (ya con teamId = hogar → permitido).
   const centroHogar = centros.find(c => c.teamAsignado === teamHogar) ?? null
   await agregarARoster({ ...user, teamId: teamHogar }, centroHogar)
+}
+
+// ------------------------------------------------------------
+// Reasignación PERMANENTE (rotación, solo admin): el operador pasa de forma
+// definitiva a otro centro — el destino es su nuevo hogar, sin "vuelve a X".
+// Distinta de moverACentro (cobertura temporal). No toca el rol; sí iguala la
+// empresa a la del centro destino y limpia cualquier cobertura abierta.
+//
+// Resuelve los rosters con kitBase: el roster de una persona de apertura vive en
+// teams/team08, no en centros/{id} — los helpers de arriba hardcodean 'centros'
+// (sirven para la cobertura, que nunca toca team08), así que acá se resuelve aparte.
+// ------------------------------------------------------------
+async function quitarDeRosterCentro(uid, centro) {
+  if (!centro) return
+  try {
+    const ref = doc(db, ...kitBase(centro), 'datos', 'operadores')
+    const snap = await getDoc(ref)
+    if (!snap.exists()) return
+    const lista = (snap.data().lista ?? []).filter(op => op?.uid !== uid)
+    await setDoc(ref, { lista }, { merge: true })
+  } catch (e) { logError('reasignar/quitarDeRoster', e) }
+}
+
+async function agregarARosterCentro(user, centro) {
+  if (!centro) return
+  const uid = uidDe(user)
+  try {
+    const ref = doc(db, ...kitBase(centro), 'datos', 'operadores')
+    const snap = await getDoc(ref)
+    const lista = snap.exists() ? (snap.data().lista ?? []) : []
+    const prev = lista.find(op => op?.uid === uid)
+    const nueva = [...lista.filter(op => op?.uid !== uid), entradaRoster(user, prev)]
+    await setDoc(ref, { lista: nueva }, { merge: true })
+  } catch (e) { logError('reasignar/agregarARoster', e) }
+}
+
+export async function reasignarCentro(user, centroDestino, centros) {
+  const uid = uidDe(user)
+  if (!uid || !centroDestino?.teamAsignado) throw new Error('datos insuficientes')
+  const teamActual = user.teamId ?? null
+
+  // 1. Sacarse del roster de origen (el centro actual, sea normal o el de apertura team08).
+  const centroOrigen = centros.find(c => c.teamAsignado === teamActual) ?? null
+  await quitarDeRosterCentro(uid, centroOrigen)
+
+  // 2. Update usuarios (fuente de verdad): nuevo team + empresa del destino, sin teamOrigen.
+  //    Cierra cualquier cobertura abierta para no dejarlo "cubriendo". NO cambia el rol.
+  const ref = doc(db, 'usuarios', uid)
+  const snap = await getDoc(ref)
+  const coberturas = (snap.exists() ? (snap.data().coberturas ?? []) : [])
+  for (let i = coberturas.length - 1; i >= 0; i--) {
+    if (coberturas[i]?.hasta == null) { coberturas[i] = { ...coberturas[i], hasta: hoy() }; break }
+  }
+  await setDoc(ref, {
+    teamId: centroDestino.teamAsignado,
+    empresaId: centroDestino.empresaId ?? null,
+    teamOrigen: null,
+    coberturas,
+  }, { merge: true })
+
+  // 3. Agregarse al roster del centro destino (ya con teamId = destino).
+  await agregarARosterCentro({ ...user, teamId: centroDestino.teamAsignado }, centroDestino)
 }

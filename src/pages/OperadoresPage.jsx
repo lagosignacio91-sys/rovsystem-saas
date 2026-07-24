@@ -1,14 +1,15 @@
 import { useState } from 'react'
 import { useOutletContext } from 'react-router-dom'
-import { Search, Mail, Phone, Gamepad2, Coffee, Users, AtSign, Upload, UserPlus, Pencil, Trash2, HardHat, ChevronDown, ChevronUp, MapPinned, RotateCcw, CalendarClock } from 'lucide-react'
+import { Search, Mail, Phone, Gamepad2, Coffee, Users, AtSign, Upload, UserPlus, Pencil, Trash2, HardHat, ChevronDown, ChevronUp, MapPinned, RotateCcw, CalendarClock, Repeat } from 'lucide-react'
 import { t } from '../theme/tokens'
 import { useOperadoresGlobal } from '../hooks/useOperadoresGlobal'
 import { useUsuarios } from '../hooks/useUsuarios'
-import { moverACentro, devolverACentro } from '../lib/cobertura'
+import { moverACentro, devolverACentro, reasignarCentro } from '../lib/cobertura'
 import ImportarCSV from '../components/admin/ImportarCSV'
 import FormOperador from '../components/admin/FormOperador'
 import ModalEpp from '../components/epp/ModalEpp'
 import ModalMoverCentro from '../components/cobertura/ModalMoverCentro'
+import ModalReasignarCentro from '../components/cobertura/ModalReasignarCentro'
 import ModalDiasExtras from '../components/cobertura/ModalDiasExtras'
 
 function ContactoRow({ icon: Icon, valor, href }) {
@@ -45,12 +46,26 @@ export default function OperadoresPage() {
   const [gestionarEpp, setGestionarEpp] = useState(false) // catálogo general de EPP (sin operador puntual)
   const [verDescanso, setVerDescanso] = useState(false) // desplegar los "en descanso", colapsados por defecto
   const [moverUser, setMoverUser]   = useState(null) // usuario (doc) que el admin va a mover a otro centro
+  const [reasignarUser, setReasignarUser] = useState(null) // usuario (doc) a reasignar permanentemente
   const [diasDe, setDiasDe]         = useState(null) // usuario cuyos días extras se están viendo
 
   const handleDevolverAdmin = async (usuario) => {
     try { await devolverACentro(usuario, centros); setResultado({ ok: true, msg: `↩️ ${usuario.nombre} volvió a su centro` }) }
     catch { setResultado({ ok: false, msg: `❌ No se pudo devolver a ${usuario.nombre}` }) }
   }
+
+  const handleReasignar = async (centro) => {
+    try {
+      await reasignarCentro(reasignarUser, centro, centros)
+      setResultado({ ok: true, msg: `✅ ${reasignarUser.nombre} reasignado a ${centro.nombre}` })
+    } catch {
+      setResultado({ ok: false, msg: `❌ No se pudo reasignar a ${reasignarUser.nombre}` })
+    }
+  }
+
+  // Cuántos operadores tiene cada centro hoy (para avisar en el picker si ya hay 2).
+  const ocupacionPorCentro = {}
+  operadores.forEach(o => { if (o.centroId) ocupacionPorCentro[o.centroId] = (ocupacionPorCentro[o.centroId] ?? 0) + 1 })
 
   // uid -> usuario, para leer epp.faltantes sin queries nuevas (useUsuarios ya carga todo).
   const usuariosPorUid = {}
@@ -179,6 +194,7 @@ export default function OperadoresPage() {
             const eppFaltantes = usuario?.epp?.faltantes ?? {}
             const eppFaltanCount = Object.values(eppFaltantes).filter(Boolean).length
             const esOperador = usuario?.rol === 'operador'
+            const esApertura = usuario?.rol === 'apertura'
             const cubriendo = !!usuario?.teamOrigen
             const centroOrigen = cubriendo ? centros.find(c => c.teamAsignado === usuario.teamOrigen) : null
             return (
@@ -235,6 +251,12 @@ export default function OperadoresPage() {
                       </button>
                     </div>
                   </>
+                )}
+                {role === 'admin' && (esOperador || esApertura) && (
+                  <button onClick={() => setReasignarUser(usuario)} title="Reasignar a otro centro (permanente)"
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, width: '100%', marginTop: 6, background: t.brandTint, color: t.brandSoft, border: `1px solid ${t.border}`, borderRadius: t.radiusMd, padding: '5px 8px', fontSize: 10, fontWeight: 700, cursor: 'pointer' }}>
+                    <Repeat size={11} /> Reasignar de centro
+                  </button>
                 )}
               </div>
             )
@@ -323,6 +345,17 @@ export default function OperadoresPage() {
           teamActual={moverUser.teamId ?? null}
           onElegir={(centro) => moverACentro(moverUser, centro, centros)}
           onCerrar={() => setMoverUser(null)}
+        />
+      )}
+
+      {reasignarUser && (
+        <ModalReasignarCentro
+          nombre={reasignarUser.nombre}
+          centros={centros}
+          teamActual={reasignarUser.teamId ?? null}
+          ocupacionPorCentro={ocupacionPorCentro}
+          onElegir={handleReasignar}
+          onCerrar={() => setReasignarUser(null)}
         />
       )}
 
