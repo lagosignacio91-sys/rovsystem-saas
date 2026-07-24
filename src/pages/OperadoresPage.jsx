@@ -38,6 +38,7 @@ export default function OperadoresPage() {
   const [showForm, setShowForm]     = useState(false)
   const [editUser, setEditUser]     = useState(null)   // doc de usuarios en edición
   const [aBorrar, setABorrar]       = useState(null)   // doc de usuarios a borrar
+  const [borrando, setBorrando]     = useState(false)  // la baja barre varios docs: puede tardar
   const [showCuentas, setShowCuentas] = useState(false)
   const [resultado, setResultado]   = useState(null)
   const [eppDe, setEppDe]           = useState(null) // { uid, nombre } — operador cuyo EPP se está viendo
@@ -69,9 +70,23 @@ export default function OperadoresPage() {
   }
 
   const handleBorrar = async () => {
-    await eliminarOperador(aBorrar.id)
-    setResultado({ ok: true, msg: `🗑️ Cuenta "${aBorrar.nombre}" eliminada` })
+    if (borrando) return
+    setBorrando(true)
+    const nombre = aBorrar.nombre
+    // La baja limpia rosters + anonimiza historial y recién ahí borra la ficha:
+    // si falla, no se borró nada y conviene decirlo en vez de dar un falso OK.
+    const { resumen, error } = await eliminarOperador(aBorrar.id)
+    setBorrando(false)
+    if (error) {
+      setResultado({ ok: false, msg: `⚠️ ${error}` })
+      return
+    }
     setABorrar(null)
+    if (resumen?.problemas?.length) {
+      setResultado({ ok: false, msg: `⚠️ "${nombre}" se eliminó, pero quedó sin limpiar: ${resumen.problemas.join(', ')}` })
+      return
+    }
+    setResultado({ ok: true, msg: `🗑️ "${nombre}" eliminado y quitado de todos los centros` })
   }
 
   const ROL_LABEL = { admin: 'Admin', supervisor: 'Taller', operador: 'Operador' }
@@ -319,12 +334,16 @@ export default function OperadoresPage() {
         <div style={{ position: 'fixed', inset: 0, background: t.scrim, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16 }}>
           <div style={{ background: t.bgSurface, border: `1px solid ${t.border}`, borderRadius: t.radiusLg, width: '100%', maxWidth: 360, padding: 20 }}>
             <div style={{ fontWeight: 700, fontSize: t.textBase, color: t.textPrimary, marginBottom: 8 }}>Eliminar cuenta</div>
-            <p style={{ color: t.textSecondary, fontSize: t.textSm, margin: '0 0 16px' }}>
+            <p style={{ color: t.textSecondary, fontSize: t.textSm, margin: '0 0 10px' }}>
               ¿Eliminar la cuenta de <b style={{ color: t.textPrimary }}>{aBorrar.nombre}</b> ({aBorrar.correoCorporativo})? Se borra su perfil y su acceso. Esta acción no se puede deshacer.
             </p>
+            <p style={{ color: t.textMuted, fontSize: t.textXs, margin: '0 0 16px', lineHeight: 1.5 }}>
+              También se lo quita de <b style={{ color: t.textSecondary }}>todos los centros</b> y del kit de apertura.
+              Su historial (bitácoras y entregas de turno) <b style={{ color: t.textSecondary }}>se conserva</b>, pero figurará como “Operador dado de baja”.
+            </p>
             <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={() => setABorrar(null)} style={{ flex: 1, padding: '8px 0', background: t.bgElevated, border: `1px solid ${t.border}`, borderRadius: t.radiusMd, color: t.textSecondary, cursor: 'pointer', fontWeight: 600, fontSize: t.textSm }}>Cancelar</button>
-              <button onClick={handleBorrar} style={{ flex: 1, padding: '8px 0', background: t.fault, border: 'none', borderRadius: t.radiusMd, color: '#fff', cursor: 'pointer', fontWeight: 700, fontSize: t.textSm }}>Eliminar</button>
+              <button onClick={() => !borrando && setABorrar(null)} disabled={borrando} style={{ flex: 1, padding: '8px 0', background: t.bgElevated, border: `1px solid ${t.border}`, borderRadius: t.radiusMd, color: t.textSecondary, cursor: borrando ? 'default' : 'pointer', opacity: borrando ? 0.6 : 1, fontWeight: 600, fontSize: t.textSm }}>Cancelar</button>
+              <button onClick={handleBorrar} disabled={borrando} style={{ flex: 1, padding: '8px 0', background: t.fault, border: 'none', borderRadius: t.radiusMd, color: '#fff', cursor: borrando ? 'default' : 'pointer', opacity: borrando ? 0.7 : 1, fontWeight: 700, fontSize: t.textSm }}>{borrando ? 'Eliminando…' : 'Eliminar'}</button>
             </div>
           </div>
         </div>

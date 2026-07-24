@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
 import { db, auth, functions } from '../lib/firebase'
-import { collection, onSnapshot, updateDoc, deleteDoc, doc } from 'firebase/firestore'
+import { collection, onSnapshot, updateDoc, doc } from 'firebase/firestore'
 import { httpsCallable } from 'firebase/functions'
 import { logError } from '../lib/logger'
+import { darDeBajaOperador } from '../lib/bajaOperador'
 
 export function useUsuarios() {
   const [usuarios, setUsuarios] = useState([])
@@ -55,11 +56,19 @@ export function useUsuarios() {
     }
   }
 
+  // Baja completa: además de la ficha, limpia los rosters espejo de todos los
+  // centros y del kit de apertura, y anonimiza su nombre en el historial del
+  // centro (bitácoras y entregas). Ver lib/bajaOperador.js.
   const eliminarOperador = async (uid) => {
+    setError(null)
     try {
-      await deleteDoc(doc(db, 'usuarios', uid))
+      const resumen = await darDeBajaOperador(uid)
+      return { resumen, error: null }
     } catch (e) {
-      setError(e.message)
+      logError('useUsuarios/eliminarOperador', e)
+      const msg = 'No se pudo eliminar por completo. No se borró nada: revisa tu conexión e intenta de nuevo.'
+      setError(msg)
+      return { resumen: null, error: msg }
     }
   }
 

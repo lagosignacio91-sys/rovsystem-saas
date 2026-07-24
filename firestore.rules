@@ -142,7 +142,10 @@ service cloud.firestore {
                   && get(/databases/$(database)/documents/centros/$(centroId)).data.teamAsignado
                      == get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.teamId));
         // El operador solo escribe en centros de SU team (anti cross-tenant).
-        allow write: if (isAdmin()      && doc in ['estucheHerramientas', 'cajaHerramientas', 'operadores', 'redes', 'esenciales'])
+        // El admin SÍ escribe 'bitacora': la UI ya le da eliminar una entrada, y la baja de
+        // un operador anonimiza su nombre en el historial (ver lib/bajaOperador.js). Sin esto
+        // ambas cosas fallaban con permission-denied. El taller sigue sin acceso a bitácoras.
+        allow write: if (isAdmin()      && doc in ['estucheHerramientas', 'cajaHerramientas', 'operadores', 'redes', 'esenciales', 'bitacora'])
           || (isSupervisor() && doc in ['estucheHerramientas', 'cajaHerramientas', 'operadores', 'redes', 'esenciales'])
           || (isOperador()   && doc in ['estucheHerramientas', 'cajaHerramientas', 'operadores', 'bitacora', 'redes', 'esenciales']
               && get(/databases/$(database)/documents/centros/$(centroId)).data.teamAsignado
