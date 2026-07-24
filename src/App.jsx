@@ -12,6 +12,7 @@ import BitacorasPage  from './pages/BitacorasPage'
 import TurnosPage     from './pages/TurnosPage'
 import BodegaVirtualPage from './pages/BodegaVirtualPage'
 import BodegaAdminPage   from './pages/BodegaAdminPage'
+import ComprasPage       from './pages/ComprasPage'
 import ReportesPage      from './pages/ReportesPage'
 import TerminosPage      from './pages/TerminosPage'
 import PrivacidadPage    from './pages/PrivacidadPage'
@@ -92,6 +93,7 @@ function AnimatedRoutes() {
         <Route path="turnos"          element={<RoleRoute roles={['admin', 'supervisor', 'operador', 'owner', 'ventas']} role={role} loading={loading}><TurnosPage /></RoleRoute>} />
         <Route path="bodega-virtual"  element={<RoleRoute roles={['supervisor']} role={role} loading={loading}><BodegaVirtualPage /></RoleRoute>} />
         <Route path="bodega-admin"    element={<RoleRoute roles={['admin']}      role={role} loading={loading}><BodegaAdminPage   /></RoleRoute>} />
+        <Route path="compras"         element={<RoleRoute roles={['admin', 'supervisor']} role={role} loading={loading}><ComprasPage /></RoleRoute>} />
         <Route path="reportes"        element={<RoleRoute roles={['admin', 'supervisor']} role={role} loading={loading}><ReportesPage /></RoleRoute>} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
