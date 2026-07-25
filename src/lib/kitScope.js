@@ -52,3 +52,9 @@ export function labelTeamEspecial(team) {
   if (team === TEAM_SOBERANIA) return 'Soberanía'
   return null
 }
+
+// Team especial (kit propio) que le corresponde a una especialidad. Default apertura
+// (los pilotos apertura preexistentes sin campo `especialidad` van a team08).
+export function teamDeEspecialidad(especialidad) {
+  return especialidad === 'soberania' ? TEAM_SOBERANIA : TEAM_APERTURA
+}

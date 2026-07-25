@@ -12,7 +12,7 @@
 import { db } from './firebase'
 import { doc, getDoc, setDoc } from 'firebase/firestore'
 import { logError } from './logger'
-import { kitBase, esTeamEspecial } from './kitScope'
+import { kitBase, esTeamEspecial, teamDeEspecialidad } from './kitScope'
 
 // Fecha LOCAL (no UTC), mismo criterio que las bitácoras.
 function hoy() {
@@ -197,4 +197,32 @@ export async function reasignarCentro(user, centroDestino, centros) {
 
   // 3. Agregarse al roster del centro destino (ya con teamId = destino).
   await agregarARosterCentro({ ...user, teamId: centroDestino.teamAsignado }, centroDestino)
+}
+
+// Devolver a un piloto especial (apertura/soberanía) a SU propio equipo (team08/team14).
+// Sirve cuando quedó en un centro normal por una reasignación permanente: lo trae de
+// vuelta a su kit viajero con un clic. No cambia rol ni especialidad ni empresa.
+export async function volverAEquipoEspecial(user, centros) {
+  const uid = uidDe(user)
+  const teamEspecial = teamDeEspecialidad(user?.especialidad)
+  if (!uid || !teamEspecial) throw new Error('no es piloto especial')
+  const teamActual = user.teamId ?? null
+  if (teamActual === teamEspecial) return // ya está en su equipo
+
+  // 1. Sacarse del roster actual (centro normal o kit especial).
+  await quitarDeRoster(uid, centros, teamActual)
+
+  // 2. Update usuarios: teamId = su equipo especial, sin teamOrigen, cerrar cobertura abierta.
+  const ref = doc(db, 'usuarios', uid)
+  const snap = await getDoc(ref)
+  const coberturas = (snap.exists() ? (snap.data().coberturas ?? []) : [])
+  for (let i = coberturas.length - 1; i >= 0; i--) {
+    if (coberturas[i]?.hasta == null) { coberturas[i] = { ...coberturas[i], hasta: hoy() }; break }
+  }
+  await setDoc(ref, { teamId: teamEspecial, teamOrigen: null, coberturas }, { merge: true })
+
+  // 3. Agregarse al roster de su equipo especial (teams/{teamEspecial}).
+  for (const r of rosterRefsDeTeam(teamEspecial, centros)) {
+    await agregarARosterRef(r, { ...user, teamId: teamEspecial })
+  }
 }
