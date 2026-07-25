@@ -114,7 +114,22 @@ export default function OperadoresPage() {
   // Los pilotos especiales (rol 'apertura') se muestran con su etiqueta Apertura/Soberanía.
   const rolLabelDe = (u) => u?.rol === 'apertura' ? labelEspecialidad(u.especialidad) : (ROL_LABEL[u?.rol] ?? u?.rol)
 
-  let ops = operadores
+  // Cuentas operativas (operador/apertura) que todavía NO están en ningún roster:
+  // recién creadas o sin "Sincronizar operadores". Se muestran igual como tarjeta
+  // "en descanso" para poder gestionarlas (reasignar, EPP, etc.) sin depender de la
+  // sync — y para que los pilotos de soberanía (team14, sin centro que apunte a su
+  // roster) aparezcan siempre. Cuando entran a un roster, se muestran desde ahí.
+  const uidsEnRoster = new Set(operadores.map(o => o.uid).filter(Boolean))
+  const sinRoster = usuarios
+    .filter(u => (u.rol === 'operador' || u.rol === 'apertura') && !uidsEnRoster.has(u.id))
+    .filter(u => !empresaActiva || u.empresaId === empresaActiva.id || !u.empresaId)
+    .map(u => ({
+      uid: u.id, nombre: u.nombre ?? '', telefono: u.telefono ?? '',
+      correoCorp: u.correoCorporativo ?? '', correoPersonal: u.correoPersonal ?? '',
+      foto: u.foto ?? null, estado: 'descanso', centroId: null, centroNombre: null,
+    }))
+
+  let ops = [...operadores, ...sinRoster]
   if (busca.trim()) {
     const q = busca.toLowerCase()
     ops = ops.filter(o => o.nombre?.toLowerCase().includes(q) || o.centroNombre?.toLowerCase().includes(q))
