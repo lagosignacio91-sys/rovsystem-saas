@@ -5,7 +5,7 @@ import { t } from '../theme/tokens'
 import { useOperadoresGlobal } from '../hooks/useOperadoresGlobal'
 import { useUsuarios } from '../hooks/useUsuarios'
 import { moverACentro, devolverACentro, reasignarCentro } from '../lib/cobertura'
-import { labelEspecialidad } from '../lib/kitScope'
+import { labelEspecialidad, labelTeamEspecial } from '../lib/kitScope'
 import ImportarCSV from '../components/admin/ImportarCSV'
 import FormOperador from '../components/admin/FormOperador'
 import ModalEpp from '../components/epp/ModalEpp'
@@ -220,6 +220,8 @@ export default function OperadoresPage() {
             const esApertura = usuario?.rol === 'apertura'
             const cubriendo = !!usuario?.teamOrigen
             const centroOrigen = cubriendo ? centros.find(c => c.teamAsignado === usuario.teamOrigen) : null
+            // Nombre del hogar al que vuelve: el centro, o la etiqueta especial (Apertura/Soberanía) si su hogar es un team especial sin centro.
+            const nombreHogar = centroOrigen?.nombre ?? (cubriendo ? labelTeamEspecial(usuario.teamOrigen) : null)
             return (
               <div key={o.centroId + i} style={{ background: t.bgElevated, border: `1px solid ${t.border}`, borderRadius: t.radiusLg, padding: 13 }}>
                 <div style={{ display: 'flex', gap: 11, alignItems: 'center' }}>
@@ -254,11 +256,11 @@ export default function OperadoresPage() {
                     <HardHat size={12} /> {eppFaltanCount > 0 ? `EPP · faltan ${eppFaltanCount}` : 'EPP · OK'}
                   </button>
                 )}
-                {role === 'admin' && esOperador && (
+                {role === 'admin' && (esOperador || esApertura) && (
                   <>
                     {cubriendo && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 8, fontSize: 10, fontWeight: 600, color: t.ok }}>
-                        <MapPinned size={11} /> Cubriendo{centroOrigen ? ` · vuelve a ${centroOrigen.nombre}` : ''}
+                        <MapPinned size={11} /> Cubriendo{nombreHogar ? ` · vuelve a ${nombreHogar}` : ''}
                       </div>
                     )}
                     <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
