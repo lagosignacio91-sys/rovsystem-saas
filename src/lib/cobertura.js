@@ -32,6 +32,7 @@ function entradaRoster(user, prev) {
     correoCorp:   user.correoCorporativo ?? '',
     foto:         user.foto ?? prev?.foto ?? null,
     esRelevo:     user.esRelevo ?? false,
+    especialidad: user.especialidad ?? prev?.especialidad ?? null,
     estado:       prev?.estado ?? 'descanso',
     ingresoTurno: prev?.ingresoTurno ?? '',
     salidaTurno:  prev?.salidaTurno ?? '',

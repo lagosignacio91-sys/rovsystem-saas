@@ -5,7 +5,7 @@ import {
   collection, addDoc, onSnapshot,
   updateDoc, doc, getDoc, getDocs, writeBatch, setDoc
 } from 'firebase/firestore'
-import { TEAM_APERTURA } from '../lib/kitScope'
+import { TEAMS_ESPECIALES, esTeamEspecial } from '../lib/kitScope'
 
 // Sin teamAsignado por defecto: la asignación real de team a cada centro
 // la hace el admin manualmente desde la app (rota según licencias/turnos).
@@ -188,6 +188,7 @@ export function useCentros() {
           correoCorp:     u.correoCorporativo ?? '',
           foto:           u.foto ?? prev?.foto ?? null,
           esRelevo:       u.esRelevo ?? false,
+          especialidad:   u.especialidad ?? prev?.especialidad ?? null,
           estado:         prev?.estado ?? 'descanso',
           ingresoTurno:   prev?.ingresoTurno ?? '',
           salidaTurno:    prev?.salidaTurno ?? '',
@@ -197,18 +198,22 @@ export function useCentros() {
       return lista.length
     }
 
-    // Centros normales (rol 'operador'). Los centros de apertura (team08) se saltan aquí:
-    // su roster no vive en el centro sino en `teams/team08` (se hace abajo, siempre).
+    // Centros normales (rol 'operador'). Los centros de operación especial (team08
+    // apertura, team14 soberanía) se saltan aquí: su roster no vive en el centro sino
+    // en `teams/{teamEspecial}` (se hace abajo, siempre).
     for (const centro of centros) {
-      if (!centro.teamAsignado || centro.teamAsignado === TEAM_APERTURA) continue
+      if (!centro.teamAsignado || esTeamEspecial(centro.teamAsignado)) continue
       const asignados = usuarios.filter(u => u.rol === 'operador' && u.teamId === centro.teamAsignado)
       operadoresAsignados += await escribirRoster(doc(db, 'centros', centro.id, 'datos', 'operadores'), asignados)
       centrosActualizados += 1
     }
 
-    // Kit de apertura (SIEMPRE): `teams/team08/datos/operadores`, equipo con rol 'apertura'.
-    const apertura = usuarios.filter(u => u.rol === 'apertura' && u.teamId === TEAM_APERTURA)
-    operadoresAsignados += await escribirRoster(doc(db, 'teams', TEAM_APERTURA, 'datos', 'operadores'), apertura)
+    // Kits especiales (SIEMPRE): `teams/{team}/datos/operadores` para cada team especial
+    // (apertura=team08, soberanía=team14), con los pilotos (rol 'apertura') de ESE team.
+    for (const teamEsp of TEAMS_ESPECIALES) {
+      const pilotos = usuarios.filter(u => u.rol === 'apertura' && u.teamId === teamEsp)
+      operadoresAsignados += await escribirRoster(doc(db, 'teams', teamEsp, 'datos', 'operadores'), pilotos)
+    }
 
     return { centrosActualizados, operadoresAsignados }
   }

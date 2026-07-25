@@ -5,6 +5,7 @@ import { t } from '../theme/tokens'
 import { useOperadoresGlobal } from '../hooks/useOperadoresGlobal'
 import { useUsuarios } from '../hooks/useUsuarios'
 import { moverACentro, devolverACentro, reasignarCentro } from '../lib/cobertura'
+import { labelEspecialidad } from '../lib/kitScope'
 import ImportarCSV from '../components/admin/ImportarCSV'
 import FormOperador from '../components/admin/FormOperador'
 import ModalEpp from '../components/epp/ModalEpp'
@@ -74,6 +75,11 @@ export default function OperadoresPage() {
   const handleCrear = async (form, password) => {
     const r = await crearOperador(form, password)
     if (r.error) { setResultado({ ok: false, msg: `❌ ${r.error}` }); return }
+    // La Cloud Function crearUsuario escribe un set fijo (sin `especialidad`);
+    // se persiste aparte con un update de admin usando el uid recién creado.
+    if (r.uid && form.especialidad) {
+      await actualizarOperador(r.uid, { especialidad: form.especialidad })
+    }
     setResultado({ ok: true, msg: `✅ Operador "${form.nombre}" creado` })
     setShowForm(false)
   }
@@ -105,6 +111,8 @@ export default function OperadoresPage() {
   }
 
   const ROL_LABEL = { admin: 'Admin', supervisor: 'Taller', operador: 'Operador' }
+  // Los pilotos especiales (rol 'apertura') se muestran con su etiqueta Apertura/Soberanía.
+  const rolLabelDe = (u) => u?.rol === 'apertura' ? labelEspecialidad(u.especialidad) : (ROL_LABEL[u?.rol] ?? u?.rol)
 
   let ops = operadores
   if (busca.trim()) {
@@ -207,7 +215,12 @@ export default function OperadoresPage() {
                     <span style={{ position: 'absolute', bottom: 0, right: 0, width: 12, height: 12, borderRadius: '50%', background: enFaena ? t.ok : t.noop, border: `2px solid ${t.bgElevated}` }} />
                   </div>
                   <div style={{ minWidth: 0, flex: 1 }}>
-                    <div style={{ fontSize: t.textSm, fontWeight: 600, color: t.textPrimary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.nombre}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+                      <div style={{ fontSize: t.textSm, fontWeight: 600, color: t.textPrimary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.nombre}</div>
+                      {esApertura && (
+                        <span style={{ flexShrink: 0, fontSize: 9, fontWeight: 700, color: t.brandSoft, background: t.brandTint, borderRadius: t.radiusFull, padding: '1px 7px' }}>{labelEspecialidad(usuario?.especialidad)}</span>
+                      )}
+                    </div>
                     <div style={{ fontSize: 10, color: enFaena ? t.ok : t.textMuted, marginTop: 2, display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
                       {enFaena ? <Gamepad2 size={12} /> : <Coffee size={12} />}
                       <span>{enFaena ? 'En faena' : 'En descanso'}</span>
@@ -291,7 +304,7 @@ export default function OperadoresPage() {
                     {u.movilHabilitado && (
                       <span title="Acceso móvil activo" style={{ fontSize: 12, flexShrink: 0 }}>📱</span>
                     )}
-                    <span style={{ fontSize: 10, fontWeight: 700, color: t.brandSoft, background: t.brandTint, borderRadius: t.radiusFull, padding: '2px 8px', flexShrink: 0 }}>{ROL_LABEL[u.rol] ?? u.rol}</span>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: t.brandSoft, background: t.brandTint, borderRadius: t.radiusFull, padding: '2px 8px', flexShrink: 0 }}>{rolLabelDe(u)}</span>
                     <button onClick={() => setEditUser(u)} title="Editar" style={{ background: 'none', border: `1px solid ${t.border}`, borderRadius: t.radiusSm, color: t.textSecondary, cursor: 'pointer', padding: 5, display: 'flex' }}>
                       <Pencil size={13} />
                     </button>
