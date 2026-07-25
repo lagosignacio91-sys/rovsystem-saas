@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { MapPin, ArrowRight } from 'lucide-react'
 import { Modal, Button } from '../kit'
 import { t } from '../../theme/tokens'
+import { esTeamEspecial } from '../../lib/kitScope'
 
 function labelTeam(team) {
   return team ? 'Team ' + team.replace(/\D/g, '') : 'Sin team'
@@ -16,7 +17,7 @@ export default function ModalReasignarCentro({ nombre, centros, teamActual, ocup
   const [error, setError] = useState('')
 
   const destinos = [...centros]
-    .filter(c => c.teamAsignado && c.teamAsignado !== teamActual && c.teamAsignado !== 'team08')
+    .filter(c => c.teamAsignado && c.teamAsignado !== teamActual && !esTeamEspecial(c.teamAsignado))
     .sort((a, b) => {
       const n = (c) => { const x = parseInt((c.teamAsignado || '').replace(/\D/g, ''), 10); return Number.isNaN(x) ? Infinity : x }
       return (n(a) - n(b)) || (a.nombre ?? '').localeCompare(b.nombre ?? '')

@@ -69,6 +69,7 @@ export default function MapaPage() {
           cargando={cargando}
           empresaActiva={empresaActiva}
           role={role}
+          teamId={teamId}
           empresas={empresas}
         />
       )}

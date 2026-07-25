@@ -79,11 +79,14 @@ service cloud.firestore {
     // ---- Centros ----
     match /centros/{centroId} {
       allow read:          if aprovisionado();
-      // Admin crea cualquier centro. Apertura crea SOLO centros marcados como suyos
-      // (teamAsignado == 'team08'): así abre centros nuevos sin poder asignarlos a
-      // otro team.
+      // Admin crea cualquier centro. Un piloto especial (apertura o soberanía) crea
+      // SOLO centros marcados como suyos (teamAsignado == su propio teamId, p.ej.
+      // team08 apertura o team14 soberanía): así abre centros nuevos sin poder
+      // asignarlos a otro team.
       allow create: if isAdmin()
-        || (isApertura() && request.resource.data.teamAsignado == 'team08');
+        || (isApertura()
+            && request.resource.data.teamAsignado
+               == get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.teamId);
       allow delete: if isAdmin();
       // El doc del centro solo lo edita el admin, EXCEPTO:
       //  - `estado`, que se recalcula al cambiar stock: el taller, o el operador de ESE team.
@@ -95,7 +98,8 @@ service cloud.firestore {
                 || (isOperador()
                     && resource.data.teamAsignado == get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.teamId)))
         || (isApertura()
-            && resource.data.teamAsignado == 'team08'
+            && resource.data.teamAsignado
+               == get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.teamId
             && request.resource.data.teamAsignado == null
             && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['teamAsignado', 'estadoCiclo']));
 

@@ -2,6 +2,7 @@ import { useState, useRef } from 'react'
 import { comprimirFoto } from '../../lib/compressorFotos'
 import { useEmpresas } from '../../hooks/useEmpresas'
 import { validarRut, validarEmail } from '../../lib/validaciones'
+import { TEAM_APERTURA, TEAM_SOBERANIA } from '../../lib/kitScope'
 
 const CAMPOS = [
   { key: 'nombre',            label: 'Nombre completo *',       type: 'text',  requerido: true },
@@ -22,6 +23,20 @@ export default function FormOperador({ inicial, esEdicion, onGuardar, onCerrar }
   const fileRef                       = useRef()
 
   const set = (key, val) => setForm(f => ({ ...f, [key]: val }))
+
+  // El dropdown de rol expone Apertura y Soberanía como opciones separadas, pero
+  // internamente ambas son el mismo rol 'apertura' con la etiqueta `especialidad`
+  // (mismos derechos). El valor visible se deriva de rol+especialidad.
+  const rolUI = form.rol === 'apertura' ? (form.especialidad === 'soberania' ? 'soberania' : 'apertura') : (form.rol ?? 'operador')
+  const setRolUI = (val) => {
+    if (val === 'apertura' || val === 'soberania') {
+      // Deja al piloto listo para operar con SU kit especial (team08 / team14).
+      const teamEspecial = val === 'soberania' ? TEAM_SOBERANIA : TEAM_APERTURA
+      setForm(f => ({ ...f, rol: 'apertura', especialidad: val, teamId: teamEspecial }))
+    } else {
+      setForm(f => ({ ...f, rol: val, especialidad: null }))
+    }
+  }
 
   const handleFoto = async (e) => {
     const file = e.target.files[0]
@@ -117,9 +132,10 @@ export default function FormOperador({ inicial, esEdicion, onGuardar, onCerrar }
           </div>
           <div style={{ flex: 1 }}>
             <label style={styles.label}>Rol</label>
-            <select style={styles.select} value={form.rol ?? 'operador'} onChange={e => set('rol', e.target.value)}>
+            <select style={styles.select} value={rolUI} onChange={e => setRolUI(e.target.value)}>
               <option value="operador">Operador</option>
               <option value="apertura">Apertura</option>
+              <option value="soberania">Soberanía</option>
               <option value="supervisor">Supervisor</option>
               <option value="admin">Admin</option>
               <option value="owner">Owner (HyperionX)</option>

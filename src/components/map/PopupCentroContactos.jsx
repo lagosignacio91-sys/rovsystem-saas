@@ -3,11 +3,13 @@ import { db } from '../../lib/firebase'
 import { doc, getDoc } from 'firebase/firestore'
 import { X, Phone, Mail } from 'lucide-react'
 import { t } from '../../theme/tokens'
-import { kitBase } from '../../lib/kitScope'
+import { kitBase, labelEspecialidad, labelTeamEspecial } from '../../lib/kitScope'
 
-function OpCard({ op }) {
+function OpCard({ op, especialidadFallback }) {
   if (!op?.nombre) return null
   const enFaena = op.estado === 'faena'
+  // Etiqueta Apertura/Soberanía: del roster si viene, si no del team especial del centro.
+  const etiqueta = op.especialidad ? labelEspecialidad(op.especialidad) : especialidadFallback
   return (
     <div style={s.opCard}>
       <div style={s.opFotoWrap}>
@@ -16,7 +18,10 @@ function OpCard({ op }) {
           : <div style={s.opFotoVacia}>{(op.nombre[0] ?? '?').toUpperCase()}</div>}
       </div>
       <div style={s.opInfo}>
-        <div style={s.opNombre}>{op.nombre}</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 0 }}>
+          <div style={s.opNombre}>{op.nombre}</div>
+          {etiqueta && <span style={s.especialidad}>{etiqueta}</span>}
+        </div>
         <span style={{ ...s.estado, color: enFaena ? t.ok : t.textMuted, background: enFaena ? t.okTint : t.bgInput }}>
           {enFaena ? '🎮 En faena' : '😴 En descanso'}
         </span>
@@ -57,6 +62,9 @@ export default function PopupCentroContactos({ centro, onCerrar }) {
     .slice()
     .sort((a, b) => (a.estado === 'faena' ? 0 : 1) - (b.estado === 'faena' ? 0 : 1))
 
+  // Si el centro es especial (apertura/soberanía), sus operadores son de esa especialidad.
+  const especialidadFallback = labelTeamEspecial(centro.teamAsignado)
+
   return (
     <div className="gl-glass" style={s.card}>
       <div style={s.header}>
@@ -77,7 +85,7 @@ export default function PopupCentroContactos({ centro, onCerrar }) {
         <div style={s.ops}>
           {operadores.map((op, i) => (
             <div key={op.uid ?? op.nombre ?? i} style={i > 0 ? s.opSeparado : undefined}>
-              <OpCard op={op} />
+              <OpCard op={op} especialidadFallback={especialidadFallback} />
             </div>
           ))}
         </div>
@@ -102,6 +110,7 @@ const s = {
   opFotoVacia: { width: 36, height: 36, borderRadius: '50%', background: '#3b82f620', color: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, border: '2px solid #3b82f640' },
   opInfo:      { display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 },
   opNombre:    { fontSize: 12, fontWeight: 600, color: t.textPrimary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+  especialidad:{ flexShrink: 0, fontSize: 8, fontWeight: 700, color: t.brandSoft, background: t.brandTint, borderRadius: 999, padding: '1px 6px' },
   estado:      { display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 9, fontWeight: 700, padding: '1px 7px', borderRadius: 999, alignSelf: 'flex-start' },
   contacto:    { display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: t.brandSoft, textDecoration: 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
   sinOps:      { color: t.textMuted, fontSize: 12, padding: '10px 12px', margin: 0 },

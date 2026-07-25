@@ -16,7 +16,7 @@
 // ============================================================
 import { db } from './firebase'
 import { doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, collection } from 'firebase/firestore'
-import { TEAM_APERTURA } from './kitScope'
+import { TEAMS_ESPECIALES } from './kitScope'
 import { logError } from './logger'
 
 export const ETIQUETA_BAJA = 'Operador dado de baja'
@@ -34,11 +34,12 @@ export async function darDeBajaOperador(uid) {
   const snapUsuario = await getDoc(refUsuario)
   const nombre = ((snapUsuario.exists() ? snapUsuario.data().nombre : '') ?? '').trim()
 
-  // Se barren TODOS los centros + el kit de apertura (no solo el team del operador):
-  // pudo quedar en otro roster por una cobertura de turno vieja (ver lib/cobertura.js).
+  // Se barren TODOS los centros + los kits especiales (apertura team08, soberanía team14),
+  // no solo el team del operador: pudo quedar en otro roster por una cobertura de turno
+  // vieja o una reasignación (ver lib/cobertura.js).
   const centrosSnap = await getDocs(collection(db, 'centros'))
   const bases = centrosSnap.docs.map(d => ['centros', d.id])
-  bases.push(['teams', TEAM_APERTURA])
+  for (const teamEsp of TEAMS_ESPECIALES) bases.push(['teams', teamEsp])
 
   // `problemas` evita el falso OK: si algo no se pudo limpiar (permisos, red), la UI
   // lo avisa en vez de decir "eliminado" como si hubiera quedado todo prolijo.

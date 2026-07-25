@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Building2, MapPin } from 'lucide-react'
 import { t } from '../../theme/tokens'
 import { Modal, Button, Input, Select, Field } from '../kit'
-import { TEAM_APERTURA } from '../../lib/kitScope'
+import { TEAMS_ESPECIALES, labelTeamEspecial } from '../../lib/kitScope'
 
 const ESTADOS = [
   { value: 'OK',              label: 'Operativo' },
@@ -12,16 +12,18 @@ const ESTADOS = [
   { value: 'NO_OPERATOR',     label: 'Sin operador' },
 ]
 
+// Teams normales asignables (excluye los reservados para operación especial).
 const TEAMS = Array.from({ length: 11 }, (_, i) => ({
   id:    `team${String(i + 1).padStart(2, '0')}`,
   label: `Team ${String(i + 1).padStart(2, '0')}`,
-}))
+})).filter(tm => !TEAMS_ESPECIALES.includes(tm.id))
 
-// `role` y `empresas` se usan solo para el modo apertura: apertura no tiene una
-// empresa activa fija (recorre clientes), así que elige el cliente aquí y el
-// centro nace marcado como "en apertura" (teamAsignado === TEAM_APERTURA).
-export default function FormCentro({ latlng, onGuardar, onCancelar, cargando, empresaActiva, role, empresas = [] }) {
+// `role`/`teamId`/`empresas` se usan solo para el modo especial (apertura o
+// soberanía): el piloto no tiene una empresa activa fija (recorre clientes), elige
+// el cliente aquí y el centro nace marcado con SU team especial (teamAsignado = teamId).
+export default function FormCentro({ latlng, onGuardar, onCancelar, cargando, empresaActiva, role, teamId, empresas = [] }) {
   const esApertura = role === 'apertura'
+  const labelEsp = labelTeamEspecial(teamId) ?? 'apertura'
   const [nombre, setNombre] = useState('')
   const [estado, setEstado] = useState('OK')
   const [team, setTeam]     = useState('')
@@ -38,7 +40,7 @@ export default function FormCentro({ latlng, onGuardar, onCancelar, cargando, em
         lat: latlng.lat, lng: latlng.lng,
         empresaId:     emp.id,
         empresaNombre: emp.nombre,
-        teamAsignado:  TEAM_APERTURA,   // marca "centro actual de apertura"
+        teamAsignado:  teamId,          // marca "centro actual" del team especial del creador
         estadoCiclo:   'apertura',
       })
       return
@@ -95,7 +97,7 @@ export default function FormCentro({ latlng, onGuardar, onCancelar, cargando, em
 
         {esApertura ? (
           <p style={{ fontSize: t.textXs, color: t.textMuted, margin: 0, lineHeight: 1.5 }}>
-            Este centro se abre con tu equipo de apertura. Trabajarás con tu kit propio; al terminar, usá
+            Este centro se abre con tu equipo de <b>{labelEsp}</b>. Trabajarás con tu kit propio; al terminar, usá
             <b> «Cerrar apertura»</b> para dejar el centro registrado y libre para su team definitivo.
           </p>
         ) : (
