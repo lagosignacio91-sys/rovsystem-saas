@@ -4,8 +4,8 @@ import { Search, Mail, Phone, Gamepad2, Coffee, Users, AtSign, Upload, UserPlus,
 import { t } from '../theme/tokens'
 import { useOperadoresGlobal } from '../hooks/useOperadoresGlobal'
 import { useUsuarios } from '../hooks/useUsuarios'
-import { moverACentro, devolverACentro, reasignarCentro } from '../lib/cobertura'
-import { labelEspecialidad, labelTeamEspecial } from '../lib/kitScope'
+import { moverACentro, devolverACentro, reasignarCentro, volverAEquipoEspecial } from '../lib/cobertura'
+import { labelEspecialidad, labelTeamEspecial, teamDeEspecialidad } from '../lib/kitScope'
 import ImportarCSV from '../components/admin/ImportarCSV'
 import FormOperador from '../components/admin/FormOperador'
 import ModalEpp from '../components/epp/ModalEpp'
@@ -53,6 +53,15 @@ export default function OperadoresPage() {
   const handleDevolverAdmin = async (usuario) => {
     try { await devolverACentro(usuario, centros); setResultado({ ok: true, msg: `↩️ ${usuario.nombre} volvió a su centro` }) }
     catch { setResultado({ ok: false, msg: `❌ No se pudo devolver a ${usuario.nombre}` }) }
+  }
+
+  const handleVolverEquipo = async (usuario) => {
+    try {
+      await volverAEquipoEspecial(usuario, centros)
+      setResultado({ ok: true, msg: `↩️ ${usuario.nombre} volvió a su equipo de ${labelTeamEspecial(teamDeEspecialidad(usuario.especialidad))}` })
+    } catch {
+      setResultado({ ok: false, msg: `❌ No se pudo devolver a ${usuario.nombre} a su equipo` })
+    }
   }
 
   const handleReasignar = async (centro) => {
@@ -222,6 +231,9 @@ export default function OperadoresPage() {
             const centroOrigen = cubriendo ? centros.find(c => c.teamAsignado === usuario.teamOrigen) : null
             // Nombre del hogar al que vuelve: el centro, o la etiqueta especial (Apertura/Soberanía) si su hogar es un team especial sin centro.
             const nombreHogar = centroOrigen?.nombre ?? (cubriendo ? labelTeamEspecial(usuario.teamOrigen) : null)
+            // Piloto especial que quedó en un centro normal (reasignado): ofrecer volver a su equipo.
+            const teamEspecial = esApertura ? teamDeEspecialidad(usuario?.especialidad) : null
+            const fueraDeSuEquipo = esApertura && !cubriendo && usuario?.teamId !== teamEspecial
             return (
               <div key={o.centroId + i} style={{ background: t.bgElevated, border: `1px solid ${t.border}`, borderRadius: t.radiusLg, padding: 13 }}>
                 <div style={{ display: 'flex', gap: 11, alignItems: 'center' }}>
@@ -281,6 +293,12 @@ export default function OperadoresPage() {
                       </button>
                     </div>
                   </>
+                )}
+                {role === 'admin' && fueraDeSuEquipo && (
+                  <button onClick={() => handleVolverEquipo(usuario)} title={`Volver a su equipo de ${labelTeamEspecial(teamEspecial)}`}
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, width: '100%', marginTop: 6, background: t.okTint, color: t.ok, border: `1px solid ${t.ok}55`, borderRadius: t.radiusMd, padding: '5px 8px', fontSize: 10, fontWeight: 700, cursor: 'pointer' }}>
+                    <RotateCcw size={11} /> Volver a {labelTeamEspecial(teamEspecial)}
+                  </button>
                 )}
                 {role === 'admin' && (esOperador || esApertura) && (
                   <button onClick={() => setReasignarUser(usuario)} title="Reasignar a otro centro (permanente)"
