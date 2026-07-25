@@ -12,7 +12,7 @@
 import { db } from './firebase'
 import { doc, getDoc, setDoc } from 'firebase/firestore'
 import { logError } from './logger'
-import { kitBase } from './kitScope'
+import { kitBase, esTeamEspecial } from './kitScope'
 
 // Fecha LOCAL (no UTC), mismo criterio que las bitácoras.
 function hoy() {
@@ -39,32 +39,47 @@ function entradaRoster(user, prev) {
   }
 }
 
-// Quita al operador del roster de todos los centros con ese team (best-effort).
-async function quitarDeRoster(uid, centros, team) {
-  if (!team) return
-  for (const c of centros.filter(c => c.teamAsignado === team)) {
-    try {
-      const ref = doc(db, 'centros', c.id, 'datos', 'operadores')
-      const snap = await getDoc(ref)
-      if (!snap.exists()) continue
-      const lista = (snap.data().lista ?? []).filter(op => op?.uid !== uid)
-      await setDoc(ref, { lista }, { merge: true })
-    } catch (e) { logError('cobertura/quitarDeRoster', e) }
-  }
+// Doc(s) de roster de un team: un team especial (apertura/soberanía) tiene su roster
+// en teams/{team}; un team normal, en el/los centro(s) con ese teamAsignado.
+function rosterRefsDeTeam(team, centros) {
+  if (!team) return []
+  if (esTeamEspecial(team)) return [doc(db, 'teams', team, 'datos', 'operadores')]
+  return centros.filter(c => c.teamAsignado === team).map(c => doc(db, 'centros', c.id, 'datos', 'operadores'))
 }
 
-// Agrega al operador al roster de un centro puntual (best-effort), sin duplicar.
-async function agregarARoster(user, centro) {
-  if (!centro) return
+// Quita al operador de un doc de roster puntual (best-effort).
+async function quitarDeRosterRef(ref, uid) {
+  try {
+    const snap = await getDoc(ref)
+    if (!snap.exists()) return
+    const lista = (snap.data().lista ?? []).filter(op => op?.uid !== uid)
+    await setDoc(ref, { lista }, { merge: true })
+  } catch (e) { logError('cobertura/quitarDeRoster', e) }
+}
+
+// Agrega al operador a un doc de roster puntual (best-effort), sin duplicar.
+async function agregarARosterRef(ref, user) {
+  if (!ref) return
   const uid = uidDe(user)
   try {
-    const ref = doc(db, 'centros', centro.id, 'datos', 'operadores')
     const snap = await getDoc(ref)
     const lista = snap.exists() ? (snap.data().lista ?? []) : []
     const prev = lista.find(op => op?.uid === uid)
     const nueva = [...lista.filter(op => op?.uid !== uid), entradaRoster(user, prev)]
     await setDoc(ref, { lista: nueva }, { merge: true })
   } catch (e) { logError('cobertura/agregarARoster', e) }
+}
+
+// Quita al operador del roster de un team (todos los centros de ese team, o el kit
+// del team si es especial — apertura/soberanía).
+async function quitarDeRoster(uid, centros, team) {
+  for (const ref of rosterRefsDeTeam(team, centros)) await quitarDeRosterRef(ref, uid)
+}
+
+// Agrega al operador al roster de un centro puntual (best-effort).
+async function agregarARoster(user, centro) {
+  if (!centro) return
+  await agregarARosterRef(doc(db, 'centros', centro.id, 'datos', 'operadores'), user)
 }
 
 // Ingresar al operador a `centroDestino` para cubrir turno.
@@ -115,9 +130,11 @@ export async function devolverACentro(user, centros) {
   }
   await setDoc(ref, { teamId: teamHogar, teamOrigen: null, coberturas }, { merge: true })
 
-  // 3. Agregarse al roster del hogar (ya con teamId = hogar → permitido).
-  const centroHogar = centros.find(c => c.teamAsignado === teamHogar) ?? null
-  await agregarARoster({ ...user, teamId: teamHogar }, centroHogar)
+  // 3. Agregarse al roster del hogar (ya con teamId = hogar → permitido). Si el hogar
+  //    es un team especial (apertura/soberanía), su roster vive en teams/{team}.
+  for (const ref of rosterRefsDeTeam(teamHogar, centros)) {
+    await agregarARosterRef(ref, { ...user, teamId: teamHogar })
+  }
 }
 
 // ------------------------------------------------------------
@@ -126,9 +143,9 @@ export async function devolverACentro(user, centros) {
 // Distinta de moverACentro (cobertura temporal). No toca el rol; sí iguala la
 // empresa a la del centro destino y limpia cualquier cobertura abierta.
 //
-// Resuelve los rosters con kitBase: el roster de una persona de apertura vive en
-// teams/team08, no en centros/{id} — los helpers de arriba hardcodean 'centros'
-// (sirven para la cobertura, que nunca toca team08), así que acá se resuelve aparte.
+// Resuelve los rosters con kitBase a partir del objeto `centro` (el destino de una
+// reasignación siempre es un centro concreto); la cobertura, en cambio, resuelve por
+// team (rosterRefsDeTeam) porque su hogar puede ser un team especial sin centro abierto.
 // ------------------------------------------------------------
 async function quitarDeRosterCentro(uid, centro) {
   if (!centro) return
