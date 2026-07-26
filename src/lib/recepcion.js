@@ -37,9 +37,11 @@ export async function confirmarRecepcionItems(despachoId, itemKeys, { observacio
     const [estSnap, cajaSnap] = await Promise.all([tx.get(estRef), tx.get(cajaRef)])
 
     const estData = estSnap.exists() ? { principal: {}, backup: {}, ...estSnap.data() } : { principal: {}, backup: {} }
-    const cajaMap = new Map((cajaSnap.exists() ? (cajaSnap.data().lista ?? []) : []).map(i => [String(i.id), { ...i }]))
+    const cajaLista = cajaSnap.exists() ? (cajaSnap.data().lista ?? []) : []
     let estChanged = false
-    let cajaChanged = false
+    // Cantidad recibida a sumar por itemId (acumulada; NO se reconstruye la caja desde un
+    // Map que deduplicaría por id → antes se perdía un ítem si había ids repetidos).
+    const restockPorId = new Map()
 
     const nuevosItems = normalizarItemsLegacy(desp).map(item => {
       if (!itemKeys.includes(claveItem(item))) return item
@@ -50,23 +52,29 @@ export async function confirmarRecepcionItems(despachoId, itemKeys, { observacio
         estData[equipo] = { ...estData[equipo], [item.itemId]: 'ok' }
         estChanged = true
       } else if (item.origen === 'caja') {
-        const actual = cajaMap.get(String(item.itemId))
-        if (actual) {
-          cajaMap.set(String(item.itemId), {
-            ...actual,
-            cantidad: Math.max(0, (Number(actual.cantidad) || 0) + (Number(item.cantidad) || 0)),
-            falta: false,
-          })
-          cajaChanged = true
-        } else {
-          logError('recepcion/itemCajaNoEncontrado', new Error(`itemId=${item.itemId} centro=${centroId}`))
-        }
+        const id = String(item.itemId)
+        restockPorId.set(id, (restockPorId.get(id) ?? 0) + (Number(item.cantidad) || 0))
       }
       return { ...item, estadoItem: 'recibido', recibidoEn: ts, recibidoPor: uid }
     })
 
+    // Aplicar el restock mapeando sobre la lista ORIGINAL: preserva todos los ítems
+    // (aunque existan ids repetidos de datos viejos) y limpia el flag `falta`.
+    let cajaChanged = false
+    const nuevaCaja = cajaLista.map(entry => {
+      const extra = restockPorId.get(String(entry.id))
+      if (extra == null) return entry
+      cajaChanged = true
+      return { ...entry, cantidad: Math.max(0, (Number(entry.cantidad) || 0) + extra), falta: false }
+    })
+    for (const id of restockPorId.keys()) {
+      if (!cajaLista.some(e => String(e.id) === id)) {
+        logError('recepcion/itemCajaNoEncontrado', new Error(`itemId=${id} centro=${centroId}`))
+      }
+    }
+
     if (estChanged)  tx.set(estRef,  estData, { merge: true })
-    if (cajaChanged) tx.set(cajaRef, { lista: Array.from(cajaMap.values()) }, { merge: true })
+    if (cajaChanged) tx.set(cajaRef, { lista: nuevaCaja }, { merge: true })
 
     tx.update(despRef, {
       items: nuevosItems,

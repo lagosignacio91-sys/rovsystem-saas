@@ -29,7 +29,7 @@ function ContactoRow({ icon: Icon, valor, href }) {
 }
 
 export default function OperadoresPage() {
-  const { centros, empresaActiva, role } = useOutletContext()
+  const { centros, empresaActiva, role, sincronizarOperadoresCentros } = useOutletContext()
   const lista = empresaActiva ? centros.filter(c => c.empresaId === empresaActiva.id) : centros
   const { operadores, cargando } = useOperadoresGlobal(lista)
   const { usuarios, crearOperador, actualizarOperador, eliminarOperador, importarLista } = useUsuarios()
@@ -89,12 +89,20 @@ export default function OperadoresPage() {
     if (r.uid && form.especialidad) {
       await actualizarOperador(r.uid, { especialidad: form.especialidad })
     }
+    // Auto-sync del roster (lee usuarios fresco): el operador aparece en su centro
+    // sin tener que apretar "Sincronizar operadores". Best-effort.
+    try { await sincronizarOperadoresCentros() } catch { /* el botón manual queda de respaldo */ }
     setResultado({ ok: true, msg: `✅ Operador "${form.nombre}" creado` })
     setShowForm(false)
   }
 
   const handleEditar = async (form) => {
+    const cambioAsignacion = form.teamId !== editUser.teamId || form.rol !== editUser.rol
     await actualizarOperador(editUser.id, form)
+    // Si cambió el team o el rol, reconciliar los rosters (auto, sin botón manual).
+    if (cambioAsignacion) {
+      try { await sincronizarOperadoresCentros() } catch { /* el botón manual queda de respaldo */ }
+    }
     setResultado({ ok: true, msg: `✅ Cuenta "${form.nombre}" actualizada` })
     setEditUser(null)
   }

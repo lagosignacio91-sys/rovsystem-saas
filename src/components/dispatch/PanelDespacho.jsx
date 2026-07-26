@@ -13,7 +13,7 @@ function ModalSeleccionItems({ items, procesando, onConfirmar, onCerrar }) {
   const [seleccionados, setSeleccionados] = useState(
     items.reduce((acc, i) => ({
       ...acc,
-      [claveItem(i)]: { checked: true, cantidad: 1, enviarAhora: true },
+      [claveItem(i)]: { checked: true, cantidad: 1 },
     }), {})
   )
 
@@ -23,17 +23,16 @@ function ModalSeleccionItems({ items, procesando, onConfirmar, onCerrar }) {
   const setCantidad = (key, val) => {
     setSeleccionados(prev => ({ ...prev, [key]: { ...prev[key], cantidad: Number(val) } }))
   }
-  const toggleEnviarAhora = (key) => {
-    setSeleccionados(prev => ({ ...prev, [key]: { ...prev[key], enviarAhora: !prev[key].enviarAhora } }))
-  }
 
   const handleConfirmar = () => {
+    // Todo lo seleccionado se envía de una (estadoItem 'enviado'): así el despacho no
+    // queda trabado en 'parcial' esperando un segundo envío del taller.
     const itemsSeleccionados = items
       .filter(i => seleccionados[claveItem(i)]?.checked)
       .map(i => ({
         ...i,
         cantidad: seleccionados[claveItem(i)]?.cantidad ?? 1,
-        estadoItem: seleccionados[claveItem(i)]?.enviarAhora ? 'enviado' : 'pendiente',
+        estadoItem: 'enviado',
       }))
     if (itemsSeleccionados.length === 0) { alert('Selecciona al menos un ítem.'); return }
     onConfirmar(itemsSeleccionados)
@@ -43,7 +42,7 @@ function ModalSeleccionItems({ items, procesando, onConfirmar, onCerrar }) {
     <div style={styles.modalOverlay}>
       <div style={styles.modal}>
         <h3 style={styles.modalTitulo}>📦 Generar Despacho</h3>
-        <p style={styles.modalSubtitulo}>Elige qué enviar, la cantidad, y si va ahora o queda pendiente.</p>
+        <p style={styles.modalSubtitulo}>Elige qué enviar y la cantidad. Todo se despacha de una.</p>
         <div style={styles.itemsLista}>
           {items.map(i => {
             const key = claveItem(i)
@@ -70,18 +69,6 @@ function ModalSeleccionItems({ items, procesando, onConfirmar, onCerrar }) {
                     disabled={!sel?.checked}
                   />
                 </div>
-                <button
-                  type="button"
-                  onClick={() => toggleEnviarAhora(key)}
-                  disabled={!sel?.checked}
-                  style={{
-                    ...styles.btnToggleEnvio,
-                    color: sel?.enviarAhora ? 'var(--gl-ok)' : 'var(--gl-low)',
-                    background: sel?.enviarAhora ? 'var(--gl-ok-tint)' : 'var(--gl-low-tint)',
-                  }}
-                >
-                  {sel?.enviarAhora ? '🚚 Ahora' : '⏳ Pendiente'}
-                </button>
               </div>
             )
           })}
