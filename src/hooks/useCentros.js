@@ -167,9 +167,15 @@ export function useCentros() {
   // En ambos casos es un REEMPLAZO COMPLETO desde los usuarios vigentes: quien ya no matchea
   // (borrado, o movido de team/rol) desaparece del roster. Los rosters son espejos de
   // `usuarios` que no se limpian solos; esta función es la que los reconcilia.
-  const sincronizarOperadoresCentros = async (usuarios) => {
+  //
+  // Lee `usuarios` FRESCO con getDocs (no una lista cacheada del componente): reemplazar
+  // los rosters con datos viejos borraba operadores sin aviso (ver historial de incidentes).
+  const sincronizarOperadoresCentros = async () => {
     let operadoresAsignados = 0
     let centrosActualizados = 0
+
+    const usuariosSnap = await getDocs(collection(db, 'usuarios'))
+    const usuarios = usuariosSnap.docs.map(d => ({ id: d.id, ...d.data() }))
 
     // Escribe un roster preservando campos operativos (faena/descanso, turnos, foto) por uid
     // (fallback por rut para docs antiguos). S-03: NO se espejan datos personales sensibles

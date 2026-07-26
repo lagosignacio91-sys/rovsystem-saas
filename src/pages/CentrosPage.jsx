@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { Search, MapPin, ChevronRight, Building2, Phone, Mail, Users, RefreshCw, Database } from 'lucide-react'
 import { t, ESTADO_META } from '../theme/tokens'
@@ -7,8 +7,6 @@ import { EstadoBadge } from '../components/kit'
 import { useOperadoresGlobal } from '../hooks/useOperadoresGlobal'
 import { useEmpresas } from '../hooks/useEmpresas'
 import { CENTROS_GL } from '../hooks/useCentros'
-import { db } from '../lib/firebase'
-import { collection, getDocs } from 'firebase/firestore'
 import PanelCentro from '../components/ui/PanelCentro'
 
 const ESTADOS_FILTRO = [
@@ -25,7 +23,6 @@ export default function CentrosPage() {
   const [busca, setBusca]               = useState('')
   const [filtroEstado, setFiltroEstado] = useState(null)
   const [centroActivo, setCentroActivo] = useState(null)
-  const [usuarios, setUsuarios]         = useState([])
 
   // modales admin
   const [showInit, setShowInit]         = useState(false)
@@ -34,18 +31,10 @@ export default function CentrosPage() {
   const [cargandoSync, setCargandoSync] = useState(false)
   const [resultado, setResultado]       = useState(null)
 
-  useEffect(() => {
-    if (role !== 'admin' && role !== 'supervisor') return
-    getDocs(collection(db, 'usuarios')).then(snap => {
-      const lista = snap.docs.map(d => ({ uid: d.id, ...d.data() }))
-      setUsuarios(lista)
-    })
-  }, [role])
-
   const handleSincronizar = async () => {
     setCargandoSync(true)
     try {
-      const { centrosActualizados, operadoresAsignados } = await sincronizarOperadoresCentros(usuarios)
+      const { centrosActualizados, operadoresAsignados } = await sincronizarOperadoresCentros()
       setResultado({ ok: true, msg: `✅ ${operadoresAsignados} operadores asignados a ${centrosActualizados} centros` })
     } catch {
       setResultado({ ok: false, msg: '❌ Error al sincronizar' })

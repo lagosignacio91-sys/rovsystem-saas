@@ -127,7 +127,10 @@ function CajaHerramientas({ centro, role }) {
 
   const guardar = (nueva) => setDoc(doc(db, ...kitBase(centro), 'datos', 'cajaHerramientas'), { lista: nueva }, { merge: true })
 
-  const agregar = (item) => { guardar([...lista, { ...item, id: Date.now(), falta: false }]); setModalAg(false) }
+  // Id único (no Date.now() a secas: dos altas en el mismo ms colisionaban y rompían
+  // el matcheo de ítems en despacho/recepción — ver claveItem en lib/despachos.js).
+  const nuevoId = () => globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`
+  const agregar = (item) => { guardar([...lista, { ...item, id: nuevoId(), falta: false }]); setModalAg(false) }
   const actualizarCantidad = (id, cant) => guardar(lista.map(i => i.id === id ? { ...i, cantidad: Number(cant) } : i))
   const toggleFalta = (id, val) => guardar(lista.map(i => i.id === id ? { ...i, falta: val } : i))
   const eliminar = (id) => guardar(lista.filter(i => i.id !== id))
