@@ -49,7 +49,9 @@ export function useDespachosGlobal({ role, teamId, onNuevaSolicitud, onDespachoC
         snap.docChanges().forEach(change => {
           if (change.type === 'modified') {
             const d = { id: change.doc.id, ...change.doc.data() }
-            if (!d.eliminado && (role === 'operador' ? d.teamAsignado === teamId : true)) {
+            // Operador y apertura solo se enteran de los despachos de SU propio team.
+            const esDeSuTeam = (role === 'operador' || role === 'apertura') ? d.teamAsignado === teamId : true
+            if (!d.eliminado && esDeSuTeam) {
               onDespachoCambia(d)
             }
           }
