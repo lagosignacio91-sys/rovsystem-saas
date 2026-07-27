@@ -197,7 +197,7 @@ function DespachoCard({ d, role, bloqueado, onEnviarPendientes, onConfirmarRecep
                 🚚 Enviar pendientes ({pendientesItems.length})
               </button>
             )}
-            {(role === 'admin' || role === 'operador') && !bloqueado && enviadosItems.length > 0 && (
+            {(role === 'admin' || role === 'operador' || role === 'apertura') && !bloqueado && enviadosItems.length > 0 && (
               <button onClick={() => setModalRec(true)} style={styles.btnRecibido}>
                 ✅ Confirmar recepción ({enviadosItems.length})
               </button>

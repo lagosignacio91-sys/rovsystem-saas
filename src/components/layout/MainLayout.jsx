@@ -37,7 +37,7 @@ export default function MainLayout() {
     toast.solicitud(`Nueva solicitud de ${d.centroNombre ?? 'un centro'}`)
   }, [])
   const onDespachoCambia = useCallback((d) => {
-    if (role === 'operador' && (d.estado === 'enviado' || d.estado === 'parcial')) {
+    if ((role === 'operador' || role === 'apertura') && (d.estado === 'enviado' || d.estado === 'parcial')) {
       toast.despacho(`Despacho en camino a ${d.centroNombre ?? 'tu centro'}`)
     }
   }, [role])

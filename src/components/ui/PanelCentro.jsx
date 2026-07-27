@@ -32,9 +32,10 @@ const OCULTAS_OPERADOR = ['despacho', 'turno', 'bitacora']
 // El taller (supervisor) no debe ver bitácoras diarias ni turno (ya se entiende por el panel izquierdo);
 // solo ve operador, rov, inventario y despacho.
 const OCULTAS_SUPERVISOR = ['bitacora', 'turno']
-// Apertura monta el centro con su kit propio: opera operador/rov/inventario/turno/bitácora,
-// pero NO gestiona despachos (eso es del centro definitivo, no del equipo de apertura).
-const OCULTAS_APERTURA = ['despacho']
+// Apertura monta el centro con su kit propio: opera operador/rov/inventario/turno/bitácora.
+// SÍ ve Despacho (no tiene la página /despachos del menú): ahí RECIBE los despachos de su
+// centro especial — el generar sigue gated a admin/taller dentro del panel.
+const OCULTAS_APERTURA = []
 
 export default memo(function PanelCentro({ centro, onCerrar, onEliminar, sincronizarEstado, actualizarCentro, role, uid, teamId }) {
   const { tabs, permiso } = useAppConfig()
