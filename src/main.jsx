@@ -5,13 +5,16 @@ import './theme/theme.css'
 import './index.css'
 import { ThemeProvider } from './theme/ThemeProvider'
 import { AppConfigProvider } from './hooks/AppConfigProvider'
+import { AuthProvider } from './hooks/AuthProvider'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <ThemeProvider>
-      <AppConfigProvider>
-        <App />
-      </AppConfigProvider>
+      <AuthProvider>
+        <AppConfigProvider>
+          <App />
+        </AppConfigProvider>
+      </AuthProvider>
     </ThemeProvider>
   </React.StrictMode>
 )
