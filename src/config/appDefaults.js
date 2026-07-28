@@ -50,7 +50,8 @@ export const NAV_META = {
   '/centros':         { to: '/centros',         icon: Building2,    roles: ['admin', 'supervisor'], badgeKey: 'centros' },
   // Apertura solo ve el Mapa (crea/opera su centro actual desde ahí); se excluye de despachos/turnos.
   '/despachos':       { to: '/despachos',       icon: Package,      roles: ['admin', 'supervisor', 'operador', 'owner', 'ventas'], badgeKey: 'despachos' },
-  '/operadores':      { to: '/operadores',      icon: Users,        roles: ['admin', 'supervisor'] },
+  // Operadores: solo admin (el taller/supervisor no gestiona el padrón de operadores).
+  '/operadores':      { to: '/operadores',      icon: Users,        roles: ['admin'] },
   '/bitacoras':       { to: '/bitacoras',       icon: BookOpen,    roles: ['admin', 'operador', 'owner', 'ventas'] },
   '/turnos':          { to: '/turnos',          icon: ClipboardCheck, roles: ['admin', 'supervisor', 'operador', 'owner', 'ventas'] },
   '/bodega-virtual':  { to: '/bodega-virtual',  icon: Warehouse,    roles: ['supervisor'] },
