@@ -87,7 +87,11 @@ export async function moverACentro(user, centroDestino, centros) {
   const uid = uidDe(user)
   if (!uid || !centroDestino?.teamAsignado) throw new Error('datos insuficientes')
   const teamActual = user.teamId ?? null
-  const teamOrigen = user.teamOrigen ?? teamActual // preserva el hogar real aunque encadene coberturas
+  const teamOrigen = user.teamOrigen ?? teamActual
+  // Sin un team de origen, la cobertura dejaría teamOrigen=null y "Volver a mi
+  // centro" nunca funcionaría (el operador queda varado en el centro cubierto).
+  // Mejor abortar y pedir que un admin le asigne su equipo antes de cubrir.
+  if (!teamOrigen) throw new Error('No tenés un centro de origen asignado. Pedile a un administrador que te asigne tu equipo antes de cubrir turnos.') // preserva el hogar real aunque encadene coberturas
 
   // 1. Sacarse del roster de origen (aún con teamId = origen → permitido).
   await quitarDeRoster(uid, centros, teamActual)
