@@ -41,7 +41,10 @@ async function urlToBase64(url) {
       reader.onloadend = () => resolve(reader.result)
       reader.readAsDataURL(blob)
     })
-  } catch {
+  } catch (e) {
+    // Antes fallaba en silencio: si una foto de Storage no se puede leer (típicamente
+    // CORS del bucket), quedaba sin foto en el PDF sin ninguna pista. Ahora se loguea.
+    logError('generatePDF/urlToBase64', e)
     return null
   }
 }
@@ -579,7 +582,10 @@ async function construirPDFFaltantes(consolidado, meta = {}) {
 
 function nombreFaltantes(meta = {}) {
   const emp = (meta.empresaNombre || 'GL').replace(/[^\w\- ]/g, '').trim().replace(/\s+/g, '-')
-  const fecha = new Date().toISOString().slice(0, 10)
+  // Fecha LOCAL (no UTC): de noche en Chile, toISOString() daba la fecha del día siguiente.
+  const d = new Date()
+  const p = (n) => String(n).padStart(2, '0')
+  const fecha = `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`
   return `Faltantes-Herramientas-${emp}-${fecha}.pdf`
 }
 
