@@ -614,6 +614,109 @@ export async function compartirPDFFaltantes(consolidado, meta = {}) {
   } catch (e) { manejarErrorPDF(e, 'compartirPDFFaltantes') }
 }
 
+// ── Pedidos del Taller (lista manual del supervisor) ──────────────────
+// Mismo andamiaje que construirPDFFaltantes, pero sobre la lista libre
+// `[{ id, nombre, cantidad }]` que arma el supervisor a mano.
+async function construirPDFPedidosTaller(lista = []) {
+  const doc = new jsPDF({ unit: 'mm', format: 'a4' })
+  const W = doc.internal.pageSize.getWidth()
+  const H = doc.internal.pageSize.getHeight()
+  const margin = 14
+  const contentW = W - margin * 2
+
+  const logo = await loadLogoBase64()
+  let y = 12
+  if (logo) doc.addImage(logo, 'PNG', margin, y, 14, 14)
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(13)
+  doc.setTextColor(10, 37, 64)
+  doc.text('GL Robótica Submarina', logo ? margin + 17 : margin, y + 5)
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(9)
+  doc.setTextColor(80, 100, 120)
+  doc.text('Pedidos del Taller', logo ? margin + 17 : margin, y + 10)
+  doc.setDrawColor(200, 215, 230)
+  doc.line(margin, y + 16, W - margin, y + 16)
+  y += 22
+
+  doc.setFontSize(8)
+  doc.setFont('helvetica', 'bold')
+  doc.setTextColor(80, 100, 120)
+  doc.text('Fecha:', margin, y)
+  doc.setFont('helvetica', 'normal')
+  doc.setTextColor(20, 40, 60)
+  doc.text(new Date().toLocaleDateString('es-CL'), margin + 15, y)
+  doc.setFont('helvetica', 'bold')
+  doc.setTextColor(80, 100, 120)
+  doc.text('Ítems:', margin + 90, y)
+  doc.setFont('helvetica', 'normal')
+  doc.setTextColor(20, 40, 60)
+  doc.text(String(lista.length), margin + 105, y)
+  y += 8
+
+  autoTable(doc, {
+    startY: y,
+    margin: { left: margin, right: margin },
+    head: [['Ítem', 'Cantidad']],
+    body: lista.length
+      ? lista.map(it => [String(it.nombre ?? ''), String(it.cantidad ?? '')])
+      : [['Sin pedidos cargados.', '']],
+    headStyles: { fillColor: [10, 37, 64], textColor: [255, 255, 255], fontSize: 8, fontStyle: 'bold' },
+    columnStyles: {
+      0: { cellWidth: contentW - 30 },
+      1: { cellWidth: 30, halign: 'center' },
+    },
+    bodyStyles: { fontSize: 8, textColor: [20, 40, 60] },
+    alternateRowStyles: { fillColor: [245, 248, 252] },
+    rowPageBreak: 'avoid',
+  })
+
+  const totalPages = doc.internal.getNumberOfPages()
+  for (let p = 1; p <= totalPages; p++) {
+    doc.setPage(p)
+    doc.setDrawColor(200, 215, 230)
+    doc.line(margin, H - 8, W - margin, H - 8)
+    doc.setFontSize(7)
+    doc.setTextColor(150, 170, 190)
+    doc.text(`Generado con RovSystem · HyperionX · ${new Date().toLocaleString('es-CL')}`, margin, H - 4)
+    doc.text(`Página ${p} de ${totalPages}`, W - margin, H - 4, { align: 'right' })
+  }
+
+  return doc
+}
+
+function nombrePedidosTaller() {
+  // Fecha LOCAL (no UTC), mismo criterio que nombreFaltantes.
+  const d = new Date()
+  const p = (n) => String(n).padStart(2, '0')
+  return `Pedidos-Taller-${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}.pdf`
+}
+
+export async function descargarPDFPedidosTaller(lista = []) {
+  try {
+    const doc = await construirPDFPedidosTaller(lista)
+    doc.save(nombrePedidosTaller())
+  } catch (e) { manejarErrorPDF(e, 'descargarPDFPedidosTaller') }
+}
+
+export async function compartirPDFPedidosTaller(lista = []) {
+  try {
+    const doc = await construirPDFPedidosTaller(lista)
+    const nombre = nombrePedidosTaller()
+    const blob = doc.output('blob')
+    const file = new File([blob], nombre, { type: 'application/pdf' })
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({
+        files: [file],
+        title: 'Pedidos del Taller',
+        text: `Pedidos del Taller · ${new Date().toLocaleDateString('es-CL')}`,
+      })
+    } else {
+      doc.save(nombre)
+    }
+  } catch (e) { manejarErrorPDF(e, 'compartirPDFPedidosTaller') }
+}
+
 export async function descargarPDF(entrega) {
   try {
     const doc = await generarPDFEntrega(entrega)
