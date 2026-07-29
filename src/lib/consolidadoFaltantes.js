@@ -1,8 +1,19 @@
 import { db } from './firebase'
-import { doc, getDoc } from 'firebase/firestore'
+import { doc, getDoc, getDocFromServer } from 'firebase/firestore'
 import { logError } from './logger'
 import { kitBase } from './kitScope'
 import { HERRAMIENTAS_BASICAS_DEFAULT } from '../config/appDefaults'
+
+// "Actualizar" debe traer datos FRESCOS: lee del servidor. Con persistentLocalCache
+// activada y un listener vivo sobre estos mismos docs (useFaltantesGlobal en
+// MainLayout), un getDoc normal se resuelve desde la caché local y devuelve el
+// valor previo al restock — por eso Compras "no bajaba" hasta recargar con F5.
+// getDocFromServer fuerza la red; si no hay conexión, cae a la caché para no
+// quedarse sin datos.
+async function leerFresco(ref) {
+  try { return await getDocFromServer(ref) }
+  catch { return await getDoc(ref) }
+}
 
 // Consolidado de HERRAMIENTAS faltantes de todos los centros, pensado para armar
 // las compras semanales/mensuales. Lectura one-shot (getDoc) — es un reporte a
@@ -50,7 +61,7 @@ export async function consolidarFaltantesHerramientas(centros) {
   await Promise.all(objetivos.map(async (centro) => {
     // Estuche (checklist fijo, principal + backup)
     try {
-      const snap = await getDoc(doc(db, ...kitBase(centro), 'datos', 'estucheHerramientas'))
+      const snap = await leerFresco(doc(db, ...kitBase(centro), 'datos', 'estucheHerramientas'))
       if (snap.exists()) {
         const d = snap.data()
         for (const [set, campo] of [['Principal', 'principal'], ['Backup', 'backup']]) {
@@ -65,7 +76,7 @@ export async function consolidarFaltantesHerramientas(centros) {
 
     // Caja de herramientas (ítems libres)
     try {
-      const snap = await getDoc(doc(db, ...kitBase(centro), 'datos', 'cajaHerramientas'))
+      const snap = await leerFresco(doc(db, ...kitBase(centro), 'datos', 'cajaHerramientas'))
       if (snap.exists()) {
         for (const it of (snap.data().lista ?? [])) {
           if (it?.falta !== true) continue
