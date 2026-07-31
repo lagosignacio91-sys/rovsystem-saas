@@ -5,7 +5,7 @@ import { getDocFresco } from '../../lib/firestoreFresco'
 import { Send, FileText, ChevronDown, ChevronUp, History, Pencil } from 'lucide-react'
 import { logError } from '../../lib/logger'
 import { validarBitacora } from '../../lib/validaciones'
-import { kitBase } from '../../lib/kitScope'
+import { kitBase, esPiloto } from '../../lib/kitScope'
 import ModalGenerarBitacora from '../bitacora/ModalGenerarBitacora'
 
 // Fecha LOCAL (no UTC): con UTC, cualquier bitácora cerrada de noche en Chile
@@ -110,7 +110,7 @@ export default function TabBitacora({ centro, role }) {
   const [mostrarHistorial, setMostrarHistorial] = useState(false)
   const [editando, setEditando] = useState(null) // entrada del historial que se está corrigiendo
 
-  const puedEditar = role === 'operador' || role === 'apertura'
+  const puedEditar = role === 'operador' || esPiloto(role)
 
   // Al cerrar el modal de edición, refrescar el historial (este tab lee por getDoc, no live).
   const cerrarEdicion = async () => {

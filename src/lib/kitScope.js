@@ -9,10 +9,11 @@
 //
 // Hay DOS operaciones especiales gemelas (mismos derechos, kits separados, pueden
 // coexistir un centro de cada una a la vez):
-//   - Apertura  → team08
-//   - Soberanía → team14
-// La distinción apertura/soberanía es una etiqueta permanente del piloto
-// (`usuarios/{uid}.especialidad`); ambos usan `rol: 'apertura'`.
+//   - Apertura  → team08  (rol 'apertura')
+//   - Soberanía → team14  (rol 'soberania')
+// Apertura y soberanía son DOS ROLES reales y distintos (`usuarios/{uid}.rol`), con
+// reglas y comportamiento idénticos por ahora — separados para poder divergir a futuro
+// sin re-tocar datos. El team propio de cada piloto se deriva del rol (ver teamDeRol).
 //
 // Criterio canónico: teamAsignado ∈ TEAMS_ESPECIALES (ver spec 2026-07-17 y 2026-07-24).
 export const TEAM_APERTURA  = 'team08'
@@ -40,10 +41,17 @@ export function esTeamEspecial(team) {
   return TEAMS_ESPECIALES.includes(team)
 }
 
-// Etiqueta de especialidad del piloto. Default 'apertura' (los pilotos apertura
-// preexistentes no tienen el campo y deben verse como "Apertura").
-export function labelEspecialidad(especialidad) {
-  return especialidad === 'soberania' ? 'Soberanía' : 'Apertura'
+// ¿El rol es el de un piloto de operación especial (apertura o soberanía)? Ambos
+// tienen los MISMOS derechos; este helper generaliza los chequeos que antes miraban
+// solo `rol === 'apertura'`.
+export function esPiloto(rol) {
+  return rol === 'apertura' || rol === 'soberania'
+}
+
+// Etiqueta legible de un rol de piloto. Default 'Apertura' (pilotos apertura
+// preexistentes sin cambios; el rol es la única fuente de verdad).
+export function labelRol(rol) {
+  return rol === 'soberania' ? 'Soberanía' : 'Apertura'
 }
 
 // Etiqueta legible de un team especial (para no mostrar "Team 14" crudo).
@@ -53,8 +61,8 @@ export function labelTeamEspecial(team) {
   return null
 }
 
-// Team especial (kit propio) que le corresponde a una especialidad. Default apertura
-// (los pilotos apertura preexistentes sin campo `especialidad` van a team08).
-export function teamDeEspecialidad(especialidad) {
-  return especialidad === 'soberania' ? TEAM_SOBERANIA : TEAM_APERTURA
+// Team especial (kit propio) que le corresponde a un rol de piloto. Default apertura
+// (rol 'apertura' → team08; rol 'soberania' → team14).
+export function teamDeRol(rol) {
+  return rol === 'soberania' ? TEAM_SOBERANIA : TEAM_APERTURA
 }

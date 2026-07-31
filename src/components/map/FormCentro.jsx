@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Building2, MapPin } from 'lucide-react'
 import { t } from '../../theme/tokens'
 import { Modal, Button, Input, Select, Field } from '../kit'
-import { TEAMS_ESPECIALES, labelTeamEspecial } from '../../lib/kitScope'
+import { TEAMS_ESPECIALES, labelTeamEspecial, esPiloto } from '../../lib/kitScope'
 import { AREAS, AREA_DEFAULT } from '../../config/appDefaults'
 
 const ESTADOS = [
@@ -24,7 +24,7 @@ const TEAMS = Array.from({ length: 16 }, (_, i) => ({
 // soberanía): el piloto no tiene una empresa activa fija (recorre clientes), elige
 // el cliente aquí y el centro nace marcado con SU team especial (teamAsignado = teamId).
 export default function FormCentro({ latlng, onGuardar, onCancelar, cargando, empresaActiva, role, teamId, empresas = [] }) {
-  const esApertura = role === 'apertura'
+  const esPilotoRol = esPiloto(role)
   const labelEsp = labelTeamEspecial(teamId) ?? 'apertura'
   const [nombre, setNombre] = useState('')
   const [estado, setEstado] = useState('OK')
@@ -41,7 +41,7 @@ export default function FormCentro({ latlng, onGuardar, onCancelar, cargando, em
   const submit = (e) => {
     e.preventDefault()
     if (!nombre.trim() || !coordsOk) return
-    if (esApertura) {
+    if (esPilotoRol) {
       const emp = empresas.find(x => x.id === empresaId)
       if (!emp) return
       onGuardar({
@@ -63,16 +63,16 @@ export default function FormCentro({ latlng, onGuardar, onCancelar, cargando, em
     })
   }
 
-  const puedeGuardar = nombre.trim() && coordsOk && (!esApertura || empresaId)
+  const puedeGuardar = nombre.trim() && coordsOk && (!esPilotoRol || empresaId)
 
   return (
-    <Modal open title={esApertura ? 'Abrir centro nuevo' : 'Nuevo centro de trabajo'} onClose={onCancelar} maxWidth={400}
+    <Modal open title={esPilotoRol ? 'Abrir centro nuevo' : 'Nuevo centro de trabajo'} onClose={onCancelar} maxWidth={400}
       footer={<>
         <Button variant="secondary" size="lg" onClick={onCancelar}>Cancelar</Button>
-        <Button variant="primary" size="lg" disabled={cargando || !puedeGuardar} onClick={submit}>{cargando ? 'Guardando...' : (esApertura ? 'Abrir centro' : 'Guardar centro')}</Button>
+        <Button variant="primary" size="lg" disabled={cargando || !puedeGuardar} onClick={submit}>{cargando ? 'Guardando...' : (esPilotoRol ? 'Abrir centro' : 'Guardar centro')}</Button>
       </>}>
       <div style={{ display: 'flex', gap: 14, marginBottom: 16, flexWrap: 'wrap' }}>
-        {!esApertura && empresaActiva && (
+        {!esPilotoRol && empresaActiva && (
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, color: t.brandSoft, fontSize: t.textSm }}>
             <Building2 size={14} /> {empresaActiva.nombre}
           </span>
@@ -106,7 +106,7 @@ export default function FormCentro({ latlng, onGuardar, onCancelar, cargando, em
           </div>
         </div>
 
-        {esApertura && (
+        {esPilotoRol && (
           <Field label="Cliente / empresa">
             <Select value={empresaId} onChange={e => setEmpresaId(e.target.value)}>
               <option value="">— Selecciona el cliente —</option>
@@ -123,7 +123,7 @@ export default function FormCentro({ latlng, onGuardar, onCancelar, cargando, em
           </Select>
         </Field>
 
-        {esApertura ? (
+        {esPilotoRol ? (
           <p style={{ fontSize: t.textXs, color: t.textMuted, margin: 0, lineHeight: 1.5 }}>
             Este centro se abre con tu equipo de <b>{labelEsp}</b>. Trabajarás con tu kit propio; al terminar, usá
             <b> «Cerrar apertura»</b> para dejar el centro registrado y libre para su team definitivo.

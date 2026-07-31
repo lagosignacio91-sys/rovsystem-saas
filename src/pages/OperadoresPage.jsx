@@ -5,7 +5,7 @@ import { t } from '../theme/tokens'
 import { useOperadoresGlobal } from '../hooks/useOperadoresGlobal'
 import { useUsuarios } from '../hooks/useUsuarios'
 import { moverACentro, devolverACentro, reasignarCentro, volverAEquipoEspecial } from '../lib/cobertura'
-import { labelEspecialidad, labelTeamEspecial, teamDeEspecialidad } from '../lib/kitScope'
+import { esPiloto, labelRol, labelTeamEspecial, teamDeRol } from '../lib/kitScope'
 import { areaDe } from '../config/appDefaults'
 import ImportarCSV from '../components/admin/ImportarCSV'
 import FormOperador from '../components/admin/FormOperador'
@@ -61,7 +61,7 @@ export default function OperadoresPage() {
   const handleVolverEquipo = async (usuario) => {
     try {
       await volverAEquipoEspecial(usuario, centros)
-      setResultado({ ok: true, msg: `↩️ ${usuario.nombre} volvió a su equipo de ${labelTeamEspecial(teamDeEspecialidad(usuario.especialidad))}` })
+      setResultado({ ok: true, msg: `↩️ ${usuario.nombre} volvió a su equipo de ${labelTeamEspecial(teamDeRol(usuario.rol))}` })
     } catch {
       setResultado({ ok: false, msg: `❌ No se pudo devolver a ${usuario.nombre} a su equipo` })
     }
@@ -87,11 +87,8 @@ export default function OperadoresPage() {
   const handleCrear = async (form, password) => {
     const r = await crearOperador(form, password)
     if (r.error) { setResultado({ ok: false, msg: `❌ ${r.error}` }); return }
-    // La Cloud Function crearUsuario escribe un set fijo (sin `especialidad`);
-    // se persiste aparte con un update de admin usando el uid recién creado.
-    if (r.uid && form.especialidad) {
-      await actualizarOperador(r.uid, { especialidad: form.especialidad })
-    }
+    // El rol (apertura/soberania) ya viaja en el set fijo de crearUsuario junto con el
+    // teamId — no hace falta un update posterior de `especialidad` (campo eliminado).
     // Auto-sync del roster (lee usuarios fresco): el operador aparece en su centro
     // sin tener que apretar "Sincronizar operadores". Best-effort.
     try { await sincronizarOperadoresCentros() } catch { /* el botón manual queda de respaldo */ }
@@ -131,8 +128,8 @@ export default function OperadoresPage() {
   }
 
   const ROL_LABEL = { admin: 'Admin', supervisor: 'Taller', operador: 'Operador' }
-  // Los pilotos especiales (rol 'apertura') se muestran con su etiqueta Apertura/Soberanía.
-  const rolLabelDe = (u) => u?.rol === 'apertura' ? labelEspecialidad(u.especialidad) : (ROL_LABEL[u?.rol] ?? u?.rol)
+  // Los pilotos especiales (rol apertura/soberania) se muestran con su etiqueta Apertura/Soberanía.
+  const rolLabelDe = (u) => esPiloto(u?.rol) ? labelRol(u.rol) : (ROL_LABEL[u?.rol] ?? u?.rol)
 
   // Cuentas operativas (operador/apertura) que todavía NO están en ningún roster:
   // recién creadas o sin "Sincronizar operadores". Se muestran igual como tarjeta
@@ -141,7 +138,7 @@ export default function OperadoresPage() {
   // roster) aparezcan siempre. Cuando entran a un roster, se muestran desde ahí.
   const uidsEnRoster = new Set(operadores.map(o => o.uid).filter(Boolean))
   const sinRoster = usuarios
-    .filter(u => (u.rol === 'operador' || u.rol === 'apertura') && !uidsEnRoster.has(u.id))
+    .filter(u => (u.rol === 'operador' || esPiloto(u.rol)) && !uidsEnRoster.has(u.id))
     .filter(u => !empresaActiva || u.empresaId === empresaActiva.id || !u.empresaId)
     .map(u => ({
       uid: u.id, nombre: u.nombre ?? '', telefono: u.telefono ?? '',
@@ -237,14 +234,14 @@ export default function OperadoresPage() {
             const eppFaltantes = usuario?.epp?.faltantes ?? {}
             const eppFaltanCount = Object.values(eppFaltantes).filter(Boolean).length
             const esOperador = usuario?.rol === 'operador'
-            const esApertura = usuario?.rol === 'apertura'
+            const esPilotoU = esPiloto(usuario?.rol)
             const cubriendo = !!usuario?.teamOrigen
             const centroOrigen = cubriendo ? centros.find(c => c.teamAsignado === usuario.teamOrigen) : null
             // Nombre del hogar al que vuelve: el centro, o la etiqueta especial (Apertura/Soberanía) si su hogar es un team especial sin centro.
             const nombreHogar = centroOrigen?.nombre ?? (cubriendo ? labelTeamEspecial(usuario.teamOrigen) : null)
             // Piloto especial que quedó en un centro normal (reasignado): ofrecer volver a su equipo.
-            const teamEspecial = esApertura ? teamDeEspecialidad(usuario?.especialidad) : null
-            const fueraDeSuEquipo = esApertura && !cubriendo && usuario?.teamId !== teamEspecial
+            const teamEspecial = esPilotoU ? teamDeRol(usuario?.rol) : null
+            const fueraDeSuEquipo = esPilotoU && !cubriendo && usuario?.teamId !== teamEspecial
             return (
               <div key={o.centroId + i} style={{ background: t.bgElevated, border: `1px solid ${t.border}`, borderRadius: t.radiusLg, padding: 13 }}>
                 <div style={{ display: 'flex', gap: 11, alignItems: 'center' }}>
@@ -257,8 +254,8 @@ export default function OperadoresPage() {
                   <div style={{ minWidth: 0, flex: 1 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
                       <div style={{ fontSize: t.textSm, fontWeight: 600, color: t.textPrimary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.nombre}</div>
-                      {esApertura && (
-                        <span style={{ flexShrink: 0, fontSize: 9, fontWeight: 700, color: t.brandSoft, background: t.brandTint, borderRadius: t.radiusFull, padding: '1px 7px' }}>{labelEspecialidad(usuario?.especialidad)}</span>
+                      {esPilotoU && (
+                        <span style={{ flexShrink: 0, fontSize: 9, fontWeight: 700, color: t.brandSoft, background: t.brandTint, borderRadius: t.radiusFull, padding: '1px 7px' }}>{labelRol(usuario?.rol)}</span>
                       )}
                     </div>
                     <div style={{ fontSize: 10, color: enFaena ? t.ok : t.textMuted, marginTop: 2, display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
@@ -279,7 +276,7 @@ export default function OperadoresPage() {
                     <HardHat size={12} /> {eppFaltanCount > 0 ? `EPP · faltan ${eppFaltanCount}` : 'EPP · OK'}
                   </button>
                 )}
-                {role === 'admin' && (esOperador || esApertura) && (
+                {role === 'admin' && (esOperador || esPilotoU) && (
                   <>
                     {cubriendo && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 8, fontSize: 10, fontWeight: 600, color: t.ok }}>
@@ -311,7 +308,7 @@ export default function OperadoresPage() {
                     <RotateCcw size={11} /> Volver a {labelTeamEspecial(teamEspecial)}
                   </button>
                 )}
-                {role === 'admin' && (esOperador || esApertura) && (
+                {role === 'admin' && (esOperador || esPilotoU) && (
                   <button onClick={() => setReasignarUser(usuario)} title="Reasignar a otro centro (permanente)"
                     style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, width: '100%', marginTop: 6, background: t.brandTint, color: t.brandSoft, border: `1px solid ${t.border}`, borderRadius: t.radiusMd, padding: '5px 8px', fontSize: 10, fontWeight: 700, cursor: 'pointer' }}>
                     <Repeat size={11} /> Reasignar de centro

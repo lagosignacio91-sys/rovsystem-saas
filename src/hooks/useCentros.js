@@ -6,7 +6,7 @@ import {
   updateDoc, doc, writeBatch, setDoc
 } from 'firebase/firestore'
 import { getDocFresco, getDocsFresco } from '../lib/firestoreFresco'
-import { TEAMS_ESPECIALES, esTeamEspecial } from '../lib/kitScope'
+import { TEAMS_ESPECIALES, esTeamEspecial, esPiloto } from '../lib/kitScope'
 
 // Sin teamAsignado por defecto: la asignación real de team a cada centro
 // la hace el admin manualmente desde la app (rota según licencias/turnos).
@@ -161,7 +161,7 @@ export function useCentros() {
 
   // Pobla el roster de operadores (`.../datos/operadores.lista`) desde `usuarios`:
   //  - Centros normales: `centros/{id}/datos/operadores`, operadores del team (rol 'operador').
-  //  - Kit de apertura:  `teams/team08/datos/operadores`, equipo de apertura (rol 'apertura').
+  //  - Kits especiales:  `teams/{team08|team14}/datos/operadores`, pilotos apertura/soberanía.
   //    Se sincroniza SIEMPRE, no solo cuando hay un centro de apertura asignado — el roster
   //    del kit vive en `teams/team08`, no en un centro, así que el loop de centros nunca lo
   //    tocaba y quedaban "fantasmas" (uid de gente borrada/movida) al no limpiarse jamás.
@@ -195,7 +195,6 @@ export function useCentros() {
           correoCorp:     u.correoCorporativo ?? '',
           foto:           u.foto ?? prev?.foto ?? null,
           esRelevo:       u.esRelevo ?? false,
-          especialidad:   u.especialidad ?? prev?.especialidad ?? null,
           estado:         prev?.estado ?? 'descanso',
           ingresoTurno:   prev?.ingresoTurno ?? '',
           salidaTurno:    prev?.salidaTurno ?? '',
@@ -216,9 +215,10 @@ export function useCentros() {
     }
 
     // Kits especiales (SIEMPRE): `teams/{team}/datos/operadores` para cada team especial
-    // (apertura=team08, soberanía=team14), con los pilotos (rol 'apertura') de ESE team.
+    // (apertura=team08, soberanía=team14), con los pilotos de ESE team. El `teamId`
+    // desambigua: los apertura (teamId=team08) caen en team08 y los soberania en team14.
     for (const teamEsp of TEAMS_ESPECIALES) {
-      const pilotos = usuarios.filter(u => u.rol === 'apertura' && u.teamId === teamEsp)
+      const pilotos = usuarios.filter(u => esPiloto(u.rol) && u.teamId === teamEsp)
       operadoresAsignados += await escribirRoster(doc(db, 'teams', teamEsp, 'datos', 'operadores'), pilotos)
     }
 

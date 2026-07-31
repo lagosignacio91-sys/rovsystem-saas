@@ -3,13 +3,13 @@ import { db } from '../../lib/firebase'
 import { doc, getDoc } from 'firebase/firestore'
 import { X, Phone, Mail } from 'lucide-react'
 import { t } from '../../theme/tokens'
-import { kitBase, labelEspecialidad, labelTeamEspecial } from '../../lib/kitScope'
+import { kitBase, labelTeamEspecial } from '../../lib/kitScope'
 
 function OpCard({ op, especialidadFallback }) {
   if (!op?.nombre) return null
   const enFaena = op.estado === 'faena'
-  // Etiqueta Apertura/Soberanía: del roster si viene, si no del team especial del centro.
-  const etiqueta = op.especialidad ? labelEspecialidad(op.especialidad) : especialidadFallback
+  // Etiqueta Apertura/Soberanía derivada del team especial del centro (team08/team14).
+  const etiqueta = especialidadFallback
   return (
     <div style={s.opCard}>
       <div style={s.opFotoWrap}>

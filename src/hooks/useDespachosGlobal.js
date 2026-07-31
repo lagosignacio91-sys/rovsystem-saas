@@ -4,6 +4,7 @@ import { collection, onSnapshot, updateDoc, doc, arrayUnion, query, where } from
 import { confirmarRecepcionItems } from '../lib/recepcion'
 import { calcularEstadoDespacho, claveItem, normalizarItemsLegacy } from '../lib/despachos'
 import { logError } from '../lib/logger'
+import { esPiloto } from '../lib/kitScope'
 
 // Escucha los despachos. Si se pasa role='operador' y teamId, filtra solo los del propio team.
 // onNuevaSolicitud(d): callback opcional llamado cuando llega un despacho nuevo (para toasts).
@@ -50,7 +51,7 @@ export function useDespachosGlobal({ role, teamId, onNuevaSolicitud, onDespachoC
           if (change.type === 'modified') {
             const d = { id: change.doc.id, ...change.doc.data() }
             // Operador y apertura solo se enteran de los despachos de SU propio team.
-            const esDeSuTeam = (role === 'operador' || role === 'apertura') ? d.teamAsignado === teamId : true
+            const esDeSuTeam = (role === 'operador' || esPiloto(role)) ? d.teamAsignado === teamId : true
             if (!d.eliminado && esDeSuTeam) {
               onDespachoCambia(d)
             }

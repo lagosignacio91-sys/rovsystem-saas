@@ -14,8 +14,9 @@ service cloud.firestore {
     function isOperador()   { return signedIn() && rol() == 'operador'; }
     function isOwner()      { return signedIn() && rol() == 'owner'; }
     function isVentas()     { return signedIn() && rol() == 'ventas'; }
-    function isApertura()   { return signedIn() && rol() == 'apertura'; }  // equipo que abre centros nuevos (team08)
-    function rolValido(r) { return r in ['operador', 'supervisor', 'admin', 'owner', 'ventas', 'apertura']; }
+    function isApertura()   { return signedIn() && rol() == 'apertura'; }   // equipo que abre centros nuevos (team08)
+    function isSoberania()  { return signedIn() && rol() == 'soberania'; }  // piloto de soberanía (team14); mismos derechos que apertura
+    function rolValido(r) { return r in ['operador', 'supervisor', 'admin', 'owner', 'ventas', 'apertura', 'soberania']; }
 
     // Usuario "aprovisionado": autenticado Y con un perfil en /usuarios creado por
     // un admin (create es solo-admin). Cierra el hueco de S-01: una cuenta huérfana
@@ -50,18 +51,19 @@ service cloud.firestore {
                  .hasOnly(['nombre', 'telefono', 'foto', 'passwordCambiado', 'estado', 'updatedAt', 'updatedBy', 'aceptoTerminos', 'correoPersonal', 'epp', 'teamId', 'teamOrigen', 'coberturas']));
     }
 
-    // ---- Kit de team (apertura) ----
-    // El equipamiento del equipo de apertura (ROV, inventario, bitácora, roster,
-    // entregas) vive en teams/team08/... porque VIAJA con el equipo, no pertenece
-    // a ningún centro. Lo lee cualquier usuario aprovisionado; lo escribe el admin
-    // o el propio usuario de apertura de ESE team (aislamiento por team, como S-02).
+    // ---- Kit de team (apertura / soberanía) ----
+    // El equipamiento del equipo especial (ROV, inventario, bitácora, roster,
+    // entregas) vive en teams/{team08|team14}/... porque VIAJA con el equipo, no
+    // pertenece a ningún centro. Lo lee cualquier usuario aprovisionado; lo escribe
+    // el admin o el propio piloto (apertura/soberanía) de ESE team (aislamiento por
+    // team, como S-02).
     match /teams/{teamId} {
       allow read: if aprovisionado();
       allow write: if isAdmin();
       match /{document=**} {
         allow read:  if aprovisionado();
         allow write: if isAdmin()
-          || (isApertura()
+          || ((isApertura() || isSoberania())
               && teamId == get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.teamId);
       }
     }
@@ -84,7 +86,7 @@ service cloud.firestore {
       // team08 apertura o team14 soberanía): así abre centros nuevos sin poder
       // asignarlos a otro team.
       allow create: if isAdmin()
-        || (isApertura()
+        || ((isApertura() || isSoberania())
             && request.resource.data.teamAsignado
                == get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.teamId);
       allow delete: if isAdmin();
@@ -97,7 +99,7 @@ service cloud.firestore {
             && (isSupervisor()
                 || (isOperador()
                     && resource.data.teamAsignado == get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.teamId)))
-        || (isApertura()
+        || ((isApertura() || isSoberania())
             && resource.data.teamAsignado
                == get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.teamId
             && request.resource.data.teamAsignado == null
@@ -135,13 +137,14 @@ service cloud.firestore {
       match /datos/{doc} {
         // La bitácora solo la lee el operador si es de SU propio team (anti cross-tenant).
         // El taller (supervisor) no debe ver bitácoras diarias, ni siquiera vía lectura directa.
-        // Apertura tampoco: su propia bitácora vive en teams/team08 (ver match de arriba),
-        // nunca en centros/{id}, así que no necesita ni debe leer la de ningún centro aquí.
+        // Apertura ni soberanía tampoco: su propia bitácora vive en teams/{team08|team14}
+        // (ver match de arriba), nunca en centros/{id}, así que no necesitan ni deben leer
+        // la de ningún centro aquí.
         // estucheHerramientas/cajaHerramientas/operadores siguen abiertas a cualquier autenticado
         // (ej. popup de contacto de centros ajenos en el Mapa).
         allow read:  if aprovisionado()
           && (doc != 'bitacora'
-              || (!isOperador() && !isSupervisor() && !isApertura())
+              || (!isOperador() && !isSupervisor() && !isApertura() && !isSoberania())
               || (isOperador()
                   && get(/databases/$(database)/documents/centros/$(centroId)).data.teamAsignado
                      == get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.teamId));
@@ -172,9 +175,9 @@ service cloud.firestore {
       // El operador (y el piloto de apertura/soberanía) solo confirma recepción (campos
       // acotados) y SOLO de su propio team. `items` se incluye para marcar sus ítems como
       // recibidos (ciclo "falta → despacho"), pero `items.size()` sin cambios evita que
-      // agregue/quite ítems del array. Apertura recibe los despachos de su centro especial.
+      // agregue/quite ítems del array. El piloto recibe los despachos de su centro especial.
       allow update:        if isAdmin() || isSupervisor()
-        || ((isOperador() || isApertura())
+        || ((isOperador() || isApertura() || isSoberania())
             && request.resource.data.diff(resource.data).affectedKeys()
                  .hasOnly(['estado', 'observacion', 'recibidoEn', 'recibidoPor', 'historial', 'stockAplicado', 'items'])
             && request.resource.data.items.size() == resource.data.items.size()

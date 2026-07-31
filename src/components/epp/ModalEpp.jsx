@@ -4,6 +4,7 @@ import { doc, setDoc, onSnapshot, deleteField } from 'firebase/firestore'
 import { logError } from '../../lib/logger'
 import { Modal, Button } from '../kit'
 import { t } from '../../theme/tokens'
+import { esPiloto } from '../../lib/kitScope'
 
 // ---- Modal nombre de ítem EPP (agregar / renombrar catálogo global, solo admin) ----
 function ModalItemEpp({ inicial = '', titulo, onGuardar, onCerrar }) {
@@ -50,7 +51,7 @@ export default function ModalEpp({ uid = null, nombre, role, onCerrar }) {
   const [faltantes, setFaltantes]   = useState({})   // { [id]: true }
   const [cargando, setCargando]     = useState(true)
   const [modal, setModal]           = useState(null) // { modo:'agregar' } | { modo:'renombrar', item }
-  const puedeEditar = role === 'operador' || role === 'apertura' || role === 'admin'
+  const puedeEditar = role === 'operador' || esPiloto(role) || role === 'admin'
   const esAdmin = role === 'admin'
 
   useEffect(() => {

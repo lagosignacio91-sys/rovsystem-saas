@@ -14,7 +14,7 @@ import TabInventario from '../tabs/TabInventario'
 import TabBitacora from '../tabs/TabBitacora'
 import PanelDespacho from '../dispatch/PanelDespacho'
 import TabEntregaTurno from '../tabs/TabEntregaTurno'
-import { kitBase, esCentroApertura, esTeamEspecial } from '../../lib/kitScope'
+import { kitBase, esCentroApertura, esTeamEspecial, esPiloto } from '../../lib/kitScope'
 
 // Registro id → componente de pestaña (no serializable, vive en código).
 const TAB_COMPONENTES = {
@@ -43,7 +43,7 @@ export default memo(function PanelCentro({ centro, onCerrar, onEliminar, sincron
     (tb) => !tb.hidden && TAB_COMPONENTES[tb.id] && permiso(tb.id, role) !== 'hidden'
       && !(role === 'operador' && OCULTAS_OPERADOR.includes(tb.id))
       && !(role === 'supervisor' && OCULTAS_SUPERVISOR.includes(tb.id))
-      && !(role === 'apertura' && OCULTAS_APERTURA.includes(tb.id)),
+      && !(esPiloto(role) && OCULTAS_APERTURA.includes(tb.id)),
   )
   const [tabActiva, setTabActiva]   = useState(tabsVisibles[0]?.id ?? 'operator')
   // En modo "solo ver", pasamos un rol sin permisos de edición a la pestaña:
@@ -54,7 +54,7 @@ export default memo(function PanelCentro({ centro, onCerrar, onEliminar, sincron
   const [aEliminar, setAEliminar]     = useState(false)
   const [aCerrarApertura, setACerrarApertura] = useState(false)
   const [expanded, setExpanded]       = useState(false)
-  const mostrarCerrarApertura = role === 'apertura' && esCentroApertura(centro)
+  const mostrarCerrarApertura = esPiloto(role) && esCentroApertura(centro)
 
   const handleCerrarApertura = async () => {
     setACerrarApertura(false)

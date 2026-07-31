@@ -2,7 +2,7 @@ import { useState, useRef } from 'react'
 import { comprimirFoto } from '../../lib/compressorFotos'
 import { useEmpresas } from '../../hooks/useEmpresas'
 import { validarRut, validarEmail } from '../../lib/validaciones'
-import { TEAM_APERTURA, TEAM_SOBERANIA } from '../../lib/kitScope'
+import { esPiloto, teamDeRol } from '../../lib/kitScope'
 
 const CAMPOS = [
   { key: 'nombre',            label: 'Nombre completo *',       type: 'text',  requerido: true },
@@ -24,17 +24,15 @@ export default function FormOperador({ inicial, esEdicion, onGuardar, onCerrar }
 
   const set = (key, val) => setForm(f => ({ ...f, [key]: val }))
 
-  // El dropdown de rol expone Apertura y Soberanía como opciones separadas, pero
-  // internamente ambas son el mismo rol 'apertura' con la etiqueta `especialidad`
-  // (mismos derechos). El valor visible se deriva de rol+especialidad.
-  const rolUI = form.rol === 'apertura' ? (form.especialidad === 'soberania' ? 'soberania' : 'apertura') : (form.rol ?? 'operador')
+  // Apertura y Soberanía son DOS ROLES reales y separados (mismos derechos hoy). El
+  // rol es la única fuente de verdad — ya no hay campo `especialidad`. Al elegir un
+  // piloto, se lo deja listo para operar con SU kit especial (team08 / team14).
+  const rolUI = form.rol ?? 'operador'
   const setRolUI = (val) => {
-    if (val === 'apertura' || val === 'soberania') {
-      // Deja al piloto listo para operar con SU kit especial (team08 / team14).
-      const teamEspecial = val === 'soberania' ? TEAM_SOBERANIA : TEAM_APERTURA
-      setForm(f => ({ ...f, rol: 'apertura', especialidad: val, teamId: teamEspecial }))
+    if (esPiloto(val)) {
+      setForm(f => ({ ...f, rol: val, teamId: teamDeRol(val) }))
     } else {
-      setForm(f => ({ ...f, rol: val, especialidad: null }))
+      setForm(f => ({ ...f, rol: val }))
     }
   }
 

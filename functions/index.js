@@ -6,7 +6,9 @@ const { getFirestore }      = require('firebase-admin/firestore')
 
 initializeApp()
 
-const ROLES_VALIDOS = ['operador', 'supervisor', 'admin', 'owner', 'ventas', 'apertura']
+// Debe quedar SINCRONIZADO con rolValido() en firestore.rules: si un rol falta acá,
+// crearUsuario rechaza el alta con "Rol inválido".
+const ROLES_VALIDOS = ['operador', 'supervisor', 'admin', 'owner', 'ventas', 'apertura', 'soberania']
 
 /**
  * Alta de usuarios server-side (S-01 / auto-registro).

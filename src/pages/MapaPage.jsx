@@ -4,6 +4,7 @@ import MapView from '../components/map/MapView'
 import FormCentro from '../components/map/FormCentro'
 import PanelCentro from '../components/ui/PanelCentro'
 import { useEmpresas } from '../hooks/useEmpresas'
+import { esPiloto } from '../lib/kitScope'
 import { areaDe } from '../config/appDefaults'
 
 export default function MapaPage() {
@@ -19,15 +20,15 @@ export default function MapaPage() {
   // Operador y apertura: el panel de su propio centro (teamAsignado === teamId) queda
   // siempre visible, no depende de click. Para apertura (teamId = team08) su "centro
   // actual" es el que esté en apertura, si hay alguno.
-  const miCentro = (role === 'operador' || role === 'apertura') ? centros.find(c => c.teamAsignado === teamId) : null
-  // Guardia uno-a-la-vez: apertura no puede abrir otro centro si ya tiene uno en curso.
-  const aperturaOcupada = role === 'apertura' && !!miCentro
+  const miCentro = (role === 'operador' || esPiloto(role)) ? centros.find(c => c.teamAsignado === teamId) : null
+  // Guardia uno-a-la-vez: un piloto no puede abrir otro centro si ya tiene uno en curso.
+  const aperturaOcupada = esPiloto(role) && !!miCentro
 
   // Handlers memoizados (T-01): estables entre renders para no romper el memo de
   // MapView/PanelCentro (que reciben estas funciones como props).
   const handleMapClick = useCallback((ll) => {
     if (role === 'admin') { setCentroActivo(null); setLatlng(ll); return }
-    if (role === 'apertura') {
+    if (esPiloto(role)) {
       if (aperturaOcupada) { alert('Ya tenés un centro en apertura. Cerralo antes de abrir otro.'); return }
       setCentroActivo(null); setLatlng(ll)
     }
@@ -37,11 +38,11 @@ export default function MapaPage() {
   const cerrarPanel    = useCallback(() => setCentroActivo(null), [])
 
   const handleCentroClick = useCallback((c) => {
-    if (role === 'operador' || role === 'apertura') return // panel fijo a su propio centro (ver abajo)
+    if (role === 'operador' || esPiloto(role)) return // panel fijo a su propio centro (ver abajo)
     if (role === 'admin' || role === 'supervisor') { setCentroActivo(c); return }
   }, [role])
 
-  const centroVivo = (role === 'operador' || role === 'apertura')
+  const centroVivo = (role === 'operador' || esPiloto(role))
     ? miCentro
     : (centroActivo ? centros.find(c => c.id === centroActivo.id) ?? centroActivo : null)
 
@@ -58,7 +59,7 @@ export default function MapaPage() {
             teamId={teamId}
             sincronizarEstado={sincronizarEstado}
             actualizarCentro={actualizarCentro}
-            onCerrar={(role === 'operador' || role === 'apertura') ? null : cerrarPanel}
+            onCerrar={(role === 'operador' || esPiloto(role)) ? null : cerrarPanel}
             onEliminar={handleEliminar}
           />
         </div>

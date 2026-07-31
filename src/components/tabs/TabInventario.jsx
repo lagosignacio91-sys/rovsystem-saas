@@ -3,7 +3,7 @@ import { db } from '../../lib/firebase'
 import { doc, setDoc, onSnapshot } from 'firebase/firestore'
 import { HERRAMIENTAS_BASICAS_DEFAULT } from '../../config/appDefaults'
 import { logError } from '../../lib/logger'
-import { kitBase, esCentroApertura } from '../../lib/kitScope'
+import { kitBase, esCentroApertura, esPiloto } from '../../lib/kitScope'
 
 // ---- Fila de checklist fijo (Ok / Falta) ----
 function FilaHerramienta({ item, estado, puedeEditar, onCambiar }) {
@@ -113,7 +113,7 @@ function CajaHerramientas({ centro, role }) {
   const [cargando, setCargando]   = useState(true)
   const [modalAgregar, setModalAg] = useState(false)
   const [abierto, setAbierto]     = useState(false)
-  const puedeEditar = role === 'admin' || role === 'operador' || role === 'supervisor' || role === 'apertura'
+  const puedeEditar = role === 'admin' || role === 'operador' || role === 'supervisor' || esPiloto(role)
 
   useEffect(() => {
     const ref = doc(db, ...kitBase(centro), 'datos', 'cajaHerramientas')
@@ -168,7 +168,7 @@ function RedesParchesCostura({ centro, role }) {
   const [redes, setRedes]       = useState({ parchesStock: 0, costuraOperativa: true })
   const [cargando, setCargando] = useState(true)
   const [abierto, setAbierto]   = useState(false)
-  const puedeEditar = role === 'admin' || role === 'operador' || role === 'supervisor' || role === 'apertura'
+  const puedeEditar = role === 'admin' || role === 'operador' || role === 'supervisor' || esPiloto(role)
 
   useEffect(() => {
     const ref = doc(db, ...kitBase(centro), 'datos', 'redes')
@@ -274,7 +274,7 @@ function Esenciales({ centro, role }) {
   const [cargando, setCargando]     = useState(true)
   const [abierto, setAbierto]       = useState(false)
   const [modal, setModal]           = useState(null) // { modo:'agregar' } | { modo:'renombrar', item }
-  const puedeEditarCantidad = role === 'operador' || role === 'apertura'
+  const puedeEditarCantidad = role === 'operador' || esPiloto(role)
   const esAdmin = role === 'admin'
 
   // Catálogo global (config/esenciales)
@@ -373,7 +373,7 @@ function Esenciales({ centro, role }) {
 export default function TabInventario({ centro, role, sincronizarEstado }) {
   const [estadoPrincipal, setEstadoPrincipal] = useState({})
   const [estadoBackup, setEstadoBackup]       = useState({})
-  const puedeEditar = role === 'admin' || role === 'operador' || role === 'supervisor' || role === 'apertura'
+  const puedeEditar = role === 'admin' || role === 'operador' || role === 'supervisor' || esPiloto(role)
 
   useEffect(() => {
     const ref = doc(db, ...kitBase(centro), 'datos', 'estucheHerramientas')

@@ -4,7 +4,7 @@ import { doc, setDoc } from 'firebase/firestore'
 import { getDocFresco } from '../../lib/firestoreFresco'
 import { logError } from '../../lib/logger'
 import { CAMPOS } from '../../config/camposRov'
-import { kitBase, esCentroApertura } from '../../lib/kitScope'
+import { kitBase, esCentroApertura, esPiloto } from '../../lib/kitScope'
 
 function ModalFalla({ campo, valorActual, onConfirmar, onCerrar }) {
   const [razon, setRazon] = useState(valorActual ?? '')
@@ -59,7 +59,7 @@ function EquipoCard({ titulo, datos, onGuardar, role, fijo = false }) {
 
   // El taller (supervisor) ve fallas pero NO edita equipos ROV. Editan admin, operador
   // y apertura (esta última opera su kit propio, que vive en teams/team08).
-  const puedeEditar = role === 'admin' || role === 'operador' || role === 'apertura'
+  const puedeEditar = role === 'admin' || role === 'operador' || esPiloto(role)
   const tieneFalla = Object.values(form.estados ?? {}).some(e => e === 'falla')
 
   const handleGuardar = () => { onGuardar(form); setEditando(false) }

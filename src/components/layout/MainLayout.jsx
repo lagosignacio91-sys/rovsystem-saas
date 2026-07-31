@@ -13,6 +13,7 @@ import { NAV_META } from '../../config/appDefaults'
 import { t } from '../../theme/tokens'
 import { logError } from '../../lib/logger'
 import { moverACentro, devolverACentro } from '../../lib/cobertura'
+import { esPiloto } from '../../lib/kitScope'
 import ThemeToggle from '../kit/ThemeToggle'
 import SelectorEmpresa from '../ui/SelectorEmpresa'
 import SelectorArea from '../ui/SelectorArea'
@@ -38,7 +39,7 @@ export default function MainLayout() {
     toast.solicitud(`Nueva solicitud de ${d.centroNombre ?? 'un centro'}`)
   }, [])
   const onDespachoCambia = useCallback((d) => {
-    if ((role === 'operador' || role === 'apertura') && (d.estado === 'enviado' || d.estado === 'parcial')) {
+    if ((role === 'operador' || esPiloto(role)) && (d.estado === 'enviado' || d.estado === 'parcial')) {
       toast.despacho(`Despacho en camino a ${d.centroNombre ?? 'tu centro'}`)
     }
   }, [role])
@@ -61,7 +62,7 @@ export default function MainLayout() {
   const location                = useLocation()
 
   // Suscripción al doc propio para la cobertura de turnos (solo operador/apertura).
-  const esCampo = role === 'operador' || role === 'apertura'
+  const esCampo = role === 'operador' || esPiloto(role)
   useEffect(() => {
     if (!user?.uid || !esCampo) return
     const unsub = onSnapshot(doc(db, 'usuarios', user.uid),
@@ -190,7 +191,7 @@ export default function MainLayout() {
             <div style={{ fontSize: 11, color: t.textPrimary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{nombreCorto}</div>
             <div style={{ fontSize: 9, color: t.textMuted, textTransform: 'capitalize' }}>{role ?? '—'}</div>
           </div>
-          {(role === 'operador' || role === 'apertura') && (
+          {(role === 'operador' || esPiloto(role)) && (
             <button className="gl-icon-btn" onClick={() => setMiEpp(true)} aria-label="Mi EPP" title="Mi EPP"><HardHat size={16} /></button>
           )}
           <button className="gl-icon-btn" onClick={() => setCambiarClave(true)} aria-label="Cambiar contraseña" title="Cambiar contraseña"><KeyRound size={16} /></button>

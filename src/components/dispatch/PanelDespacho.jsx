@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useDespachos } from '../../hooks/useDespachos'
 import { claveItem, normalizarItemsLegacy } from '../../lib/despachos'
-import { esCentroApertura } from '../../lib/kitScope'
+import { esCentroApertura, esPiloto } from '../../lib/kitScope'
 import PanelEquipoTickets from './PanelEquipoTickets'
 
 function origenLabel(i) {
@@ -197,7 +197,7 @@ function DespachoCard({ d, role, bloqueado, onEnviarPendientes, onConfirmarRecep
                 🚚 Enviar pendientes ({pendientesItems.length})
               </button>
             )}
-            {(role === 'admin' || role === 'operador' || role === 'apertura') && !bloqueado && enviadosItems.length > 0 && (
+            {(role === 'admin' || role === 'operador' || esPiloto(role)) && !bloqueado && enviadosItems.length > 0 && (
               <button onClick={() => setModalRec(true)} style={styles.btnRecibido}>
                 ✅ Confirmar recepción ({enviadosItems.length})
               </button>

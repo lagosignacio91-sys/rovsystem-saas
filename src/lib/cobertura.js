@@ -13,7 +13,7 @@ import { db } from './firebase'
 import { doc, setDoc } from 'firebase/firestore'
 import { getDocFresco } from './firestoreFresco'
 import { logError } from './logger'
-import { kitBase, esTeamEspecial, teamDeEspecialidad } from './kitScope'
+import { kitBase, esTeamEspecial, teamDeRol } from './kitScope'
 
 // Fecha LOCAL (no UTC), mismo criterio que las bitácoras.
 function hoy() {
@@ -33,7 +33,6 @@ function entradaRoster(user, prev) {
     correoCorp:   user.correoCorporativo ?? '',
     foto:         user.foto ?? prev?.foto ?? null,
     esRelevo:     user.esRelevo ?? false,
-    especialidad: user.especialidad ?? prev?.especialidad ?? null,
     estado:       prev?.estado ?? 'descanso',
     ingresoTurno: prev?.ingresoTurno ?? '',
     salidaTurno:  prev?.salidaTurno ?? '',
@@ -206,10 +205,10 @@ export async function reasignarCentro(user, centroDestino, centros) {
 
 // Devolver a un piloto especial (apertura/soberanía) a SU propio equipo (team08/team14).
 // Sirve cuando quedó en un centro normal por una reasignación permanente: lo trae de
-// vuelta a su kit viajero con un clic. No cambia rol ni especialidad ni empresa.
+// vuelta a su kit viajero con un clic. No cambia rol ni empresa.
 export async function volverAEquipoEspecial(user, centros) {
   const uid = uidDe(user)
-  const teamEspecial = teamDeEspecialidad(user?.especialidad)
+  const teamEspecial = teamDeRol(user?.rol)
   if (!uid || !teamEspecial) throw new Error('no es piloto especial')
   const teamActual = user.teamId ?? null
   if (teamActual === teamEspecial) return // ya está en su equipo
