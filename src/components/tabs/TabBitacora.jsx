@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { db, auth } from '../../lib/firebase'
-import { doc, setDoc, getDoc, onSnapshot, arrayUnion, deleteField } from 'firebase/firestore'
+import { doc, setDoc, onSnapshot, arrayUnion, deleteField } from 'firebase/firestore'
+import { getDocFresco } from '../../lib/firestoreFresco'
 import { Send, FileText, ChevronDown, ChevronUp, History, Pencil } from 'lucide-react'
 import { logError } from '../../lib/logger'
 import { validarBitacora } from '../../lib/validaciones'
@@ -115,7 +116,7 @@ export default function TabBitacora({ centro, role }) {
   const cerrarEdicion = async () => {
     setEditando(null)
     try {
-      const snap = await getDoc(doc(db, ...kitBase(centro), 'datos', 'bitacora'))
+      const snap = await getDocFresco(doc(db, ...kitBase(centro), 'datos', 'bitacora'))
       if (snap.exists()) setHistorial(snap.data().lista ?? [])
     } catch (e) { logError('TabBitacora/refrescarHistorial', e) }
   }
@@ -123,10 +124,10 @@ export default function TabBitacora({ centro, role }) {
   useEffect(() => {
     const cargar = async () => {
       const [snapBit, snapRov, snapOps, snapRedes] = await Promise.all([
-        getDoc(doc(db, ...kitBase(centro), 'datos', 'bitacora')),
-        getDoc(doc(db, ...kitBase(centro), 'equipos', 'rov')),
-        getDoc(doc(db, ...kitBase(centro), 'datos', 'operadores')),
-        getDoc(doc(db, ...kitBase(centro), 'datos', 'redes')),
+        getDocFresco(doc(db, ...kitBase(centro), 'datos', 'bitacora')),
+        getDocFresco(doc(db, ...kitBase(centro), 'equipos', 'rov')),
+        getDocFresco(doc(db, ...kitBase(centro), 'datos', 'operadores')),
+        getDocFresco(doc(db, ...kitBase(centro), 'datos', 'redes')),
       ])
       if (snapRedes.exists()) {
         const d = snapRedes.data()

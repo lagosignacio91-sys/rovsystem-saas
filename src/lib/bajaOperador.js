@@ -15,7 +15,8 @@
 // (nunca queda una ficha borrada con espejos sucios).
 // ============================================================
 import { db } from './firebase'
-import { doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, collection } from 'firebase/firestore'
+import { doc, setDoc, updateDoc, deleteDoc, collection } from 'firebase/firestore'
+import { getDocFresco, getDocsFresco } from './firestoreFresco'
 import { TEAMS_ESPECIALES } from './kitScope'
 import { logError } from './logger'
 
@@ -31,13 +32,13 @@ function esDelOperador(entrada, uid, nombre) {
 
 export async function darDeBajaOperador(uid) {
   const refUsuario = doc(db, 'usuarios', uid)
-  const snapUsuario = await getDoc(refUsuario)
+  const snapUsuario = await getDocFresco(refUsuario)
   const nombre = ((snapUsuario.exists() ? snapUsuario.data().nombre : '') ?? '').trim()
 
   // Se barren TODOS los centros + los kits especiales (apertura team08, soberanía team14),
   // no solo el team del operador: pudo quedar en otro roster por una cobertura de turno
   // vieja o una reasignación (ver lib/cobertura.js).
-  const centrosSnap = await getDocs(collection(db, 'centros'))
+  const centrosSnap = await getDocsFresco(collection(db, 'centros'))
   const bases = centrosSnap.docs.map(d => ['centros', d.id])
   for (const teamEsp of TEAMS_ESPECIALES) bases.push(['teams', teamEsp])
 
@@ -49,7 +50,7 @@ export async function darDeBajaOperador(uid) {
     // 1) Roster: se quita la entrada (acá sí desaparece, no se anonimiza).
     try {
       const refOps = doc(db, ...base, 'datos', 'operadores')
-      const snap = await getDoc(refOps)
+      const snap = await getDocFresco(refOps)
       if (snap.exists()) {
         const lista = snap.data().lista ?? []
         const nueva = lista.filter(o => !esDelOperador(o, uid, nombre))
@@ -63,7 +64,7 @@ export async function darDeBajaOperador(uid) {
     // 2) Bitácoras: se CONSERVAN (son el día del centro), solo se anonimiza el piloto.
     try {
       const refBit = doc(db, ...base, 'datos', 'bitacora')
-      const snap = await getDoc(refBit)
+      const snap = await getDocFresco(refBit)
       if (snap.exists()) {
         const data = snap.data()
         const patch = {}
@@ -93,7 +94,7 @@ export async function darDeBajaOperador(uid) {
 
     // 3) Entregas de turno: el nombre vive en `piloto` y `relevo`.
     try {
-      const snap = await getDocs(collection(db, ...base, 'entregas'))
+      const snap = await getDocsFresco(collection(db, ...base, 'entregas'))
       for (const d of snap.docs) {
         const e = d.data()
         const patch = {}

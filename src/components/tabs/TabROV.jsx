@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { db } from '../../lib/firebase'
-import { doc, setDoc, getDoc } from 'firebase/firestore'
+import { doc, setDoc } from 'firebase/firestore'
+import { getDocFresco } from '../../lib/firestoreFresco'
 import { logError } from '../../lib/logger'
 import { CAMPOS } from '../../config/camposRov'
 import { kitBase, esCentroApertura } from '../../lib/kitScope'
@@ -172,7 +173,7 @@ export default function TabROV({ centro, role, sincronizarEstado }) {
     const cargar = async () => {
       try {
         const ref  = doc(db, ...kitBase(centro), 'equipos', 'rov')
-        const snap = await getDoc(ref)
+        const snap = await getDocFresco(ref)
         if (snap.exists()) {
           const p = snap.data().principal ?? {}
           const b = snap.data().backup ?? {}
