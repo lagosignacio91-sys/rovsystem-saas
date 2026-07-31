@@ -4,12 +4,15 @@ import { RefreshCw, FileDown, Share2, ShoppingCart, PackageCheck } from 'lucide-
 import { t } from '../theme/tokens'
 import { consolidarFaltantesHerramientas } from '../lib/consolidadoFaltantes'
 import { descargarPDFFaltantes, compartirPDFFaltantes } from '../lib/generatePDF'
+import { areaDe } from '../config/appDefaults'
 
 // Consolidado de herramientas faltantes de todos los centros (estuche + caja),
 // agrupado por ítem, para planificar compras semanales/mensuales. Solo admin/supervisor.
 export default function ComprasPage() {
-  const { centros, empresaActiva } = useOutletContext()
-  const base = empresaActiva ? (centros ?? []).filter(c => c.empresaId === empresaActiva.id) : (centros ?? [])
+  const { centros, empresaActiva, areaActiva } = useOutletContext()
+  const base = (centros ?? [])
+    .filter(c => !empresaActiva || c.empresaId === empresaActiva.id)
+    .filter(c => !areaActiva || areaActiva === 'todas' || areaDe(c) === areaActiva)
 
   const [consolidado, setConsolidado] = useState(null)
   const [cargando, setCargando]       = useState(true)

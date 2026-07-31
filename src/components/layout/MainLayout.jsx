@@ -15,6 +15,7 @@ import { logError } from '../../lib/logger'
 import { moverACentro, devolverACentro } from '../../lib/cobertura'
 import ThemeToggle from '../kit/ThemeToggle'
 import SelectorEmpresa from '../ui/SelectorEmpresa'
+import SelectorArea from '../ui/SelectorArea'
 import ModalPersonalizar from '../admin/ModalPersonalizar'
 import ModalCambiarPassword from '../auth/ModalCambiarPassword'
 import ModalEpp from '../epp/ModalEpp'
@@ -49,6 +50,7 @@ export default function MainLayout() {
   )
   const { empresas }            = useEmpresas()
   const [empresaActiva, setEmpresaActiva] = useState(null)
+  const [areaActiva, setAreaActiva]       = useState('todas') // filtro global de zona: 'todas' | 'aysen' | 'cisne'
   const [drawerOpen, setDrawerOpen]       = useState(false)
   const [personalizar, setPersonalizar]   = useState(false)
   const [cambiarClave, setCambiarClave]   = useState(false)
@@ -201,7 +203,7 @@ export default function MainLayout() {
         <header className="gl-topbar">
           <button className="gl-icon-btn gl-menu-btn" onClick={() => setDrawerOpen(true)} aria-label="Abrir menú"><Menu size={20} /></button>
           <div className="gl-display" style={{ fontSize: t.textLg, fontWeight: 600, color: t.textPrimary, whiteSpace: 'nowrap' }}>{titulo}</div>
-          <div style={{ flex: 1, minWidth: 0, display: 'flex', justifyContent: 'center' }}>
+          <div style={{ flex: 1, minWidth: 0, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             {role === 'admin'
               ? <SelectorEmpresa empresaActiva={empresaActiva} onCambiar={cambiarEmpresa} role={role} />
               : empresaActiva && (
@@ -210,6 +212,9 @@ export default function MainLayout() {
                   </span>
                 )
             }
+            {(role === 'admin' || role === 'supervisor') && (
+              <SelectorArea areaActiva={areaActiva} onCambiar={setAreaActiva} />
+            )}
           </div>
           <Reloj />
           <ThemeToggle />
@@ -234,7 +239,7 @@ export default function MainLayout() {
           </div>
         ) : (
           <main className="gl-content">
-            <Outlet context={{ ...centrosState, role, uid: user?.uid, teamId, empresaActiva, centrosConFaltantes, whatsappBitacora }} />
+            <Outlet context={{ ...centrosState, role, uid: user?.uid, teamId, empresaActiva, areaActiva, centrosConFaltantes, whatsappBitacora }} />
           </main>
         )}
 

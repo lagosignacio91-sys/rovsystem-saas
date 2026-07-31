@@ -7,6 +7,7 @@ import { EstadoBadge } from '../components/kit'
 import { useOperadoresGlobal } from '../hooks/useOperadoresGlobal'
 import { useEmpresas } from '../hooks/useEmpresas'
 import { CENTROS_GL } from '../hooks/useCentros'
+import { areaDe, AREAS } from '../config/appDefaults'
 import PanelCentro from '../components/ui/PanelCentro'
 
 const ESTADOS_FILTRO = [
@@ -18,7 +19,7 @@ const ESTADOS_FILTRO = [
 ]
 
 export default function CentrosPage() {
-  const { centros, eliminarCentro, sincronizarEstado, actualizarCentro, inicializarCentrosGL, sincronizarOperadoresCentros, role, uid, empresaActiva, centrosConFaltantes } = useOutletContext()
+  const { centros, eliminarCentro, sincronizarEstado, actualizarCentro, inicializarCentrosGL, sincronizarOperadoresCentros, role, uid, empresaActiva, areaActiva, centrosConFaltantes } = useOutletContext()
   const { empresas }                    = useEmpresas()
   const [busca, setBusca]               = useState('')
   const [filtroEstado, setFiltroEstado] = useState(null)
@@ -55,7 +56,9 @@ export default function CentrosPage() {
     setShowInit(false)
   }
 
-  const base = empresaActiva ? centros.filter(c => c.empresaId === empresaActiva.id) : centros
+  const base = centros
+    .filter(c => !empresaActiva || c.empresaId === empresaActiva.id)
+    .filter(c => !areaActiva || areaActiva === 'todas' || areaDe(c) === areaActiva)
   const { operadores } = useOperadoresGlobal(base)
 
   const opFaenaPorCentro = (centroId) =>
@@ -170,6 +173,7 @@ export default function CentrosPage() {
                   const meta    = ESTADO_META[c.estado] ?? ESTADO_META.NO_OPERATOR
                   const opFaena = opFaenaPorCentro(c.id)
                   const tnombre = teamNombre(c.teamAsignado)
+                  const alabel  = AREAS.find(a => a.id === areaDe(c))?.label ?? 'Aysén'
                   return (
                     <button key={c.id} className="gl-list-row" onClick={() => setCentroActivo(c)}
                       style={{ borderLeft: `3px solid ${meta.dot}`, flexDirection: 'column', alignItems: 'stretch', gap: 0 }}>
@@ -182,9 +186,11 @@ export default function CentrosPage() {
                         <EstadoBadge estado={c.estado} tieneFaltante={centrosConFaltantes?.has(c.id)} />
                         <ChevronRight size={16} color={t.textMuted} style={{ flexShrink: 0 }} />
                       </div>
-                      {/* Fila secundaria: team + op en faena */}
-                      {(tnombre || opFaena) && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 6, paddingTop: 6, borderTop: `1px solid ${t.border}` }}>
+                      {/* Fila secundaria: área + team + op en faena */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 6, paddingTop: 6, borderTop: `1px solid ${t.border}`, flexWrap: 'wrap' }}>
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, color: t.textSecondary, background: t.bgInput, borderRadius: t.radiusMd, padding: '2px 7px', fontWeight: 600 }}>
+                            <MapPin size={11} /> {alabel}
+                          </span>
                           {tnombre && (
                             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, color: t.brandSoft, background: t.brandTint, borderRadius: t.radiusMd, padding: '2px 7px', fontWeight: 600 }}>
                               <Users size={11} /> {tnombre}
@@ -207,7 +213,6 @@ export default function CentrosPage() {
                             </div>
                           )}
                         </div>
-                      )}
                     </button>
                   )
                 })}

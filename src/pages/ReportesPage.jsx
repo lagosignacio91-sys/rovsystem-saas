@@ -5,6 +5,7 @@ import { getDocsFresco } from '../lib/firestoreFresco'
 import { db } from '../lib/firebase'
 import { t } from '../theme/tokens'
 import { useIsMobile } from '../hooks/useIsMobile'
+import { areaDe } from '../config/appDefaults'
 import { BarChart2, Package, Wrench } from 'lucide-react'
 
 // Tarjeta para móvil: muestra pares etiqueta/valor apilados (reemplaza filas de tabla).
@@ -58,7 +59,7 @@ function BarRow({ label, value, max, color }) {
 }
 
 export default function ReportesPage() {
-  const { centros, empresaActiva } = useOutletContext()
+  const { centros, empresaActiva, areaActiva } = useOutletContext()
   const isMobile = useIsMobile()
   const mesOpts = useMemo(() => getMesOptions(), [])
   const [mesSel, setMesSel] = useState(mesOpts[0].value)
@@ -93,9 +94,9 @@ export default function ReportesPage() {
           .filter(d => !d.eliminado)
 
         // Fallas de equipos de todos los centros (createdAt en ese mes)
-        const centrosList = empresaActiva
-          ? centros.filter(c => c.empresaId === empresaActiva.id)
-          : centros
+        const centrosList = centros
+          .filter(c => !empresaActiva || c.empresaId === empresaActiva.id)
+          .filter(c => !areaActiva || areaActiva === 'todas' || areaDe(c) === areaActiva)
 
         const fallasData = []
         await Promise.all(centrosList.map(async (c) => {
@@ -123,13 +124,15 @@ export default function ReportesPage() {
     }
     cargar()
     return () => { cancelled = true }
-  }, [mesSel, empresaActiva, centros])
+  }, [mesSel, empresaActiva, areaActiva, centros])
 
   // Agrupaciones
-  const centrosFiltrados = empresaActiva ? centros.filter(c => c.empresaId === empresaActiva.id) : centros
+  const centrosFiltrados = centros
+    .filter(c => !empresaActiva || c.empresaId === empresaActiva.id)
+    .filter(c => !areaActiva || areaActiva === 'todas' || areaDe(c) === areaActiva)
   const centroIds = new Set(centrosFiltrados.map(c => c.id))
 
-  const despFiltrados = despachos.filter(d => !empresaActiva || centroIds.has(d.centroId))
+  const despFiltrados = despachos.filter(d => (!empresaActiva && (!areaActiva || areaActiva === 'todas')) || centroIds.has(d.centroId))
 
   const porEquipo = despFiltrados.reduce((acc, d) => {
     const k = d.teamAsignado ?? 'Sin equipo'

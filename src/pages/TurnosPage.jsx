@@ -6,6 +6,7 @@ import { useEntregasTurno } from '../hooks/useEntregasTurno'
 import ModalEntregaTurno from '../components/turno/ModalEntregaTurno'
 import { descargarPDF, compartirPDF } from '../lib/generatePDF'
 import { kitBase } from '../lib/kitScope'
+import { areaDe } from '../config/appDefaults'
 
 function EntregaCard({ entrega, onEliminar, role }) {
   const [abierta, setAbierta] = useState(false)
@@ -114,7 +115,7 @@ function CentroTurnos({ centro, role, defaultOpen }) {
 }
 
 export default function TurnosPage() {
-  const { centros, role, teamId, empresaActiva } = useOutletContext()
+  const { centros, role, teamId, empresaActiva, areaActiva } = useOutletContext()
 
   // Orden por número de team (team01 → último); sin-team al final; nombre como desempate.
   const numTeam = (c) => {
@@ -122,7 +123,9 @@ export default function TurnosPage() {
     return Number.isNaN(n) ? Infinity : n
   }
   const lista = (() => {
-    let base = empresaActiva ? centros.filter(c => c.empresaId === empresaActiva.id) : centros
+    let base = centros
+      .filter(c => !empresaActiva || c.empresaId === empresaActiva.id)
+      .filter(c => !areaActiva || areaActiva === 'todas' || areaDe(c) === areaActiva)
     if (role === 'operador' && teamId) base = base.filter(c => c.teamAsignado === teamId)
     return [...base].sort((a, b) => (numTeam(a) - numTeam(b)) || (a.nombre ?? '').localeCompare(b.nombre ?? ''))
   })()
