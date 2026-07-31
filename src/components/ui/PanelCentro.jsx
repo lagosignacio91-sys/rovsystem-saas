@@ -7,7 +7,7 @@ import { Trash2, X, Gamepad2, Users } from 'lucide-react'
 import { t } from '../../theme/tokens'
 import { EstadoBadge, Modal, Button } from '../kit'
 import { useAppConfig } from '../../hooks/useAppConfig'
-import { ICONOS_TAB } from '../../config/appDefaults'
+import { ICONOS_TAB, AREAS, areaDe } from '../../config/appDefaults'
 import TabROV from '../tabs/TabROV'
 import TabOperador from '../tabs/TabOperador'
 import TabInventario from '../tabs/TabInventario'
@@ -65,13 +65,14 @@ export default memo(function PanelCentro({ centro, onCerrar, onEliminar, sincron
 
   const toggleExpanded = useCallback(() => setExpanded(v => !v), [])
 
-  // Teams fijos Team 01–11, EXCEPTO los reservados para operación especial (team08
+  // Teams fijos Team 01–16, EXCEPTO los reservados para operación especial (team08
   // apertura, team14 soberanía — ver kitScope.js): esos se asignan solo desde el flujo
   // dedicado de "Abrir centro" del piloto especial, nunca desde este selector genérico,
   // para que un admin no pueda mezclar por error un centro normal con un kit especial.
+  // Llega hasta team16 para cubrir las áreas nuevas (ej. Cisne = team15/team16).
   useEffect(() => {
     if (role !== 'admin') return
-    setTeams(Array.from({ length: 11 }, (_, i) => i + 1)
+    setTeams(Array.from({ length: 16 }, (_, i) => i + 1)
       .map(n => `team${String(n).padStart(2, '0')}`)
       .filter(uid => !esTeamEspecial(uid))
       .map(uid => ({ uid, nombre: `Team ${uid.replace(/\D/g, '')}` })))
@@ -80,6 +81,10 @@ export default memo(function PanelCentro({ centro, onCerrar, onEliminar, sincron
   const handleAsignarTeam = async (team) => {
     if (actualizarCentro) await actualizarCentro(centro.id, { teamAsignado: team || null })
     setAsignandoTeam(false)
+  }
+
+  const handleAsignarArea = async (nuevaArea) => {
+    if (actualizarCentro) await actualizarCentro(centro.id, { area: nuevaArea })
   }
 
   useEffect(() => { setEstadoActual(centro.estado) }, [centro.estado])
@@ -147,6 +152,14 @@ export default memo(function PanelCentro({ centro, onCerrar, onEliminar, sincron
           )}
           {role === 'admin' && (
             <>
+              <select
+                defaultValue={areaDe(centro)}
+                onChange={e => handleAsignarArea(e.target.value)}
+                title="Área del centro"
+                style={{ fontSize: 11, background: 'var(--gl-bg-input)', border: '1px solid var(--gl-border)', borderRadius: 6, color: 'var(--gl-text-primary)', padding: '3px 6px', maxWidth: 90 }}
+              >
+                {AREAS.map(a => <option key={a.id} value={a.id}>{a.label}</option>)}
+              </select>
               {asignandoTeam ? (
                 <select
                   defaultValue={centro.teamAsignado ?? ''}

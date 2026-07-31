@@ -12,6 +12,7 @@ import { db } from '../lib/firebase'
 import { doc, updateDoc, arrayRemove } from 'firebase/firestore'
 import { getDocFresco } from '../lib/firestoreFresco'
 import { kitBase } from '../lib/kitScope'
+import { areaDe } from '../config/appDefaults'
 
 function formatFecha(iso) {
   if (!iso) return ''
@@ -73,10 +74,12 @@ function OpRow({ op, enviadaHoy }) {
 }
 
 export default function BitacorasPage() {
-  const { centros, role, uid, teamId, sincronizarEstado, actualizarCentro, empresaActiva, whatsappBitacora } = useOutletContext()
+  const { centros, role, uid, teamId, sincronizarEstado, actualizarCentro, empresaActiva, areaActiva, whatsappBitacora } = useOutletContext()
   const base = role === 'operador'
     ? centros.filter(c => c.teamAsignado === teamId)
-    : (empresaActiva ? centros.filter(c => c.empresaId === empresaActiva.id) : centros)
+    : centros
+        .filter(c => !empresaActiva || c.empresaId === empresaActiva.id)
+        .filter(c => !areaActiva || areaActiva === 'todas' || areaDe(c) === areaActiva)
   const { datos: datosSinOrden, cargando } = useBitacorasGlobal(base)
   // Primero los que NO enviaron su bitácora de hoy — son los que hay que atacar de
   // inmediato; nombre como desempate dentro de cada grupo.

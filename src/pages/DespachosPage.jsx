@@ -7,6 +7,7 @@ import { useDespachosGlobal } from '../hooks/useDespachosGlobal'
 import { useEquipoTicketsGlobal } from '../hooks/useEquipoTicketsGlobal'
 import { claveItem, normalizarItemsLegacy } from '../lib/despachos'
 import { TICKET_ESTADO_LABEL } from '../lib/equipoTickets'
+import { areaDe } from '../config/appDefaults'
 
 const ESTADO_INFO = {
   pendiente: { label: 'Pendiente',  color: t.low,      tint: t.lowTint,      icon: Clock },
@@ -244,7 +245,7 @@ function GrupoCentroEquipos({ nombre, tickets, role, teamId, bloqueado, onDespac
 }
 
 export default function DespachosPage() {
-  const { role, centros, empresaActiva, teamId } = useOutletContext()
+  const { role, centros, empresaActiva, areaActiva, teamId } = useOutletContext()
   const { despachos, cargando, marcarEnviado, enviarItemsPendientes, confirmarRecepcion, eliminarDespacho } = useDespachosGlobal({ role, teamId })
   const {
     tickets: equipoTickets, cargando: cargandoEquipos,
@@ -335,14 +336,17 @@ export default function DespachosPage() {
     }
   }
 
-  // Filtrar por empresa activa igual que en Centros
-  const centrosBase = empresaActiva ? centros.filter(c => c.empresaId === empresaActiva.id) : centros
+  // Filtrar por empresa activa y por área, igual que en Centros
+  const centrosBase = centros
+    .filter(c => !empresaActiva || c.empresaId === empresaActiva.id)
+    .filter(c => !areaActiva || areaActiva === 'todas' || areaDe(c) === areaActiva)
   const centroIds   = new Set(centrosBase.map(c => c.id))
-  const despachosFiltrados = empresaActiva
+  const hayFiltro   = !!empresaActiva || (areaActiva && areaActiva !== 'todas')
+  const despachosFiltrados = hayFiltro
     ? despachos.filter(d => centroIds.has(d.centroId))
     : despachos
 
-  const equipoTicketsFiltrados = empresaActiva
+  const equipoTicketsFiltrados = hayFiltro
     ? equipoTickets.filter(t => centroIds.has(t.centroId))
     : equipoTickets
   const porCentroEquipos = equipoTicketsFiltrados.reduce((acc, t) => {

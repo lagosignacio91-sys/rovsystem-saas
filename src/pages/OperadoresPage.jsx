@@ -6,6 +6,7 @@ import { useOperadoresGlobal } from '../hooks/useOperadoresGlobal'
 import { useUsuarios } from '../hooks/useUsuarios'
 import { moverACentro, devolverACentro, reasignarCentro, volverAEquipoEspecial } from '../lib/cobertura'
 import { labelEspecialidad, labelTeamEspecial, teamDeEspecialidad } from '../lib/kitScope'
+import { areaDe } from '../config/appDefaults'
 import ImportarCSV from '../components/admin/ImportarCSV'
 import FormOperador from '../components/admin/FormOperador'
 import ModalEpp from '../components/epp/ModalEpp'
@@ -29,8 +30,10 @@ function ContactoRow({ icon: Icon, valor, href }) {
 }
 
 export default function OperadoresPage() {
-  const { centros, empresaActiva, role, sincronizarOperadoresCentros } = useOutletContext()
-  const lista = empresaActiva ? centros.filter(c => c.empresaId === empresaActiva.id) : centros
+  const { centros, empresaActiva, areaActiva, role, sincronizarOperadoresCentros } = useOutletContext()
+  const lista = centros
+    .filter(c => !empresaActiva || c.empresaId === empresaActiva.id)
+    .filter(c => !areaActiva || areaActiva === 'todas' || areaDe(c) === areaActiva)
   const { operadores, cargando } = useOperadoresGlobal(lista)
   const { usuarios, crearOperador, actualizarOperador, eliminarOperador, importarLista } = useUsuarios()
   const [busca, setBusca] = useState('')

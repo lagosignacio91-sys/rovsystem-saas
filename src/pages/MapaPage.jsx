@@ -4,14 +4,17 @@ import MapView from '../components/map/MapView'
 import FormCentro from '../components/map/FormCentro'
 import PanelCentro from '../components/ui/PanelCentro'
 import { useEmpresas } from '../hooks/useEmpresas'
+import { areaDe } from '../config/appDefaults'
 
 export default function MapaPage() {
-  const { centros, cargando, agregarCentro, eliminarCentro, actualizarCentro, sincronizarEstado, role, uid, teamId, empresaActiva, centrosConFaltantes } = useOutletContext()
+  const { centros, cargando, agregarCentro, eliminarCentro, actualizarCentro, sincronizarEstado, role, uid, teamId, empresaActiva, areaActiva, centrosConFaltantes } = useOutletContext()
   const { empresas } = useEmpresas()
   const [latlng, setLatlng]             = useState(null)
   const [centroActivo, setCentroActivo] = useState(null)
 
-  const centrosFiltrados = empresaActiva ? centros.filter(c => c.empresaId === empresaActiva.id) : centros
+  const centrosFiltrados = centros
+    .filter(c => !empresaActiva || c.empresaId === empresaActiva.id)
+    .filter(c => !areaActiva || areaActiva === 'todas' || areaDe(c) === areaActiva)
 
   // Operador y apertura: el panel de su propio centro (teamAsignado === teamId) queda
   // siempre visible, no depende de click. Para apertura (teamId = team08) su "centro

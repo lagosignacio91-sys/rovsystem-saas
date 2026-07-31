@@ -63,6 +63,16 @@ export const NAV_META = {
   '/reportes':        { to: '/reportes',        icon: BarChart2,    roles: ['admin', 'supervisor'] },
 }
 
+// ---- Áreas (zonas geográficas) ----
+// Agrupan centros por zona dentro de la misma empresa. Fijas: Aysén y Cisne.
+// Los centros sin campo `area` cuentan como 'aysen' (default) → sin migración.
+export const AREAS = [
+  { id: 'aysen', label: 'Aysén' },
+  { id: 'cisne', label: 'Cisne' },
+]
+export const AREA_DEFAULT = 'aysen'
+export const areaDe = (centro) => centro?.area ?? AREA_DEFAULT
+
 // ---- Marca ----
 export const BRANDING_DEFAULT = {
   appName:     'RovSystem',
