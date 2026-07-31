@@ -3,8 +3,9 @@ import { db } from '../lib/firebase'
 import { logError } from '../lib/logger'
 import {
   collection, addDoc, onSnapshot,
-  updateDoc, doc, getDoc, getDocs, writeBatch, setDoc
+  updateDoc, doc, writeBatch, setDoc
 } from 'firebase/firestore'
+import { getDocFresco, getDocsFresco } from '../lib/firestoreFresco'
 import { TEAMS_ESPECIALES, esTeamEspecial } from '../lib/kitScope'
 
 // Sin teamAsignado por defecto: la asignación real de team a cada centro
@@ -26,12 +27,12 @@ export const CENTROS_GL = [
 export async function calcularEstadoCentro(centroId) {
   try {
     // 0. Verificar operadores en faena
-    const opsSnap  = await getDoc(doc(db, 'centros', centroId, 'datos', 'operadores'))
+    const opsSnap  = await getDocFresco(doc(db, 'centros', centroId, 'datos', 'operadores'))
     const opsLista = opsSnap.exists() ? (opsSnap.data().lista ?? []) : []
     if (!opsLista.some(op => op?.estado === 'faena')) return 'NO_OPERATOR'
 
     // 1. Verificar fallas ROV
-    const rovSnap = await getDoc(doc(db, 'centros', centroId, 'equipos', 'rov'))
+    const rovSnap = await getDocFresco(doc(db, 'centros', centroId, 'equipos', 'rov'))
     if (rovSnap.exists()) {
       const { principal = {}, backup = {} } = rovSnap.data()
       const tieneFallaROV = (eq) => Object.values(eq.estados ?? {}).some(e => e === 'falla')
@@ -126,7 +127,7 @@ export function useCentros() {
   const inicializarCentrosGL = async (empresaId) => {
     setCargando(true)
     try {
-      const snap = await getDocs(collection(db, 'centros'))
+      const snap = await getDocsFresco(collection(db, 'centros'))
       if (snap.docs.length > 0) {
         const batch = writeBatch(db)
         for (const d of snap.docs) {
@@ -174,7 +175,7 @@ export function useCentros() {
     let operadoresAsignados = 0
     let centrosActualizados = 0
 
-    const usuariosSnap = await getDocs(collection(db, 'usuarios'))
+    const usuariosSnap = await getDocsFresco(collection(db, 'usuarios'))
     const usuarios = usuariosSnap.docs.map(d => ({ id: d.id, ...d.data() }))
 
     // Escribe un roster preservando campos operativos (faena/descanso, turnos, foto) por uid
@@ -182,7 +183,7 @@ export function useCentros() {
     // (`rut`, `correoPersonal`) — solo nombre + contacto corporativo + estado operativo, porque
     // este doc lo lee cualquier usuario aprovisionado (roster + popup de contacto del mapa).
     const escribirRoster = async (ref, asignados) => {
-      const prevSnap  = await getDoc(ref)
+      const prevSnap  = await getDocFresco(ref)
       const prevLista = prevSnap.exists() ? (prevSnap.data().lista ?? []) : []
       const lista = asignados.map(u => {
         const uid = u.uid ?? u.id ?? null

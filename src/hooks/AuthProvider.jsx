@@ -19,7 +19,8 @@ import {
   reauthenticateWithCredential,
   updatePassword,
 } from 'firebase/auth'
-import { doc, getDoc, updateDoc, serverTimestamp, collection, query, where, getDocs } from 'firebase/firestore'
+import { doc, getDoc, updateDoc, serverTimestamp, collection, query, where } from 'firebase/firestore'
+import { getDocFresco, getDocsFresco } from '../lib/firestoreFresco'
 import { AuthContext } from './useAuth'
 
 export function AuthProvider({ children }) {
@@ -141,10 +142,10 @@ export function AuthProvider({ children }) {
     // para no depender de que un admin apriete "Sincronizar operadores" en Centros.
     if (teamId) {
       try {
-        const centrosSnap = await getDocs(query(collection(db, 'centros'), where('teamAsignado', '==', teamId)))
+        const centrosSnap = await getDocsFresco(query(collection(db, 'centros'), where('teamAsignado', '==', teamId)))
         for (const centroDoc of centrosSnap.docs) {
           const ref = doc(db, 'centros', centroDoc.id, 'datos', 'operadores')
-          const opsSnap = await getDoc(ref)
+          const opsSnap = await getDocFresco(ref)
           if (!opsSnap.exists()) continue
           const lista = opsSnap.data().lista ?? []
           const idx = lista.findIndex(op => op?.uid === uid)

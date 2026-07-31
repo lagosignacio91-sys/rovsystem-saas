@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { db, auth } from '../../lib/firebase'
-import { doc, getDoc, deleteField } from 'firebase/firestore'
+import { doc, deleteField } from 'firebase/firestore'
+import { getDocFresco } from '../../lib/firestoreFresco'
 import { Modal, Button } from '../kit'
 import { t } from '../../theme/tokens'
 import { guardarBitacora, guardarBorrador, editarBitacora } from '../../hooks/useBitacorasGlobal'
@@ -62,7 +63,7 @@ export default function ModalGenerarBitacora({ centro, ultima, borrador, editand
     if (esEdicion) return
     // El piloto del borrador manda; si no había borrador, se autocompleta con el operador en faena.
     if (borrador?.piloto) return
-    getDoc(doc(db, ...kitBase(centro), 'datos', 'operadores')).then(snap => {
+    getDocFresco(doc(db, ...kitBase(centro), 'datos', 'operadores')).then(snap => {
       if (!snap.exists()) return
       const ops = snap.data()
       const listaOps = ops.lista ?? [ops.op1, ops.op2].filter(Boolean)
@@ -74,7 +75,7 @@ export default function ModalGenerarBitacora({ centro, ultima, borrador, editand
 
   useEffect(() => {
     // Referencia viva del kit de redes (parches disponibles / herramienta de costura).
-    getDoc(doc(db, ...kitBase(centro), 'datos', 'redes')).then(snap => {
+    getDocFresco(doc(db, ...kitBase(centro), 'datos', 'redes')).then(snap => {
       if (!snap.exists()) return
       const d = snap.data()
       setRedes({ parchesStock: d.parchesStock ?? 0, costuraOperativa: d.costuraOperativa ?? true })

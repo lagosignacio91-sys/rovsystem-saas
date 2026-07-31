@@ -9,7 +9,8 @@ import PanelCentro from '../components/ui/PanelCentro'
 import ModalGenerarBitacora from '../components/bitacora/ModalGenerarBitacora'
 import { Modal, Button } from '../components/kit'
 import { db } from '../lib/firebase'
-import { doc, getDoc, updateDoc, arrayRemove } from 'firebase/firestore'
+import { doc, updateDoc, arrayRemove } from 'firebase/firestore'
+import { getDocFresco } from '../lib/firestoreFresco'
 import { kitBase } from '../lib/kitScope'
 
 function formatFecha(iso) {
@@ -104,8 +105,8 @@ export default function BitacorasPage() {
     setDescargando(key)
     try {
       const [snapRov, snapRedes] = await Promise.all([
-        getDoc(doc(db, ...kitBase(centro), 'equipos', 'rov')),
-        getDoc(doc(db, ...kitBase(centro), 'datos', 'redes')),
+        getDocFresco(doc(db, ...kitBase(centro), 'equipos', 'rov')),
+        getDocFresco(doc(db, ...kitBase(centro), 'datos', 'redes')),
       ])
       const rov   = snapRov.exists()   ? snapRov.data()   : null
       const redes = snapRedes.exists() ? snapRedes.data() : null

@@ -10,7 +10,8 @@
 // reconcilia. El inventario de cada centro NO se toca (vive pegado al centro, no al operador).
 // ============================================================
 import { db } from './firebase'
-import { doc, getDoc, setDoc } from 'firebase/firestore'
+import { doc, setDoc } from 'firebase/firestore'
+import { getDocFresco } from './firestoreFresco'
 import { logError } from './logger'
 import { kitBase, esTeamEspecial, teamDeEspecialidad } from './kitScope'
 
@@ -50,7 +51,7 @@ function rosterRefsDeTeam(team, centros) {
 // Quita al operador de un doc de roster puntual (best-effort).
 async function quitarDeRosterRef(ref, uid) {
   try {
-    const snap = await getDoc(ref)
+    const snap = await getDocFresco(ref)
     if (!snap.exists()) return
     const lista = (snap.data().lista ?? []).filter(op => op?.uid !== uid)
     await setDoc(ref, { lista }, { merge: true })
@@ -62,7 +63,7 @@ async function agregarARosterRef(ref, user) {
   if (!ref) return
   const uid = uidDe(user)
   try {
-    const snap = await getDoc(ref)
+    const snap = await getDocFresco(ref)
     const lista = snap.exists() ? (snap.data().lista ?? []) : []
     const prev = lista.find(op => op?.uid === uid)
     const nueva = [...lista.filter(op => op?.uid !== uid), entradaRoster(user, prev)]
@@ -98,7 +99,7 @@ export async function moverACentro(user, centroDestino, centros) {
 
   // 2. Update usuarios (fuente de verdad). Lee fresco coberturas para no pisar historial.
   const ref = doc(db, 'usuarios', uid)
-  const snap = await getDoc(ref)
+  const snap = await getDocFresco(ref)
   const coberturas = (snap.exists() ? (snap.data().coberturas ?? []) : [])
   coberturas.push({
     centroId: centroDestino.id,
@@ -127,7 +128,7 @@ export async function devolverACentro(user, centros) {
 
   // 2. Update usuarios: volver al hogar, limpiar teamOrigen, cerrar la última cobertura abierta.
   const ref = doc(db, 'usuarios', uid)
-  const snap = await getDoc(ref)
+  const snap = await getDocFresco(ref)
   const coberturas = (snap.exists() ? (snap.data().coberturas ?? []) : [])
   for (let i = coberturas.length - 1; i >= 0; i--) {
     if (coberturas[i]?.hasta == null) { coberturas[i] = { ...coberturas[i], hasta: hoy() }; break }
@@ -155,7 +156,7 @@ async function quitarDeRosterCentro(uid, centro) {
   if (!centro) return
   try {
     const ref = doc(db, ...kitBase(centro), 'datos', 'operadores')
-    const snap = await getDoc(ref)
+    const snap = await getDocFresco(ref)
     if (!snap.exists()) return
     const lista = (snap.data().lista ?? []).filter(op => op?.uid !== uid)
     await setDoc(ref, { lista }, { merge: true })
@@ -167,7 +168,7 @@ async function agregarARosterCentro(user, centro) {
   const uid = uidDe(user)
   try {
     const ref = doc(db, ...kitBase(centro), 'datos', 'operadores')
-    const snap = await getDoc(ref)
+    const snap = await getDocFresco(ref)
     const lista = snap.exists() ? (snap.data().lista ?? []) : []
     const prev = lista.find(op => op?.uid === uid)
     const nueva = [...lista.filter(op => op?.uid !== uid), entradaRoster(user, prev)]
@@ -187,7 +188,7 @@ export async function reasignarCentro(user, centroDestino, centros) {
   // 2. Update usuarios (fuente de verdad): nuevo team + empresa del destino, sin teamOrigen.
   //    Cierra cualquier cobertura abierta para no dejarlo "cubriendo". NO cambia el rol.
   const ref = doc(db, 'usuarios', uid)
-  const snap = await getDoc(ref)
+  const snap = await getDocFresco(ref)
   const coberturas = (snap.exists() ? (snap.data().coberturas ?? []) : [])
   for (let i = coberturas.length - 1; i >= 0; i--) {
     if (coberturas[i]?.hasta == null) { coberturas[i] = { ...coberturas[i], hasta: hoy() }; break }
@@ -218,7 +219,7 @@ export async function volverAEquipoEspecial(user, centros) {
 
   // 2. Update usuarios: teamId = su equipo especial, sin teamOrigen, cerrar cobertura abierta.
   const ref = doc(db, 'usuarios', uid)
-  const snap = await getDoc(ref)
+  const snap = await getDocFresco(ref)
   const coberturas = (snap.exists() ? (snap.data().coberturas ?? []) : [])
   for (let i = coberturas.length - 1; i >= 0; i--) {
     if (coberturas[i]?.hasta == null) { coberturas[i] = { ...coberturas[i], hasta: hoy() }; break }

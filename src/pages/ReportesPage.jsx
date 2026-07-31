@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useOutletContext } from 'react-router-dom'
-import { collection, getDocs, query, where, orderBy, limit } from 'firebase/firestore'
+import { collection, query, where, orderBy, limit } from 'firebase/firestore'
+import { getDocsFresco } from '../lib/firestoreFresco'
 import { db } from '../lib/firebase'
 import { t } from '../theme/tokens'
 import { useIsMobile } from '../hooks/useIsMobile'
@@ -76,7 +77,7 @@ export default function ReportesPage() {
       try {
         // Despachos del mes — límite 500 para evitar carga masiva accidental
         const LIMITE_DESPACHOS = 500
-        const snap = await getDocs(
+        const snap = await getDocsFresco(
           query(collection(db, 'despachos'),
             where('creadoEn', '>=', inicio),
             where('creadoEn', '<', fin),
@@ -98,7 +99,7 @@ export default function ReportesPage() {
 
         const fallasData = []
         await Promise.all(centrosList.map(async (c) => {
-          const eqSnap = await getDocs(collection(db, 'centros', c.id, 'equipos'))
+          const eqSnap = await getDocsFresco(collection(db, 'centros', c.id, 'equipos'))
           eqSnap.docs.forEach(doc => {
             const eq = doc.data()
             ;(eq.unidades ?? []).forEach(u => {

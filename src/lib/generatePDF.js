@@ -1,7 +1,8 @@
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import { db } from './firebase'
-import { doc as fsDoc, getDoc } from 'firebase/firestore'
+import { doc as fsDoc } from 'firebase/firestore'
+import { getDocFresco } from './firestoreFresco'
 import { logError } from './logger'
 import { kitBase } from './kitScope'
 
@@ -377,7 +378,7 @@ async function construirPDFBitacora(bitacora, centro) {
   // Redes / parches (disponibles + herramienta en vivo; instalados/costuras de la entrada).
   let redes = null
   try {
-    const snapRedes = await getDoc(fsDoc(db, ...kitBase(centro), 'datos', 'redes'))
+    const snapRedes = await getDocFresco(fsDoc(db, ...kitBase(centro), 'datos', 'redes'))
     if (snapRedes.exists()) redes = snapRedes.data()
   } catch { /* sin permiso o sin datos: se usan los defaults */ }
 
@@ -405,7 +406,7 @@ async function construirPDFBitacora(bitacora, centro) {
   // Equipos (estado actual, en vivo) al final de la bitácora.
   let rov = null
   try {
-    const snapRov = await getDoc(fsDoc(db, ...kitBase(centro), 'equipos', 'rov'))
+    const snapRov = await getDocFresco(fsDoc(db, ...kitBase(centro), 'equipos', 'rov'))
     if (snapRov.exists()) rov = snapRov.data()
   } catch { /* sin permiso o sin datos: se omite la sección */ }
 
