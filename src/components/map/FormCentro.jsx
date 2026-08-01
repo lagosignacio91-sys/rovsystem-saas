@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Building2, MapPin } from 'lucide-react'
 import { t } from '../../theme/tokens'
 import { Modal, Button, Input, Select, Field } from '../kit'
-import { TEAMS_ESPECIALES, labelTeamEspecial, esPiloto } from '../../lib/kitScope'
+import { labelTeamEspecial, esPiloto, esTeamEspecial } from '../../lib/kitScope'
 import { AREAS, AREA_DEFAULT } from '../../config/appDefaults'
 
 const ESTADOS = [
@@ -13,12 +13,16 @@ const ESTADOS = [
   { value: 'NO_OPERATOR',     label: 'Sin operador' },
 ]
 
-// Teams normales asignables (excluye los reservados para operación especial).
-// Llega hasta team16 para cubrir las áreas nuevas (ej. Cisne = team15/team16).
-const TEAMS = Array.from({ length: 16 }, (_, i) => ({
-  id:    `team${String(i + 1).padStart(2, '0')}`,
-  label: `Team ${String(i + 1).padStart(2, '0')}`,
-})).filter(tm => !TEAMS_ESPECIALES.includes(tm.id))
+// Teams asignables por el admin. Los reservados para operación especial (team08
+// Apertura, team14 Soberanía) aparecen ETIQUETADOS: el admin puede arrancar un
+// centro especial a mano (bootstrap), además del flujo del propio piloto. Ojo:
+// conviene mantener UN solo centro especial por team a la vez (el piloto ve el
+// primero que matchea su teamId). Llega hasta team16 (áreas nuevas, ej. Cisne).
+const TEAMS = Array.from({ length: 16 }, (_, i) => {
+  const num = String(i + 1).padStart(2, '0')
+  const esp = labelTeamEspecial(`team${num}`)
+  return { id: `team${num}`, label: esp ? `Team ${num} · ${esp}` : `Team ${num}` }
+})
 
 // `role`/`teamId`/`empresas` se usan solo para el modo especial (apertura o
 // soberanía): el piloto no tiene una empresa activa fija (recorre clientes), elige
@@ -60,6 +64,9 @@ export default function FormCentro({ latlng, onGuardar, onCancelar, cargando, em
       empresaId:     empresaActiva?.id ?? null,
       empresaNombre: empresaActiva?.nombre ?? 'Sin empresa',
       teamAsignado:  team || null,
+      // Si el admin elige un team especial (team08/team14), el centro nace en ciclo
+      // 'apertura' igual que uno abierto por el piloto (su kit vive en teams/{team}).
+      ...(esTeamEspecial(team) ? { estadoCiclo: 'apertura' } : {}),
     })
   }
 
