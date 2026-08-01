@@ -3,6 +3,7 @@ import { AlertOctagon, Wrench, LifeBuoy, CheckCircle2, X, ArrowRight, ChevronDow
 import { useResumenCentro } from '../../hooks/useResumenCentro'
 import { t } from '../../theme/tokens'
 import { EstadoBadge } from '../kit'
+import { estadoVisual } from '../../lib/kitScope'
 
 // Meta visual por categoría (icono + color de la severidad dominante del grupo).
 const CAT_META = {
@@ -22,7 +23,7 @@ export default function PopupCentro({ centro, centrosConFaltantes, onAbrir, onCe
       <div style={s.header}>
         <div style={{ minWidth: 0 }}>
           <div style={s.nombre}>{centro.nombre}</div>
-          <div style={{ marginTop: 5 }}><EstadoBadge estado={centro.estado} tieneFaltante={centrosConFaltantes?.has(centro.id)} /></div>
+          <div style={{ marginTop: 5 }}><EstadoBadge estado={estadoVisual(centro)} tieneFaltante={centrosConFaltantes?.has(centro.id)} /></div>
         </div>
         <button onClick={e => { e.stopPropagation(); onCerrar() }} className="gl-icon-btn" style={{ padding: 4 }} aria-label="Cerrar"><X size={15} /></button>
       </div>

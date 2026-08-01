@@ -29,6 +29,14 @@ export function esCentroEspecial(centro) {
 // hoy significa "centro especial" (apertura o soberanía).
 export const esCentroApertura = esCentroEspecial
 
+// Estado VISUAL de un centro para colorear (mapa, lista, badge). Un centro SIN team
+// (teamAsignado null) está "parado / Disponible" — lo dejó atrás un piloto y puede
+// retomarse a futuro. Es un override de presentación, ortogonal al `estado` de
+// inventario (OK/LOW_STOCK/...): no se guarda, se deriva. Ver ESTADO_META.DISPONIBLE.
+export function estadoVisual(centro) {
+  return centro?.teamAsignado == null ? 'DISPONIBLE' : centro?.estado
+}
+
 // Devuelve los segmentos base como array, para usar con doc()/collection() spread:
 //   doc(db, ...kitBase(centro), 'equipos', 'rov')
 // Un centro especial usa el kit de SU team (team08 o team14); uno normal, el suyo.

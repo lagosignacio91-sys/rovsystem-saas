@@ -8,7 +8,7 @@ import { useOperadoresGlobal } from '../hooks/useOperadoresGlobal'
 import { useEmpresas } from '../hooks/useEmpresas'
 import { CENTROS_GL } from '../hooks/useCentros'
 import { areaDe, AREAS } from '../config/appDefaults'
-import { esCentroEspecial, labelTeamEspecial } from '../lib/kitScope'
+import { esCentroEspecial, labelTeamEspecial, estadoVisual } from '../lib/kitScope'
 import PanelCentro from '../components/ui/PanelCentro'
 
 // Acento visual para la operación especial (Apertura/Soberanía) — violeta, distinto
@@ -23,6 +23,7 @@ const ESTADOS_FILTRO = [
   { key: 'EQUIPMENT_FAULT',  label: 'Falla equipo',  dot: '#ef4444' },
   { key: 'DISPATCH_ONWAY',   label: 'En camino',     dot: '#3b82f6' },
   { key: 'NO_OPERATOR',      label: 'Sin operador',  dot: '#6b7280' },
+  { key: 'DISPONIBLE',       label: 'Disponible',    dot: '#14b8a6' },
 ]
 
 export default function CentrosPage() {
@@ -74,11 +75,11 @@ export default function CentrosPage() {
   const teamNombre = (team) => team ? 'Team ' + team.replace(/\D/g, '') : null
 
   const conteos = ESTADOS_FILTRO.slice(1).reduce((acc, f) => {
-    acc[f.key] = base.filter(c => c.estado === f.key).length
+    acc[f.key] = base.filter(c => estadoVisual(c) === f.key).length
     return acc
   }, {})
 
-  let lista = filtroEstado ? base.filter(c => c.estado === filtroEstado) : base
+  let lista = filtroEstado ? base.filter(c => estadoVisual(c) === filtroEstado) : base
   if (busca.trim()) {
     const q = busca.toLowerCase()
     lista = lista.filter(c => c.nombre?.toLowerCase().includes(q) || c.empresaNombre?.toLowerCase().includes(q))
@@ -107,7 +108,7 @@ export default function CentrosPage() {
 
   // Fila de centro (reutilizada en la sección especial y en los grupos por empresa).
   const renderCentro = (c) => {
-    const meta    = ESTADO_META[c.estado] ?? ESTADO_META.NO_OPERATOR
+    const meta    = ESTADO_META[estadoVisual(c)] ?? ESTADO_META.NO_OPERATOR
     const opFaena = opFaenaPorCentro(c.id)
     const tnombre = teamNombre(c.teamAsignado)
     const alabel  = AREAS.find(a => a.id === areaDe(c))?.label ?? 'Aysén'
@@ -124,7 +125,7 @@ export default function CentrosPage() {
           {espLabel && (
             <span style={{ fontSize: 10, fontWeight: 700, color: ESP_COLOR, background: ESP_BG, border: `1px solid ${ESP_BORDER}`, borderRadius: t.radiusFull, padding: '2px 8px', flexShrink: 0, whiteSpace: 'nowrap' }}>{espLabel}</span>
           )}
-          <EstadoBadge estado={c.estado} tieneFaltante={centrosConFaltantes?.has(c.id)} />
+          <EstadoBadge estado={estadoVisual(c)} tieneFaltante={centrosConFaltantes?.has(c.id)} />
           <ChevronRight size={16} color={t.textMuted} style={{ flexShrink: 0 }} />
         </div>
         {/* Fila secundaria: área + team + op en faena */}

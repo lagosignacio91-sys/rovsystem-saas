@@ -85,4 +85,7 @@ export const ESTADO_META = {
   EQUIPMENT_FAULT: { color: t.fault,    tint: t.faultTint,    dot: '#ef4444', label: 'Falla de equipo',    icon: 'alert-octagon' },
   DISPATCH_ONWAY:  { color: t.dispatch, tint: t.dispatchTint, dot: '#3b82f6', label: 'Despacho en camino', icon: 'truck' },
   NO_OPERATOR:     { color: t.noop,     tint: 'transparent',  dot: '#6b7280', label: 'Sin operador',       icon: 'user-off' },
+  // Estado VISUAL derivado (no se guarda en centro.estado): centro sin team, parado por
+  // apertura/soberanía y disponible para retomar (operador normal, soberanía o cualquier team).
+  DISPONIBLE:      { color: '#14b8a6', tint: 'rgba(20,184,166,0.14)', dot: '#14b8a6', label: 'Disponible', icon: 'map-pin' },
 }

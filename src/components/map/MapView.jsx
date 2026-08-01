@@ -11,6 +11,7 @@ import markerShadow from 'leaflet/dist/images/marker-shadow.png'
 import PopupCentro from './PopupCentro'
 import PopupCentroContactos from './PopupCentroContactos'
 import { t, ESTADO_META } from '../../theme/tokens'
+import { estadoVisual } from '../../lib/kitScope'
 
 delete L.Icon.Default.prototype._getIconUrl
 L.Icon.Default.mergeOptions({
@@ -26,9 +27,10 @@ const SVG = {
   EQUIPMENT_FAULT: '<path d="M12 16h.01"/><path d="M12 8v4"/><path d="M15.3 2H8.7L2 8.7v6.6L8.7 22h6.6L22 15.3V8.7z"/>',
   DISPATCH_ONWAY:  '<path d="M10 17h4V5H2v12h3"/><path d="M20 17h2v-3.34a4 4 0 0 0-1.17-2.83L19 9h-5v8h1"/><circle cx="7.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/>',
   NO_OPERATOR:     '<circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4"/><line x1="17" y1="8" x2="22" y2="13"/><line x1="22" y1="8" x2="17" y2="13"/>',
+  DISPONIBLE:      '<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/>',
 }
 
-const ESTADOS_ORDEN = ['OK', 'EQUIPMENT_FAULT', 'DISPATCH_ONWAY', 'NO_OPERATOR']
+const ESTADOS_ORDEN = ['OK', 'EQUIPMENT_FAULT', 'DISPATCH_ONWAY', 'NO_OPERATOR', 'DISPONIBLE']
 
 // El tamaño del marcador escala con el zoom: lejos = pequeño, cerca = grande.
 function tamPorZoom(zoom) {
@@ -152,7 +154,7 @@ function Leyenda() {
 }
 
 function StatsPanel({ centros }) {
-  const conteo = ESTADOS_ORDEN.map(e => ({ e, n: centros.filter(c => c.estado === e).length })).filter(x => x.n > 0)
+  const conteo = ESTADOS_ORDEN.map(e => ({ e, n: centros.filter(c => estadoVisual(c) === e).length })).filter(x => x.n > 0)
   if (conteo.length === 0) return null
   return (
     <div className="gl-glass" style={stats.box}>
@@ -294,7 +296,7 @@ function BuscadorUnificado({ centros, mapRef, onSelect, onCoordsPin, role, mouse
 
           {/* Resultados de centros */}
           {resultadosCentros.map(c => {
-            const meta = ESTADO_META[c.estado] ?? ESTADO_META.NO_OPERATOR
+            const meta = ESTADO_META[estadoVisual(c)] ?? ESTADO_META.NO_OPERATOR
             const teamLabel = c.teamAsignado
               ? 'Team ' + c.teamAsignado.replace(/\D/g, '')
               : null
@@ -399,7 +401,7 @@ function MapInner({ centros, onMapClick, onCentroClick, role, userTeamId, centro
         <FitCentros centros={centros} />
         {centros.map(c => (
           <Marker key={c.id} position={[c.lat, c.lng]}
-            icon={esAjeno(c) ? crearIconoAzul(size) : crearIcono(c.estado, size, centrosConFaltantes?.has(c.id))}
+            icon={esAjeno(c) ? crearIconoAzul(size) : crearIcono(estadoVisual(c), size, centrosConFaltantes?.has(c.id))}
             eventHandlers={{ click: (e) => handleMarkerClick(e, c) }} />
         ))}
         {/* Pin temporal de coordenadas: clic para agregar centro ahí exactamente */}
