@@ -8,7 +8,14 @@ import { useOperadoresGlobal } from '../hooks/useOperadoresGlobal'
 import { useEmpresas } from '../hooks/useEmpresas'
 import { CENTROS_GL } from '../hooks/useCentros'
 import { areaDe, AREAS } from '../config/appDefaults'
+import { esCentroEspecial, labelTeamEspecial } from '../lib/kitScope'
 import PanelCentro from '../components/ui/PanelCentro'
+
+// Acento visual para la operación especial (Apertura/Soberanía) — violeta, distinto
+// del azul de marca de los teams normales.
+const ESP_COLOR  = '#a78bfa'
+const ESP_BG     = 'rgba(167,139,250,0.16)'
+const ESP_BORDER = 'rgba(167,139,250,0.4)'
 
 const ESTADOS_FILTRO = [
   { key: null,               label: 'Todos',         dot: null },
@@ -83,8 +90,13 @@ export default function CentrosPage() {
   }
   lista = [...lista].sort((a, b) => (numTeam(a) - numTeam(b)) || (a.nombre ?? '').localeCompare(b.nombre ?? ''))
 
-  // Agrupar por empresa
-  const porEmpresa = lista.reduce((acc, c) => {
+  // Operación especial (Apertura=team08, Soberanía=team14): su kit viaja con el equipo
+  // (teams/{team}), no son parte de la flota fija — van en su propia sección arriba.
+  const especiales = lista.filter(c => esCentroEspecial(c))
+  const normales   = lista.filter(c => !esCentroEspecial(c))
+
+  // Agrupar los NORMALES por empresa (los especiales van aparte, arriba).
+  const porEmpresa = normales.reduce((acc, c) => {
     const emp = c.empresaNombre ?? 'Sin empresa'
     ;(acc[emp] = acc[emp] ?? []).push(c)
     return acc
@@ -92,6 +104,59 @@ export default function CentrosPage() {
 
   const centroVivo = centroActivo ? centros.find(c => c.id === centroActivo.id) ?? centroActivo : null
   const handleEliminar = async (id) => { await eliminarCentro(id); setCentroActivo(null) }
+
+  // Fila de centro (reutilizada en la sección especial y en los grupos por empresa).
+  const renderCentro = (c) => {
+    const meta    = ESTADO_META[c.estado] ?? ESTADO_META.NO_OPERATOR
+    const opFaena = opFaenaPorCentro(c.id)
+    const tnombre = teamNombre(c.teamAsignado)
+    const alabel  = AREAS.find(a => a.id === areaDe(c))?.label ?? 'Aysén'
+    const espLabel = esCentroEspecial(c) ? labelTeamEspecial(c.teamAsignado) : null
+    return (
+      <button key={c.id} className="gl-list-row" onClick={() => setCentroActivo(c)}
+        style={{ borderLeft: `3px solid ${espLabel ? ESP_COLOR : meta.dot}`, flexDirection: 'column', alignItems: 'stretch', gap: 0 }}>
+        {/* Fila principal */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <MapPin size={16} color={t.textMuted} style={{ flexShrink: 0 }} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: t.textSm, fontWeight: 600, color: t.textPrimary }}>{c.nombre}</div>
+          </div>
+          {espLabel && (
+            <span style={{ fontSize: 10, fontWeight: 700, color: ESP_COLOR, background: ESP_BG, border: `1px solid ${ESP_BORDER}`, borderRadius: t.radiusFull, padding: '2px 8px', flexShrink: 0, whiteSpace: 'nowrap' }}>{espLabel}</span>
+          )}
+          <EstadoBadge estado={c.estado} tieneFaltante={centrosConFaltantes?.has(c.id)} />
+          <ChevronRight size={16} color={t.textMuted} style={{ flexShrink: 0 }} />
+        </div>
+        {/* Fila secundaria: área + team + op en faena */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 6, paddingTop: 6, borderTop: `1px solid ${t.border}`, flexWrap: 'wrap' }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, color: t.textSecondary, background: t.bgInput, borderRadius: t.radiusMd, padding: '2px 7px', fontWeight: 600 }}>
+            <MapPin size={11} /> {alabel}
+          </span>
+          {tnombre && (
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, color: espLabel ? ESP_COLOR : t.brandSoft, background: espLabel ? ESP_BG : t.brandTint, borderRadius: t.radiusMd, padding: '2px 7px', fontWeight: 600 }}>
+              <Users size={11} /> {tnombre}
+            </span>
+          )}
+          {opFaena && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+              {opFaena.foto
+                ? <img src={opFaena.foto} alt={opFaena.nombre} style={{ width: 20, height: 20, borderRadius: '50%', objectFit: 'cover', border: `1.5px solid ${t.ok}`, flexShrink: 0 }} />
+                : <div style={{ width: 20, height: 20, borderRadius: '50%', background: t.brandTint, color: t.brandSoft, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, flexShrink: 0 }}>{(opFaena.nombre[0] ?? '?').toUpperCase()}</div>}
+              <span style={{ fontSize: 10, color: t.ok, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{opFaena.nombre}</span>
+              {opFaena.telefono && (
+                <a href={`tel:${opFaena.telefono.replace(/[^\d+]/g,'')}`} onClick={e => e.stopPropagation()}
+                  style={{ color: t.textMuted, display: 'flex' }}><Phone size={12} /></a>
+              )}
+              {(opFaena.correoCorp || opFaena.correoPersonal) && (
+                <a href={`mailto:${opFaena.correoCorp || opFaena.correoPersonal}`} onClick={e => e.stopPropagation()}
+                  style={{ color: t.textMuted, display: 'flex' }}><Mail size={12} /></a>
+              )}
+            </div>
+          )}
+        </div>
+      </button>
+    )
+  }
 
   return (
     <div style={{ height: '100%', overflowY: 'auto', padding: t.space5 }}>
@@ -152,7 +217,21 @@ export default function CentrosPage() {
           </div>
         )}
 
-        {/* Grupos por empresa */}
+        {/* Operación especial (Apertura/Soberanía) — sección propia al inicio */}
+        {especiales.length > 0 && (
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, paddingBottom: 6, borderBottom: `1px solid ${ESP_BORDER}` }}>
+              <span style={{ fontSize: 13 }}>⭐</span>
+              <span style={{ fontSize: t.textSm, fontWeight: 600, color: ESP_COLOR }}>Operación especial · Apertura / Soberanía</span>
+              <span style={{ fontSize: t.textXs, color: t.textMuted }}>({especiales.length})</span>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {especiales.map(renderCentro)}
+            </div>
+          </div>
+        )}
+
+        {/* Grupos por empresa (centros normales) */}
         {Object.entries(porEmpresa).map(([empNombre, centrosGrupo]) => {
           const logo = logoEmpresa(empNombre)
           return (
@@ -169,53 +248,7 @@ export default function CentrosPage() {
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {centrosGrupo.map(c => {
-                  const meta    = ESTADO_META[c.estado] ?? ESTADO_META.NO_OPERATOR
-                  const opFaena = opFaenaPorCentro(c.id)
-                  const tnombre = teamNombre(c.teamAsignado)
-                  const alabel  = AREAS.find(a => a.id === areaDe(c))?.label ?? 'Aysén'
-                  return (
-                    <button key={c.id} className="gl-list-row" onClick={() => setCentroActivo(c)}
-                      style={{ borderLeft: `3px solid ${meta.dot}`, flexDirection: 'column', alignItems: 'stretch', gap: 0 }}>
-                      {/* Fila principal */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <MapPin size={16} color={t.textMuted} style={{ flexShrink: 0 }} />
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: t.textSm, fontWeight: 600, color: t.textPrimary }}>{c.nombre}</div>
-                        </div>
-                        <EstadoBadge estado={c.estado} tieneFaltante={centrosConFaltantes?.has(c.id)} />
-                        <ChevronRight size={16} color={t.textMuted} style={{ flexShrink: 0 }} />
-                      </div>
-                      {/* Fila secundaria: área + team + op en faena */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 6, paddingTop: 6, borderTop: `1px solid ${t.border}`, flexWrap: 'wrap' }}>
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, color: t.textSecondary, background: t.bgInput, borderRadius: t.radiusMd, padding: '2px 7px', fontWeight: 600 }}>
-                            <MapPin size={11} /> {alabel}
-                          </span>
-                          {tnombre && (
-                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, color: t.brandSoft, background: t.brandTint, borderRadius: t.radiusMd, padding: '2px 7px', fontWeight: 600 }}>
-                              <Users size={11} /> {tnombre}
-                            </span>
-                          )}
-                          {opFaena && (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
-                              {opFaena.foto
-                                ? <img src={opFaena.foto} alt={opFaena.nombre} style={{ width: 20, height: 20, borderRadius: '50%', objectFit: 'cover', border: `1.5px solid ${t.ok}`, flexShrink: 0 }} />
-                                : <div style={{ width: 20, height: 20, borderRadius: '50%', background: t.brandTint, color: t.brandSoft, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, flexShrink: 0 }}>{(opFaena.nombre[0] ?? '?').toUpperCase()}</div>}
-                              <span style={{ fontSize: 10, color: t.ok, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{opFaena.nombre}</span>
-                              {opFaena.telefono && (
-                                <a href={`tel:${opFaena.telefono.replace(/[^\d+]/g,'')}`} onClick={e => e.stopPropagation()}
-                                  style={{ color: t.textMuted, display: 'flex' }}><Phone size={12} /></a>
-                              )}
-                              {(opFaena.correoCorp || opFaena.correoPersonal) && (
-                                <a href={`mailto:${opFaena.correoCorp || opFaena.correoPersonal}`} onClick={e => e.stopPropagation()}
-                                  style={{ color: t.textMuted, display: 'flex' }}><Mail size={12} /></a>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                    </button>
-                  )
-                })}
+                {centrosGrupo.map(renderCentro)}
               </div>
             </div>
           )
