@@ -15,7 +15,6 @@ import TabBitacora from '../tabs/TabBitacora'
 import PanelDespacho from '../dispatch/PanelDespacho'
 import TabEntregaTurno from '../tabs/TabEntregaTurno'
 import { kitBase, esCentroApertura, esTeamEspecial, esPiloto, labelTeamEspecial, estadoVisual } from '../../lib/kitScope'
-import { toast } from './toastBus'
 
 // Registro id → componente de pestaña (no serializable, vive en código).
 const TAB_COMPONENTES = {
@@ -54,26 +53,15 @@ export default memo(function PanelCentro({ centro, onCerrar, onEliminar, sincron
   const [estadoActual, setEstadoActual] = useState(centro.estado)
   const [aEliminar, setAEliminar]     = useState(false)
   const [aCerrarApertura, setACerrarApertura] = useState(false)
-  const [aMover, setAMover]           = useState(false)
   const [expanded, setExpanded]       = useState(false)
   const mostrarCerrarApertura = esPiloto(role) && esCentroApertura(centro)
 
-  // "Parkear" el centro: queda sin equipo (Disponible), listo para retomar a futuro.
-  // El kit (equipos/inventario/bitácora) sigue viviendo en teams/{team} y viaja con el piloto.
-  const parkearCentro = async () => {
-    if (actualizarCentro) await actualizarCentro(centro.id, { teamAsignado: null, estadoCiclo: 'registrado' })
-  }
+  // "Cerrar apertura": el centro queda sin equipo (Disponible), listo para que un admin
+  // le asigne un team a futuro. El kit (equipos/inventario/bitácora) sigue en teams/{team}
+  // y viaja con el piloto, que después abre un centro nuevo tocando el mapa.
   const handleCerrarApertura = async () => {
     setACerrarApertura(false)
-    await parkearCentro()
-  }
-  // Mover a otro centro: guarda el actual como Disponible y guía al piloto a abrir el
-  // nuevo. Al quedar teamAsignado=null, MapaPage cierra este panel solo y libera la
-  // guardia uno-a-la-vez, así el piloto toca el mapa y abre el nuevo centro.
-  const handleMover = async () => {
-    setAMover(false)
-    await parkearCentro()
-    toast.solicitud('Centro guardado como Disponible. Tocá en el mapa la ubicación del nuevo centro.')
+    if (actualizarCentro) await actualizarCentro(centro.id, { teamAsignado: null, estadoCiclo: 'registrado' })
   }
   const [teams, setTeams]             = useState([])
   const [asignandoTeam, setAsignandoTeam] = useState(false)
@@ -169,16 +157,10 @@ export default memo(function PanelCentro({ centro, onCerrar, onEliminar, sincron
         </div>
         <div style={{ display: 'flex', gap: 4, flexShrink: 0, alignItems: 'center' }}>
           {mostrarCerrarApertura && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <button onClick={() => setAMover(true)}
-                style={{ background: t.brand, border: 'none', color: '#fff', borderRadius: 6, padding: '5px 10px', cursor: 'pointer', fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap' }}>
-                Moverme a otro centro
-              </button>
-              <button onClick={() => setACerrarApertura(true)}
-                style={{ background: 'transparent', border: `1px solid ${t.border}`, color: t.textSecondary, borderRadius: 6, padding: '4px 10px', cursor: 'pointer', fontSize: 10, fontWeight: 600, whiteSpace: 'nowrap' }}>
-                Cerrar apertura
-              </button>
-            </div>
+            <button onClick={() => setACerrarApertura(true)}
+              style={{ background: t.brand, border: 'none', color: '#fff', borderRadius: 6, padding: '5px 10px', cursor: 'pointer', fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap' }}>
+              Cerrar apertura
+            </button>
           )}
           {role === 'admin' && (
             <>
@@ -263,19 +245,6 @@ export default memo(function PanelCentro({ centro, onCerrar, onEliminar, sincron
       >
         {TAB_COMPONENTES[tabActiva]?.({ centro, role: rolEfectivo, uid, teamId, sincronizarEstado })}
       </motion.div>
-
-      {aMover && (
-        <Modal open title="Moverme a otro centro" onClose={() => setAMover(false)} maxWidth={360}
-          footer={<>
-            <Button variant="secondary" size="lg" onClick={() => setAMover(false)}>Cancelar</Button>
-            <Button variant="primary" size="lg" onClick={handleMover}>Guardar y mover</Button>
-          </>}>
-          <p style={{ color: t.textSecondary, fontSize: t.textSm, margin: 0, lineHeight: 1.5 }}>
-            El centro <b style={{ color: t.textPrimary }}>{centro.nombre}</b> quedará guardado como <b>Disponible</b> (sin equipo),
-            listo para retomarlo a futuro. Tu kit (equipos e inventario) sigue con vos. Después tocá en el mapa la ubicación del nuevo centro.
-          </p>
-        </Modal>
-      )}
 
       {aCerrarApertura && (
         <Modal open title="Cerrar apertura" onClose={() => setACerrarApertura(false)} maxWidth={360}

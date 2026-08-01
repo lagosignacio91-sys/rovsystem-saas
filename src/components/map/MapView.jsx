@@ -11,7 +11,7 @@ import markerShadow from 'leaflet/dist/images/marker-shadow.png'
 import PopupCentro from './PopupCentro'
 import PopupCentroContactos from './PopupCentroContactos'
 import { t, ESTADO_META } from '../../theme/tokens'
-import { estadoVisual } from '../../lib/kitScope'
+import { estadoVisual, esPiloto } from '../../lib/kitScope'
 
 delete L.Icon.Default.prototype._getIconUrl
 L.Icon.Default.mergeOptions({
@@ -370,8 +370,12 @@ function MapInner({ centros, onMapClick, onCentroClick, role, userTeamId, centro
   const mapRef = useRef(null)
   const size = tamPorZoom(zoom)
 
+  // Roles de "campo" (operador, apertura, soberanía): en el mapa ven SU propio centro
+  // con color de estado y el resto en azul neutro. Los colores de estado de equipos/
+  // insumos (y el teal "Disponible") quedan solo para admin/supervisor.
+  const esCampo = role === 'operador' || esPiloto(role)
   const esAjeno = (centro) =>
-    role === 'operador' && centro.teamAsignado !== userTeamId
+    esCampo && centro.teamAsignado !== userTeamId
 
   const handleMarkerClick = (e, centro) => {
     L.DomEvent.stopPropagation(e)
@@ -437,7 +441,7 @@ function MapInner({ centros, onMapClick, onCentroClick, role, userTeamId, centro
         }}
       />
       <Leyenda />
-      {role !== 'operador' && <StatsPanel centros={centros} />}
+      {!esCampo && <StatsPanel centros={centros} />}
 
       {popupCentro && popupPos && popupTipo === 'propio' && (
         <div style={{ position: 'absolute', left: Math.min(Math.max(8, popupPos.x + 16), window.innerWidth - 240), top: Math.max(8, popupPos.y - 30), zIndex: 1000 }}
