@@ -14,7 +14,7 @@ import TabInventario from '../tabs/TabInventario'
 import TabBitacora from '../tabs/TabBitacora'
 import PanelDespacho from '../dispatch/PanelDespacho'
 import TabEntregaTurno from '../tabs/TabEntregaTurno'
-import { kitBase, esCentroApertura, esTeamEspecial, esPiloto } from '../../lib/kitScope'
+import { kitBase, esCentroApertura, esTeamEspecial, esPiloto, labelTeamEspecial } from '../../lib/kitScope'
 
 // Registro id → componente de pestaña (no serializable, vive en código).
 const TAB_COMPONENTES = {
@@ -65,21 +65,30 @@ export default memo(function PanelCentro({ centro, onCerrar, onEliminar, sincron
 
   const toggleExpanded = useCallback(() => setExpanded(v => !v), [])
 
-  // Teams fijos Team 01–16, EXCEPTO los reservados para operación especial (team08
-  // apertura, team14 soberanía — ver kitScope.js): esos se asignan solo desde el flujo
-  // dedicado de "Abrir centro" del piloto especial, nunca desde este selector genérico,
-  // para que un admin no pueda mezclar por error un centro normal con un kit especial.
+  // Teams fijos Team 01–16. Los reservados para operación especial (team08 apertura,
+  // team14 soberanía — ver kitScope.js) aparecen ETIQUETADOS: el admin puede reasignar
+  // un centro a un team especial a mano, además del flujo del piloto. Ojo: reasignar un
+  // centro NORMAL a un team especial mueve su kit a teams/{team} (el kit del centro
+  // queda de lado); mantené un solo centro especial por team a la vez.
   // Llega hasta team16 para cubrir las áreas nuevas (ej. Cisne = team15/team16).
   useEffect(() => {
     if (role !== 'admin') return
     setTeams(Array.from({ length: 16 }, (_, i) => i + 1)
       .map(n => `team${String(n).padStart(2, '0')}`)
-      .filter(uid => !esTeamEspecial(uid))
-      .map(uid => ({ uid, nombre: `Team ${uid.replace(/\D/g, '')}` })))
+      .map(uid => {
+        const esp = labelTeamEspecial(uid)
+        const num = uid.replace(/\D/g, '')
+        return { uid, nombre: esp ? `Team ${num} · ${esp}` : `Team ${num}` }
+      }))
   }, [role])
 
   const handleAsignarTeam = async (team) => {
-    if (actualizarCentro) await actualizarCentro(centro.id, { teamAsignado: team || null })
+    if (actualizarCentro) {
+      const patch = { teamAsignado: team || null }
+      // Reasignar a un team especial deja el centro en ciclo 'apertura' (kit en teams/{team}).
+      if (esTeamEspecial(team)) patch.estadoCiclo = 'apertura'
+      await actualizarCentro(centro.id, patch)
+    }
     setAsignandoTeam(false)
   }
 
